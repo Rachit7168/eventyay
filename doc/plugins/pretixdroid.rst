@@ -365,4 +365,3 @@ uses to communicate with the eventyay server.
    :statuscode 404: Unknown organizer or event
    :statuscode 403: Invalid authorization key
 
-.. _Eventyaydroid Android app: https://github.com/fossasia/eventyaydroid
