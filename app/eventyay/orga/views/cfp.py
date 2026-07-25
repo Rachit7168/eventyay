@@ -268,6 +268,12 @@ class CfPForms(EventPermissionRequired, TemplateView):
             'availabilities': availabilities_count,
         }
 
+        question_texts = {}
+        for step in self.request.event.cfp_flow.get_editor_config():
+            for field in step.get('fields', []):
+                question_texts[field['key']] = str(field['label'])
+        context['question_texts'] = question_texts
+
         return context
 
     @transaction.atomic
