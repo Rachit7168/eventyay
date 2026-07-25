@@ -26,7 +26,12 @@ const updateTabPanels = () => {
 const getTabFromHash = () => {
   const fragment = window.location.hash.substring(1)
   if (fragment) {
-    return document.querySelector(`${TAB_SELECTOR}#${CSS.escape(fragment)}`)
+    const selector = window.CSS && window.CSS.escape ? CSS.escape(fragment) : fragment
+    try {
+      return document.querySelector(`${TAB_SELECTOR}#${selector}`)
+    } catch (e) {
+      return null
+    }
   }
 }
 
@@ -64,8 +69,17 @@ const setupInvalidHandlers = () => {
   const firstTab = document.querySelector(TAB_SELECTOR)
   const form = firstTab?.closest('form')
   if (form) {
-    form.addEventListener('submit', () => {
+    const resetInvalidFlag = () => {
       handledSubmitInvalid = false
+    }
+    form.addEventListener('submit', resetInvalidFlag)
+    form.querySelectorAll('[type="submit"]').forEach((btn) => {
+      btn.addEventListener('click', resetInvalidFlag)
+    })
+    form.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        resetInvalidFlag()
+      }
     })
   }
 
