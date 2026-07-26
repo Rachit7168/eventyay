@@ -268,11 +268,27 @@ class CfPForms(EventPermissionRequired, TemplateView):
             'availabilities': availabilities_count,
         }
 
-        question_texts = {}
-        for step in self.request.event.cfp_flow.get_editor_config():
-            for field in step.get('fields', []):
-                question_texts[field['key']] = str(field['label'])
-        context['question_texts'] = question_texts
+        context['question_texts'] = {
+            'title': str(_('Proposal title')),
+            'submission_type': str(_('Session type')),
+            'track': str(_('Track')),
+            'content_locale': str(_('Language')),
+            'abstract': str(_('Abstract')),
+            'description': str(_('Description')),
+            'notes': str(_('Notes')),
+            'slot_count': str(_('Slot Count')),
+            'do_not_record': str(_('Don’t record this session.')),
+            'image': str(_('Session image')),
+            'slides': str(_('Slides')),
+            'duration': str(_('Duration')),
+            'biography': str(_('Biography')),
+            'availabilities': str(_('Availability')),
+            'additional_speaker': str(_('Additional Speaker')),
+            'fullname': str(_('Full name')),
+            'avatar': str(_('Profile picture')),
+            'avatar_source': str(_('Profile Picture Source')),
+            'avatar_license': str(_('Profile Picture License')),
+        }
 
         return context
 
