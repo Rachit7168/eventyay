@@ -690,17 +690,20 @@ class ProfileStep(GenericFlowStep, FormFlowStep):
         if request.event.cfp.request_social_links:
             profile = request.user.event_profile(request.event)
             stored = self.cfp_session.get('data', {}).get(self.social_links_session_key, [])
-            profile.social_links.all().delete()
-            if stored:
-                from eventyay.base.models import SpeakerSocialLink
+            from django.db import transaction
 
-                SpeakerSocialLink.objects.bulk_create(
-                    [
-                        SpeakerSocialLink(profile=profile, network=link['network'], url=link['url'])
-                        for link in stored
-                        if link.get('network') and link.get('url')
-                    ]
-                )
+            with transaction.atomic():
+                profile.social_links.all().delete()
+                if stored:
+                    from eventyay.base.models import SpeakerSocialLink
+
+                    SpeakerSocialLink.objects.bulk_create(
+                        [
+                            SpeakerSocialLink(profile=profile, network=link['network'], url=link['url'])
+                            for link in stored
+                            if link.get('network') and link.get('url')
+                        ]
+                    )
 
     @property
     def label(self):
