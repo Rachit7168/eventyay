@@ -268,7 +268,7 @@ class CfPForms(EventPermissionRequired, TemplateView):
             'availabilities': availabilities_count,
         }
 
-        context['question_texts'] = {
+        question_texts = {
             'title': str(_('Proposal title')),
             'submission_type': str(_('Session type')),
             'track': str(_('Track')),
@@ -289,6 +289,20 @@ class CfPForms(EventPermissionRequired, TemplateView):
             'avatar_source': str(_('Profile Picture Source')),
             'avatar_license': str(_('Profile Picture License')),
         }
+
+        try:
+            if event.cfp_flow:
+                config = event.cfp_flow.config
+                if isinstance(config, dict) and 'steps' in config:
+                    for step_data in config['steps'].values():
+                        if isinstance(step_data, dict) and 'fields' in step_data:
+                            for field_key, field_data in step_data['fields'].items():
+                                if isinstance(field_data, dict) and 'label' in field_data:
+                                    question_texts[field_key] = str(field_data['label'])
+        except Exception:
+            pass
+
+        context['question_texts'] = question_texts
 
         return context
 
