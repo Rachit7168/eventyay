@@ -21,6 +21,7 @@ from reportlab.pdfgen import canvas
 from eventyay.base.models import CachedFile, CachedTicket, OrderPosition, Question, QuestionAnswer
 from eventyay.base.services.tickets import invalidate_cache
 from eventyay.base.views.tasks import AsyncAction
+from eventyay.base.views.cachedfiles import DownloadView
 from eventyay.control.permissions import EventPermissionRequiredMixin
 from eventyay.control.views.pdf import BaseEditorView, open_stored_pdf_file
 from eventyay.helpers.models import modelcopy
@@ -407,7 +408,11 @@ class OrderPrintDo(BadgePluginEnabledMixin, EventPermissionRequiredMixin, AsyncA
         return None
 
     def get_success_url(self, value):
-        url = reverse('cachedfile.download', kwargs={'id': str(value)})
+        url = reverse('plugins:badges:download', kwargs={
+            'organizer': self.request.event.organizer.slug,
+            'event': self.request.event.slug,
+            'id': str(value)
+        })
         if self.request.GET.get('action') != 'download':
             url += '?inline=1'
         return url
@@ -448,3 +453,11 @@ class OrderPrintDo(BadgePluginEnabledMixin, EventPermissionRequiredMixin, AsyncA
             str(cf.id),
             positions,
         )
+
+
+class BadgeCachedDownloadView(DownloadView):
+    def get(self, request, *args, **kwargs):
+        resp = super().get(request, *args, **kwargs)
+        if request.GET.get('inline') in ('1', 'true') and getattr(self.object, 'file', None):
+            resp['Content-Disposition'] = 'inline; filename="{}"'.format(self.object.filename)
+        return resp
