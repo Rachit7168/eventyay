@@ -299,8 +299,8 @@ class CfPForms(EventPermissionRequired, TemplateView):
                             for field_key, field_data in step_data['fields'].items():
                                 if isinstance(field_data, dict) and 'label' in field_data:
                                     question_texts[field_key] = str(field_data['label'])
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning('Failed to parse cfp_flow config for event %s: %s', event.id, e)
 
         context['question_texts'] = question_texts
 
