@@ -157,9 +157,7 @@ def get_reply_to_address(
     override
     → template.reply_to
     → event.settings.mail_reply_to  (canonical common setting for both Tickets and Talks)
-    → event.email             (organizer email set on the event)
     → organizer.settings.contact_mail  (fallback to organizer-level contact address)
-    → mail_settings['reply_to']        (legacy Talks field, kept for backwards compat)
     → None
     """
     if override is not None:
@@ -173,13 +171,8 @@ def get_reply_to_address(
 
     use_default_sender = not event.settings.smtp_use_custom
     if use_default_sender and sender_email == settings.MAIL_FROM:
-        if event.email:
-            return event.email
         contact_mail = event.organizer.settings.get('contact_mail')
         if contact_mail:
             return contact_mail
-
-    if event.mail_settings.get('reply_to'):
-        return event.mail_settings['reply_to']
 
     return None

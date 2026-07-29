@@ -615,14 +615,11 @@ class Submission(GenerateCode, PretalxModel):
             )
             admin_emails = [e for e in admin_emails if e and e.strip()]
             if not admin_emails:
-                raw_fallback = (
-                    self.event.email
-                    or self.event.settings.mail_from
-                )
+                raw_fallback = self.event.settings.mail_from
                 if not raw_fallback:
-                    legacy_reply_to = self.event.mail_settings.get('reply_to', '')
+                    common_reply_to = self.event.settings.get('mail_reply_to', '')
                     raw_fallback = next(
-                        (a.strip() for a in legacy_reply_to.split(',') if a.strip()),
+                        (a.strip() for a in common_reply_to.split(',') if a.strip()),
                         None,
                     )
                 if raw_fallback:
