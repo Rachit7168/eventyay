@@ -19,8 +19,21 @@
 							h4 {{ speaker.name || t.speaker_fallback }}
 							markdown-content.featured-speaker-preview-bio(v-if="speaker.biography", :markdown="speaker.biography")
 				.featured-speaker-details
+					.speaker-social-links(v-if="speaker.social_links && speaker.social_links.length")
+						a.speaker-social-link(
+							v-for="link in speaker.social_links",
+							:key="link.key + link.url",
+							:href="link.url",
+							:class="'speaker-social-link--' + link.key",
+							:style="{ color: link.color || undefined }",
+							:aria-label="link.label",
+							:title="link.label",
+							target="_blank",
+							rel="noopener noreferrer")
+							span.speaker-social-svg(v-html="getSocialIconHtml(link)")
 					template(v-if="speaker.sessions && speaker.sessions.length")
-						hr.featured-speaker-divider
+						hr.featured-speaker-divider(v-if="speaker.social_links && speaker.social_links.length")
+						hr.featured-speaker-divider(v-else)
 						.featured-speaker-sessions
 							h4 {{ t.sessions }}
 							.featured-speaker-session(
@@ -43,7 +56,7 @@
 </template>
 
 <script>
-import { getLocalizedString, compareFeaturedSpeakers, talksToScheduleSessions, buildSessionsBySpeaker, sessionsForSpeaker, sortSessionsByStart, isTalkSchedulePending } from '../utils'
+import { getLocalizedString, compareFeaturedSpeakers, talksToScheduleSessions, buildSessionsBySpeaker, sessionsForSpeaker, sortSessionsByStart, isTalkSchedulePending, getSocialIconHtml } from '../utils'
 import moment from 'moment-timezone'
 import MarkdownContent from './MarkdownContent'
 
@@ -81,6 +94,7 @@ export default {
 		return {
 			getLocalizedString,
 			isTalkSchedulePending,
+			getSocialIconHtml,
 		}
 	},
 	computed: {
@@ -312,6 +326,36 @@ export default {
 		padding: 12px
 		background: $clr-grey-100
 		border-top: 1px solid $clr-grey-300
+
+	.speaker-social-links
+		display: flex
+		flex-wrap: wrap
+		gap: 8px
+		margin-bottom: 4px
+		justify-content: center
+
+	.speaker-social-link
+		display: inline-flex
+		align-items: center
+		justify-content: center
+		width: 32px
+		height: 32px
+		border-radius: 6px
+		background: rgba(0, 0, 0, 0.06)
+		color: inherit
+		text-decoration: none
+		font-size: 16px
+		transition: background-color 0.15s ease, transform 0.15s ease
+		&:hover, &:focus-visible
+			background: rgba(0, 0, 0, 0.12)
+			transform: translateY(-1px)
+		.speaker-social-svg
+			display: inline-flex
+			width: 18px
+			height: 18px
+			svg
+				width: 18px
+				height: 18px
 
 	.featured-speaker-divider
 		margin: 12px 0 8px
