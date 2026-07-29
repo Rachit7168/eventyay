@@ -60,7 +60,11 @@ def can_change_organizer_settings(user, obj):
 def has_any_permission(user, obj):
     if not user or user.is_anonymous:
         return False
-    return bool(user.get_permissions_for_event(obj.event))
+    event = getattr(obj, 'event', None) or obj
+    if user.is_administrator:
+        return True
+    perms = user.get_permissions_for_event(event)
+    return 'can_change_submissions' in perms or 'is_reviewer' in perms
 
 
 @rules.predicate
