@@ -24,10 +24,21 @@ const getTabFromHash = () => {
 }
 
 const initTabs = () => {
-    // First, check if there is a tab selected by the hash. If not:
-    // Fall back to the last selected tab, and failing that, the first tab
+    let selectedTab = null;
 
-    let selectedTab = getTabFromHash()
+    // Prioritize showing validation errors
+    const errorElement = document.querySelector('[role=tabpanel] .invalid-feedback, [role=tabpanel] .has-error, [role=tabpanel] .errorlist');
+    if (errorElement) {
+        const panel = errorElement.closest('[role=tabpanel]');
+        if (panel) {
+            const tabId = panel.getAttribute('aria-labelledby');
+            if (tabId) {
+                selectedTab = document.getElementById(tabId);
+            }
+        }
+    }
+
+    if (!selectedTab) { selectedTab = getTabFromHash() }
     if (!selectedTab) { selectedTab = document.querySelector(`${TAB_SELECTOR}:checked`) }
     if (!selectedTab) { selectedTab = document.querySelector(TAB_SELECTOR) }
     if (!selectedTab) return
