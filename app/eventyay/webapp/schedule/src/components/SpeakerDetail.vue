@@ -14,18 +14,7 @@
 			.speaker-content-area
 				.speaker-title
 					h2 {{ resolvedSpeaker.name || t.speaker_fallback }}
-				.speaker-social-links(v-if="socialLinks.length")
-					a.speaker-social-link(
-						v-for="link in socialLinks",
-						:key="link.key + link.url",
-						:href="link.url",
-						:class="'speaker-social-link--' + link.key",
-						:style="{ color: link.color || undefined }",
-						:aria-label="link.label",
-						:title="link.label",
-						target="_blank",
-						rel="noopener noreferrer")
-						span.speaker-social-svg(v-html="getSocialIconHtml(link)")
+				speaker-social-links(:links="socialLinks", alignment="flex-start")
 		.field-section.biography-section(v-if="resolvedSpeaker.biography")
 			h2.field-heading {{ t.biography }}
 			.field-content
@@ -62,15 +51,16 @@
 
 <script>
 import moment from 'moment-timezone'
-import { getLocalizedString, buildExportMenuItems, computeSpeakerExporters, parseBooleanAnswer, buildQrcodesUrl, sessionsForSpeaker, getSocialIconHtml } from '../utils'
+import { getLocalizedString, buildExportMenuItems, computeSpeakerExporters, parseBooleanAnswer, buildQrcodesUrl, sessionsForSpeaker } from '../utils'
 import MarkdownContent from './MarkdownContent.vue'
 import Session from './Session.vue'
 import DetailBackNav from './DetailBackNav.vue'
 import DetailTopActions from './DetailTopActions.vue'
+import SpeakerSocialLinks from './SpeakerSocialLinks.vue'
 
 export default {
 	name: 'SpeakerDetail',
-	components: { MarkdownContent, Session, DetailBackNav, DetailTopActions },
+	components: { MarkdownContent, Session, DetailBackNav, DetailTopActions, SpeakerSocialLinks },
 	inject: {
 		eventUrl: { default: null },
 		remoteApiUrl: { default: '' },
@@ -116,7 +106,6 @@ export default {
 		return {
 			getLocalizedString,
 			parseBooleanAnswer,
-			getSocialIconHtml,
 			fetchedApiContent: null,
 			apiContentLoaded: false,
 		}
@@ -320,33 +309,6 @@ export default {
 		h2
 			margin: 0
 			text-align: left
-	.speaker-social-links
-		display: flex
-		flex-wrap: wrap
-		gap: 8px
-		margin-top: 8px
-	.speaker-social-link
-		display: inline-flex
-		align-items: center
-		justify-content: center
-		width: 32px
-		height: 32px
-		border-radius: 6px
-		background: rgba(0, 0, 0, 0.06)
-		color: inherit
-		text-decoration: none
-		font-size: 16px
-		transition: background-color 0.15s ease, transform 0.15s ease
-		&:hover, &:focus-visible
-			background: rgba(0, 0, 0, 0.12)
-			transform: translateY(-1px)
-		.speaker-social-svg
-			display: inline-flex
-			width: 18px
-			height: 18px
-			svg
-				width: 18px
-				height: 18px
 	.speaker-avatar
 		flex-shrink: 0
 		width: 128px
