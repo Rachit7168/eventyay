@@ -465,6 +465,35 @@ def get_grouped_products(
     return products, display_add_to_cart
 
 
+def event_has_redeemable_voucher_products(event, subevent=None, channel='web'):
+    """
+    Return whether at least one active voucher can still be used to purchase
+    an available product.
+    """
+    if not event.vouchers.exists():
+        return False
+
+    subevents_to_check = [subevent]
+    if event.has_subevents and subevent is None:
+        subevents_to_check = list(event.subevents.filter(active=True))
+    elif not event.has_subevents:
+        subevents_to_check = [None]
+
+    for se in subevents_to_check:
+        for voucher in event.vouchers.all():
+            if not voucher.is_active():
+                continue
+            products, display_add_to_cart = get_grouped_products(
+                event,
+                se,
+                voucher=voucher,
+                channel=channel,
+            )
+            if products and display_add_to_cart:
+                return True
+    return False
+
+
 @method_decorator(allow_frame_if_namespaced, 'dispatch')
 @method_decorator(iframe_entry_view_wrapper, 'dispatch')
 class EventIndex(EventViewMixin, EventListMixin, CartMixin, TemplateView):
@@ -536,11 +565,12 @@ class EventIndex(EventViewMixin, EventListMixin, CartMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        # Show voucher option if an event is selected and vouchers exist
-        vouchers_exist = self.request.event.cache.get('vouchers_exist')
-        if vouchers_exist is None:
-            vouchers_exist = self.request.event.vouchers.exists()
-            self.request.event.cache.set('vouchers_exist', vouchers_exist)
+        # Show voucher option only if redeemable products exist for active vouchers
+        vouchers_exist = event_has_redeemable_voucher_products(
+            self.request.event,
+            self.subevent,
+            channel=self.request.sales_channel.identifier,
+        )
         context['show_vouchers'] = context['vouchers_exist'] = vouchers_exist
 
         if not self.request.event.has_subevents or self.subevent:
