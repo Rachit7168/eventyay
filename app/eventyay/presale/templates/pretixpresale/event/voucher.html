@@ -103,7 +103,7 @@
                                             <a href="{{ item.picture.url }}" class="productpicture"
                                                     data-title="{{ item.name|event_localize|force_escape|force_escape }}"
                                                     {# Yes, double-escape to prevent XSS in lightbox #}
-                                                    data-lightbox="{{ item.id }}">
+                                                    target="_blank">
                                                 <img src="{{ item.picture|thumb:'60x60^' }}"
                                                         alt="{{ item.name|event_localize }}"/>
                                             </a>
@@ -247,7 +247,7 @@
                                         <a href="{{ item.picture.url }}" class="productpicture"
                                                 data-title="{{ item.name|event_localize|force_escape|force_escape }}"
                                                 {# Yes, double-escape to prevent XSS in lightbox #}
-                                                data-lightbox="{{ item.id }}">
+                                                target="_blank">
                                             <img src="{{ item.picture|thumb:'60x60^' }}"
                                                     alt="{{ item.name|event_localize }}"/>
                                         </a>

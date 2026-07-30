@@ -34,7 +34,7 @@ from eventyay.base.models import (
 )
 from eventyay.base.models.product import ProductAddOn, ProductBundle, ProductMetaValue
 from eventyay.base.signals import product_copy_data
-from eventyay.control.forms import SplitDateTimeField, SplitDateTimePickerWidget
+from eventyay.control.forms import ClearableBasenameFileInput, SplitDateTimeField, SplitDateTimePickerWidget
 from eventyay.control.forms.widgets import Select2
 from eventyay.helpers.models import modelcopy
 from eventyay.helpers.money import change_decimal_field
@@ -697,6 +697,7 @@ class ProductUpdateForm(I18nModelForm):
             'available_until': SplitDateTimePickerWidget(attrs={'data-date-after': '#id_available_from_0'}),
             'generate_tickets': TicketNullBooleanSelect(),
             'show_quota_left': ShowQuotaNullBooleanSelect(),
+            'picture': ClearableBasenameFileInput(),
         }
 
 
