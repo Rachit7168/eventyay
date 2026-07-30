@@ -29,7 +29,7 @@
                                 <a href="{{ product.picture.url }}" class="productpicture"
                                    data-title="{{ product.name|event_localize|force_escape|force_escape }}"
                                         {# Yes, double-escape to prevent XSS in lightbox #}
-                                   target="_blank"
+                                   data-lightbox="{{ product.id }}"
                                    aria-label="{% blocktrans trimmed with product=product.name|event_localize %}Show full-size image of {{ product }}{% endblocktrans %}">
                                     <img src="{{ product.picture|thumb:'60x60^' }}"
                                          alt="{{ product.name|event_localize }}"/>
@@ -207,7 +207,7 @@
                                <a href="{{ product.picture.url }}" class="productpicture"
                                  data-title="{{ product.name|event_localize|force_escape|force_escape }}"
                                     {# Yes, double-escape to prevent XSS in lightbox #}
-                                target="_blank"
+                               data-lightbox="{{ product.id }}"
                                  aria-label="{% blocktrans trimmed with product=product.name|event_localize %}Show full-size image of {{ product }}{% endblocktrans %}">
                                 <img src="{{ product.picture|thumb:'60x60^' }}"
                                       alt="{{ product.name|event_localize }}"/>
