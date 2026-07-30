@@ -12,7 +12,7 @@
             </a>
         </div>
     {% endif %}
-    {{ widget.initial_text }}: <a href="{{ widget.value.url }}" class="thumbnailed-file-link">{{ widget.value }}</a>
+    {{ widget.initial_text }}: <a href="{{ widget.value.url }}" class="thumbnailed-file-link"{% if widget.value.is_img %} data-lightbox="{{ widget.name }}"{% endif %}>{{ widget.value }}</a>
     {% if not widget.required %}
         <span class="delete-checkbox-wrapper thumbnailed-file-delete-wrapper">
             <input type="checkbox" name="{{ widget.checkbox_name }}" id="{{ widget.checkbox_id }}" class="thumbnailed-file-checkbox">

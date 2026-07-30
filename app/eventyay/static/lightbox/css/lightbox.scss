@@ -206,6 +206,10 @@ body:after {
   z-index: 10003;
 }
 
+#lightboxOverlay .lb-closeContainer {
+  z-index: 10004;
+}
+
 .lightbox .lb-closeContainer .lb-close {
   float: none;
   width: 36px;
