@@ -1,0 +1,48 @@
+.eventyay-image-preview-dialog {
+    border: none;
+    padding: 0;
+    margin: auto;
+    max-width: none;
+    max-height: none;
+    background: transparent;
+    overflow: visible;
+}
+
+.eventyay-image-preview-dialog::backdrop {
+    background: rgba(0, 0, 0, 0.85);
+}
+
+.eventyay-image-preview-dialog__close {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 1;
+    border: none;
+    background: transparent;
+    color: #fff;
+    font-size: 36px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    width: 40px;
+    height: 40px;
+}
+
+.eventyay-image-preview-dialog__close:hover,
+.eventyay-image-preview-dialog__close:focus {
+    color: #fff;
+    opacity: 0.85;
+    outline: none;
+}
+
+.eventyay-image-preview-dialog__image {
+    display: block;
+    max-width: min(95vw, 1200px);
+    max-height: 90vh;
+    width: auto;
+    height: auto;
+    margin: 0 auto;
+    background: #fff;
+    padding: 4px;
+    border-radius: 4px;
+}
