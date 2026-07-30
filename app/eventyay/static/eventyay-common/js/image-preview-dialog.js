@@ -1,95 +1,86 @@
-let previewDialog = null;
-let previewImage = null;
+const PREVIEW_LINK_SELECTOR =
+  'a[data-lightbox], .thumbnailed-file-preview-container a, a.thumbnailed-file-link, .form-image-preview a';
+const IMAGE_EXTENSION = /\.(jpe?g|png|gif|webp|svg)(\?.*)?$/i;
 
-function getPreviewDialog() {
-  if (previewDialog) {
-    return previewDialog;
-  }
+let dialog = null;
+let image = null;
 
-  previewDialog = document.createElement('dialog');
-  previewDialog.className = 'eventyay-image-preview-dialog';
-  previewDialog.innerHTML =
-    '<button type="button" class="eventyay-image-preview-dialog__close" aria-label="Close">&times;</button>' +
-    '<img class="eventyay-image-preview-dialog__image" alt="">';
-
-  previewImage = previewDialog.querySelector('.eventyay-image-preview-dialog__image');
-  const closeButton = previewDialog.querySelector('.eventyay-image-preview-dialog__close');
-
-  closeButton.addEventListener('click', closeImagePreview);
-  previewDialog.addEventListener('click', (event) => {
-    if (event.target === previewDialog) {
-      closeImagePreview();
-    }
-  });
-  previewDialog.addEventListener('cancel', () => {
-    if (previewImage) {
-      previewImage.removeAttribute('src');
-    }
-  });
-
-  document.body.appendChild(previewDialog);
-  return previewDialog;
-}
-
-function isImagePreviewLink(link) {
-  if (!link?.href) {
-    return false;
-  }
-
-  if (link.matches('[data-lightbox], .thumbnailed-file-preview-container a, a.thumbnailed-file-link, .form-image-preview a')) {
-    if (link.querySelector('img')) {
-      return true;
-    }
-    return /\.(jpe?g|png|gif|webp|svg)(\?.*)?$/i.test(link.pathname || link.href);
-  }
-
-  return false;
-}
-
-export function openImagePreview(url, alt = '') {
-  if (!url) {
+function ensureDialog() {
+  if (dialog) {
     return;
   }
 
-  const dialog = getPreviewDialog();
-  previewImage.src = url;
-  previewImage.alt = alt;
+  dialog = document.createElement('dialog');
+  dialog.className = 'eventyay-image-preview-dialog';
+  dialog.innerHTML =
+    '<button type="button" class="eventyay-image-preview-dialog__close" aria-label="Close">&times;</button>' +
+    '<img class="eventyay-image-preview-dialog__image" alt="">';
+
+  image = dialog.querySelector('.eventyay-image-preview-dialog__image');
+  dialog.querySelector('.eventyay-image-preview-dialog__close').addEventListener('click', closePreview);
+  dialog.addEventListener('click', (event) => {
+    if (event.target === dialog) {
+      closePreview();
+    }
+  });
+  dialog.addEventListener('cancel', () => {
+    image.removeAttribute('src');
+  });
+  document.body.appendChild(dialog);
+}
+
+function isImageLink(link) {
+  if (!link?.href || !link.matches(PREVIEW_LINK_SELECTOR)) {
+    return false;
+  }
+
+  if (link.querySelector('img')) {
+    return true;
+  }
+
+  try {
+    return IMAGE_EXTENSION.test(new URL(link.href, window.location.href).pathname);
+  } catch {
+    return IMAGE_EXTENSION.test(link.href);
+  }
+}
+
+function openPreview(link) {
+  ensureDialog();
+  const thumb = link.querySelector('img');
+  image.src = link.href;
+  image.alt = thumb?.alt || link.textContent.trim();
   if (!dialog.open) {
     dialog.showModal();
   }
 }
 
-export function closeImagePreview() {
-  if (!previewDialog?.open) {
+function closePreview() {
+  if (!dialog?.open) {
     return;
   }
 
-  previewDialog.close();
-  previewImage?.removeAttribute('src');
+  dialog.close();
+  image.removeAttribute('src');
 }
 
-export function initImagePreviewDialog(root = document) {
-  root.addEventListener(
-    'click',
-    (event) => {
-      const link = event.target.closest('a');
-      if (!isImagePreviewLink(link)) {
-        return;
-      }
+function handleClick(event) {
+  const link = event.target.closest('a');
+  if (!isImageLink(link)) {
+    return;
+  }
 
-      event.preventDefault();
-      event.stopPropagation();
-      event.stopImmediatePropagation();
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  openPreview(link);
+}
 
-      const thumb = link.querySelector('img');
-      openImagePreview(link.href, thumb?.alt || link.textContent.trim());
-    },
-    true,
-  );
+function init() {
+  document.addEventListener('click', handleClick, true);
 }
 
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => initImagePreviewDialog());
+  document.addEventListener('DOMContentLoaded', init);
 } else {
-  initImagePreviewDialog();
+  init();
 }

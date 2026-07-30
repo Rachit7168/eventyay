@@ -853,7 +853,7 @@ $(function () {
     "use strict";
 
     $("body").removeClass("nojs");
-    lightbox.option({ fadeDuration: 0, resizeDuration: 0 });
+    lightbox.init();
 
     $("[data-formset]").formset(
         {

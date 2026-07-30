@@ -705,8 +705,8 @@ $(function () {
         });
     }
 
-    // Lightbox - disable transition animations for instant image display
-    lightbox.option({ fadeDuration: 0, resizeDuration: 0 });
+    // Lightbox
+    lightbox.init();
 });
 
 window.addEventListener('pageshow', function (event) {

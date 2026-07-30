@@ -51,24 +51,6 @@
     wrapAround: false
   };
 
-  function transitionIn($el, duration) {
-    $el.stop(true, true);
-    if (duration <= 0) {
-      $el.show();
-    } else {
-      $el.fadeIn(duration);
-    }
-  }
-
-  function transitionOut($el, duration) {
-    $el.stop(true, true);
-    if (duration <= 0) {
-      $el.hide();
-    } else {
-      $el.fadeOut(duration);
-    }
-  }
-
   Lightbox.prototype.option = function(options) {
     $.extend(this.options, options);
   };
@@ -152,9 +134,6 @@
       self.end();
       return false;
     });
-
-    this.$closeContainer = this.$lightbox.find('.lb-closeContainer').detach();
-    this.$overlay.append(this.$closeContainer);
   };
 
   // Show overlay and lightbox. If the image is part of a set, add siblings to album array.
@@ -214,8 +193,7 @@
     this.$lightbox.css({
       top: top + 'px',
       left: left + 'px'
-    });
-    transitionIn(this.$lightbox, this.options.fadeDuration);
+    }).fadeIn(this.options.fadeDuration);
 
     this.changeImage(imageNumber);
   };
@@ -227,13 +205,9 @@
     this.disableKeyboardNav();
     var $image = this.$lightbox.find('.lb-image');
 
-    transitionIn(this.$overlay, this.options.fadeDuration);
+    this.$overlay.fadeIn(this.options.fadeDuration);
 
-    if (this.options.fadeDuration > 0) {
-      transitionIn($('.lb-loader'), this.options.fadeDuration);
-    } else {
-      $('.lb-loader').hide();
-    }
+    $('.lb-loader').fadeIn('slow');
     this.$lightbox.find('.lb-image, .lb-nav, .lb-prev, .lb-next, .lb-dataContainer, .lb-numbers, .lb-caption').hide();
 
     this.$outerContainer.addClass('animating');
@@ -319,17 +293,12 @@
     }
 
     if (oldWidth !== newWidth || oldHeight !== newHeight) {
-      if (this.options.resizeDuration <= 0) {
-        this.$outerContainer.width(newWidth).height(newHeight);
+      this.$outerContainer.animate({
+        width: newWidth,
+        height: newHeight
+      }, this.options.resizeDuration, 'swing', function() {
         postResize();
-      } else {
-        this.$outerContainer.animate({
-          width: newWidth,
-          height: newHeight
-        }, this.options.resizeDuration, 'swing', function() {
-          postResize();
-        });
-      }
+      });
     } else {
       postResize();
     }
@@ -338,7 +307,7 @@
   // Display the image and its details and begin preload neighboring images.
   Lightbox.prototype.showImage = function() {
     this.$lightbox.find('.lb-loader').stop(true).hide();
-    transitionIn(this.$lightbox.find('.lb-image'), this.options.fadeDuration);
+    this.$lightbox.find('.lb-image').fadeIn('slow');
 
     this.updateNav();
     this.updateDetails();
@@ -392,9 +361,7 @@
       this.album[this.currentImageIndex].title !== '') {
       this.$lightbox.find('.lb-caption')
         .html(this.album[this.currentImageIndex].title)
-        .each(function() {
-          transitionIn($(this), self.options.fadeDuration);
-        })
+        .fadeIn('fast')
         .find('a').on('click', function(event) {
           if ($(this).attr('target') !== undefined) {
             window.open($(this).attr('href'), $(this).attr('target'));
@@ -406,23 +373,16 @@
 
     if (this.album.length > 1 && this.options.showImageNumberLabel) {
       var labelText = this.imageCountLabel(this.currentImageIndex + 1, this.album.length);
-      this.$lightbox.find('.lb-number').text(labelText);
-      transitionIn(this.$lightbox.find('.lb-number'), this.options.fadeDuration);
+      this.$lightbox.find('.lb-number').text(labelText).fadeIn('fast');
     } else {
       this.$lightbox.find('.lb-number').hide();
     }
 
     this.$outerContainer.removeClass('animating');
 
-    var $dataContainer = this.$lightbox.find('.lb-dataContainer');
-    if (this.options.resizeDuration <= 0) {
-      transitionIn($dataContainer, 0);
-      self.sizeOverlay();
-    } else {
-      $dataContainer.fadeIn(this.options.resizeDuration, function() {
-        return self.sizeOverlay();
-      });
-    }
+    this.$lightbox.find('.lb-dataContainer').fadeIn(this.options.resizeDuration, function() {
+      return self.sizeOverlay();
+    });
   };
 
   // Preload previous and next images in set.
@@ -473,8 +433,8 @@
   Lightbox.prototype.end = function() {
     this.disableKeyboardNav();
     $(window).off('resize', this.sizeOverlay);
-    transitionOut(this.$lightbox, this.options.fadeDuration);
-    transitionOut(this.$overlay, this.options.fadeDuration);
+    this.$lightbox.fadeOut(this.options.fadeDuration);
+    this.$overlay.fadeOut(this.options.fadeDuration);
     $('select, object, embed').css({
       visibility: 'visible'
     });
