@@ -207,7 +207,7 @@
 
     this.$overlay.fadeIn(this.options.fadeDuration);
 
-    $('.lb-loader').fadeIn('slow');
+    $('.lb-loader').fadeIn(this.options.fadeDuration);
     this.$lightbox.find('.lb-image, .lb-nav, .lb-prev, .lb-next, .lb-dataContainer, .lb-numbers, .lb-caption').hide();
 
     this.$outerContainer.addClass('animating');
@@ -307,7 +307,7 @@
   // Display the image and its details and begin preload neighboring images.
   Lightbox.prototype.showImage = function() {
     this.$lightbox.find('.lb-loader').stop(true).hide();
-    this.$lightbox.find('.lb-image').fadeIn('slow');
+    this.$lightbox.find('.lb-image').fadeIn(this.options.fadeDuration);
 
     this.updateNav();
     this.updateDetails();
@@ -361,7 +361,7 @@
       this.album[this.currentImageIndex].title !== '') {
       this.$lightbox.find('.lb-caption')
         .html(this.album[this.currentImageIndex].title)
-        .fadeIn('fast')
+        .fadeIn(this.options.fadeDuration)
         .find('a').on('click', function(event) {
           if ($(this).attr('target') !== undefined) {
             window.open($(this).attr('href'), $(this).attr('target'));
@@ -373,7 +373,7 @@
 
     if (this.album.length > 1 && this.options.showImageNumberLabel) {
       var labelText = this.imageCountLabel(this.currentImageIndex + 1, this.album.length);
-      this.$lightbox.find('.lb-number').text(labelText).fadeIn('fast');
+      this.$lightbox.find('.lb-number').text(labelText).fadeIn(this.options.fadeDuration);
     } else {
       this.$lightbox.find('.lb-number').hide();
     }
