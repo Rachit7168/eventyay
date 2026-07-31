@@ -1,5 +1,5 @@
 const PREVIEW_LINK_SELECTOR =
-  '.thumbnailed-file-preview-container a, a.thumbnailed-file-link, .form-image-preview a';
+  '.thumbnailed-file-preview-container a, a.thumbnailed-file-link, .form-image-preview a, a.productpicture';
 const IMAGE_EXTENSION = /\.(jpe?g|png|gif|webp|svg)(\?.*)?$/i;
 
 let dialog = null;
