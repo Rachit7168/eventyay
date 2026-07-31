@@ -1,5 +1,5 @@
 const PREVIEW_LINK_SELECTOR =
-  'a[data-lightbox], .thumbnailed-file-preview-container a, a.thumbnailed-file-link, .form-image-preview a';
+  '.thumbnailed-file-preview-container a, a.thumbnailed-file-link, .form-image-preview a';
 const IMAGE_EXTENSION = /\.(jpe?g|png|gif|webp|svg)(\?.*)?$/i;
 
 let dialog = null;
@@ -30,7 +30,8 @@ function ensureDialog() {
 }
 
 function isImageLink(link) {
-  if (!link?.href || !link.matches(PREVIEW_LINK_SELECTOR)) {
+  const href = link?.getAttribute('href');
+  if (!href || href === '#' || !link.matches(PREVIEW_LINK_SELECTOR)) {
     return false;
   }
 
@@ -65,13 +66,17 @@ function closePreview() {
 }
 
 function handleClick(event) {
+  if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) {
+    return;
+  }
+
   const link = event.target.closest('a');
   if (!isImageLink(link)) {
     return;
   }
 
   event.preventDefault();
-  event.stopImmediatePropagation();
+  event.stopPropagation();
   openPreview(link);
 }
 
