@@ -392,14 +392,16 @@
                 </div>
             </div>
 
-            {% if is_talk_event_created %}
+            {% if is_talk_event_created and request.user.is_administrator %}
             <div class="panel panel-default">
                 <div class="panel-heading">
                     <h3 class="panel-title">{% translate "Delete talk data" %}</h3>
                 </div>
                 <div class="row panel-body">
                     <div class="col-sm-12 col-md-9 nomargin-bottom">
-                        {% translate "Make it clear that this deletes Talk component data, not the whole event." %}
+                        {% blocktrans trimmed %}
+                            ALL related data, such as proposals, speaker profiles, and uploads, will also be deleted and cannot be restored. Please make sure that this is the item you want to delete. This action cannot be undone! This deletes Talk component data only, not the whole event.
+                        {% endblocktrans %}
                     </div>
                     <div class="col-sm-12 col-md-3">
                         <a href="{{ request.event.orga_urls.delete }}" class="btn btn-delete btn-danger btn-block btn-lg">

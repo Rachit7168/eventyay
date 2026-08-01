@@ -16,7 +16,8 @@
     <form method="post">
         {% csrf_token %}
         <div class="form-group mb-4">
-            <input type="text" id="eventNameConfirm" class="form-control" autocomplete="off" placeholder="{{ request.event.name }}">
+            <label for="eventNameConfirm" class="control-label">{% translate "Event name" %}</label>
+            <input type="text" name="event_name_confirm" id="eventNameConfirm" class="form-control" autocomplete="off" placeholder="{{ request.event.name }}">
         </div>
         
         <div class="submit-group">
@@ -38,27 +39,11 @@
                         </button>
                     {% endif %}
                 {% endfor %}
-                <button type="submit" id="deleteConfirmBtn" class="btn btn-lg btn-{{ action_confirm_color|default:"danger" }}" {% if action_confirm_name %}name="{{ action_confirm_name }}"{% endif %} {% if action_confirm_value %}value="{{ action_confirm_value }}"{% endif %} disabled>
+                <button type="submit" id="deleteConfirmBtn" class="btn btn-lg btn-{{ action_confirm_color|default:"danger" }}" {% if action_confirm_name %}name="{{ action_confirm_name }}"{% endif %} {% if action_confirm_value %}value="{{ action_confirm_value }}"{% endif %}>
                     {% if action_confirm_icon != "" %}<i class="fa fa-{{ action_confirm_icon|default:"trash" }}"></i>{% endif %}
                     {{ action_confirm_label|default:phrases.base.delete_button }}
                 </button>
             </div>
         </div>
     </form>
-    
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            var input = document.getElementById('eventNameConfirm');
-            var btn = document.getElementById('deleteConfirmBtn');
-            var expectedName = "{{ request.event.name|escapejs }}";
-            
-            input.addEventListener('input', function() {
-                if (input.value === expectedName) {
-                    btn.disabled = false;
-                } else {
-                    btn.disabled = true;
-                }
-            });
-        });
-    </script>
 {% endblock content %}
