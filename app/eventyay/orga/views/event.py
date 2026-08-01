@@ -372,7 +372,7 @@ class EventDelete(PermissionRequired, ActionConfirmMixin, TemplateView):
         return self.get_object().orga_urls.settings
 
     def post(self, request, *args, **kwargs):
-        if request.POST.get('event_name_confirm') != self.get_object().name:
+        if request.POST.get('event_name_confirm') != str(self.get_object().name):
             messages.error(self.request, _('The event name you entered was incorrect.'))
             return redirect(self.request.path)
         self.get_object().shred(person=self.request.user)

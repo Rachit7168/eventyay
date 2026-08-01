@@ -9,15 +9,24 @@
     <p><strong>{{ action_object_name }}</strong></p>
     <p>{{ action_text|default:phrases.base.delete_warning }}</p>
 
-    <div class="alert alert-warning">
-        <span>{% translate "Please type the event name to confirm:" %} <strong>{{ request.event.name }}</strong></span>
-    </div>
-
     <form method="post">
         {% csrf_token %}
-        <div class="form-group mb-4">
-            <label for="eventNameConfirm" class="control-label">{% translate "Event name" %}</label>
-            <input type="text" name="event_name_confirm" id="eventNameConfirm" class="form-control" autocomplete="off" placeholder="{{ request.event.name }}">
+        
+        <div class="panel panel-danger">
+            <div class="panel-heading">
+                <h3 class="panel-title">{% translate "Confirm action" %}</h3>
+            </div>
+            <div class="panel-body">
+                <p>
+                    {% blocktrans trimmed with name=request.event.name %}
+                        Please type the event name <strong>{{ name }}</strong> to confirm this action:
+                    {% endblocktrans %}
+                </p>
+                <div class="form-group mt-3 mb-0">
+                    <label class="sr-only" for="eventNameConfirm">{% translate "Event name" %}</label>
+                    <input type="text" name="event_name_confirm" id="eventNameConfirm" class="form-control input-lg" autocomplete="off" placeholder="{{ request.event.name }}" required>
+                </div>
+            </div>
         </div>
         
         <div class="submit-group">
