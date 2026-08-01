@@ -2241,6 +2241,47 @@ class Event(
         self.submitter_access_codes.all().delete()
         self.submission_types.all().delete()
 
+    @scopes_disabled()
+    def delete_talk_data(self):
+        from django.core.exceptions import ObjectDoesNotExist
+
+        from eventyay.base.models.profile import SpeakerProfile
+        from eventyay.base.models.feedback import Feedback
+        from eventyay.base.models.question import Answer, AnswerOption
+        from eventyay.base.models.resource import Resource
+        from eventyay.base.models.slot import TalkSlot
+
+        answers = Answer.objects.filter(question__event=self)
+        for answer in answers.only('pk', 'answer_file').iterator():
+            answer._delete_files()
+        answers.delete()
+        AnswerOption.objects.filter(question__event=self).delete()
+
+        TalkSlot.objects.filter(schedule__event=self).delete()
+        Feedback.objects.filter(talk__event=self).delete()
+
+        resources = Resource.objects.filter(submission__event=self)
+        for resource in resources.only('pk', 'resource').iterator():
+            resource._delete_files()
+        resources.delete()
+
+        SpeakerProfile.objects.filter(event=self).delete()
+
+        self.talkquestions.all().delete()
+        self.submissions.all().delete()
+        self.rooms.all().delete()
+        self.tracks.all().delete()
+        self.tags.all().delete()
+        self.schedules.all().delete()
+        try:
+            cfp = self.cfp
+        except ObjectDoesNotExist:
+            cfp = None
+        if cfp is not None and cfp.pk is not None:
+            cfp.delete()
+        self.submitter_access_codes.all().delete()
+        self.submission_types.all().delete()
+
     def set_active_plugins(self, modules, allow_restricted=False):
         from eventyay.base.plugins import get_all_plugins
 

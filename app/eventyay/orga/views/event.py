@@ -375,8 +375,13 @@ class EventDelete(PermissionRequired, ActionConfirmMixin, TemplateView):
         if request.POST.get('event_name_confirm') != str(self.get_object().name):
             messages.error(self.request, _('The event name you entered was incorrect.'))
             return redirect(self.request.path)
-        self.get_object().shred(person=self.request.user)
-        return redirect(reverse('eventyay_common:dashboard'))
+        self.get_object().delete_talk_data()
+        messages.success(self.request, _('Talk data has been successfully deleted.'))
+        url = reverse(
+            'eventyay_common:event.update', 
+            kwargs={'organizer': self.request.organizer.slug, 'event': self.get_object().slug}
+        ) + '#danger-zone-tab'
+        return redirect(url)
 
 @method_decorator(csp_update({'SCRIPT_SRC': "'self' 'unsafe-eval'"}), name='dispatch')
 class WidgetSettings(EventSettingsPermission, FormView):
