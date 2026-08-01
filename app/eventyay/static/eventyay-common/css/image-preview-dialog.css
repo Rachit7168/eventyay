@@ -9,8 +9,7 @@
 }
 
 .eventyay-image-preview-dialog::backdrop {
-    background: rgba(33, 133, 208, 0.4); /* Fallback */
-    background: color-mix(in srgb, var(--color-primary, #2185d0) 40%, transparent);
+    background: rgba(211, 211, 211, 0.8);
 }
 
 .eventyay-image-preview-dialog__close {
