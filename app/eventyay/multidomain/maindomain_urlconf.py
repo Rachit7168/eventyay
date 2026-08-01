@@ -38,10 +38,10 @@ presale_patterns_main = [
                     path('upcoming/', UpcomingEventsView.as_view(), name='events.upcoming'),
                     path('past/', PastEventsView.as_view(), name='events.past'),
                     path('followed-events/', FollowedEventsView.as_view(), name='events.followed'),
-                    path('<orgslug:organizer>/', include(organizer_patterns)),
                     path('all-events/upcoming/', RedirectView.as_view(url=reverse_lazy('presale:events.upcoming'), permanent=True)),
                     path('all-events/past/', RedirectView.as_view(url=reverse_lazy('presale:events.past'), permanent=True)),
                     path('all-events/', RedirectView.as_view(url=reverse_lazy('presale:index'), permanent=True)),
+                    path('<orgslug:organizer>/', include(organizer_patterns)),
                     path(
                         '<orgslug:organizer>/<slug:event>/',
                         include(event_patterns),
