@@ -353,12 +353,13 @@ class EventDelete(PermissionRequired, ActionConfirmMixin, TemplateView):
     model = Event
     action_text = (
         _(
-            'ALL related data, such as proposals, and speaker profiles, and '
+            'ALL related data, such as proposals, speaker profiles, and '
             'uploads, will also be deleted and cannot be restored.'
         )
         + ' '
         + phrases.base.delete_warning
     )
+    template_name = 'orga/settings/delete_confirm.html'
 
     def get_object(self):
         return self.request.event

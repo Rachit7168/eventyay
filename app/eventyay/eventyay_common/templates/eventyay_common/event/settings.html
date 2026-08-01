@@ -312,6 +312,105 @@
                 </div>
             </div>
         </fieldset>
+
+        <fieldset id="danger-zone-tab">
+            <legend class="text-danger">{% trans "Danger zone" %}</legend>
+
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">{% trans "Go offline" %}</h3>
+                </div>
+                <div class="row panel-body">
+                    <div class="col-sm-12 col-md-9 nomargin-bottom">
+                        {% blocktrans trimmed %}
+                            You can take your event offline. Nobody except your team will be able to see or access it any more.
+                        {% endblocktrans %}
+                    </div>
+                    <div class="col-sm-12 col-md-3">
+                        <button type="submit" name="live" value="false" formaction="{% url 'eventyay_common:event.live' event=request.event.slug organizer=request.event.organizer.slug %}" formmethod="post" class="btn btn-primary btn-lg btn-block">
+                            <span class="fa fa-power-off"></span>
+                            {% trans "Go offline" %}
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">{% trans "Cancel event" %}</h3>
+                </div>
+                <div class="row panel-body">
+                    <div class="col-sm-12 col-md-9 nomargin-bottom">
+                        {% blocktrans trimmed %}
+                            If you need to call off your event and refund all tickets, you can do so through this option.
+                        {% endblocktrans %}
+                    </div>
+                    <div class="col-sm-12 col-md-3">
+                        <a href="{% url 'control:event.cancel' organizer=request.event.organizer.slug event=request.event.slug %}" class="btn btn-delete btn-danger btn-block btn-lg">
+                            <span class="fa fa-ban"></span>
+                            {% trans "Cancel event" %}
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">{% trans "Delete personal data" %}</h3>
+                </div>
+                <div class="row panel-body">
+                    <div class="col-sm-12 col-md-9 nomargin-bottom">
+                        {% blocktrans trimmed %}
+                            You can remove personal data such as names and email addresses from your event and only retain the financial information such as the number and type of tickets sold.
+                        {% endblocktrans %}
+                    </div>
+                    <div class="col-sm-12 col-md-3">
+                        <a href="{% url 'control:event.shredder.start' event=request.event.slug organizer=request.event.organizer.slug %}" class="btn btn-delete btn-danger btn-block btn-lg">
+                            <span class="fa fa-eraser"></span>
+                            {% trans "Delete personal data" %}
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">{% trans "Delete event" %}</h3>
+                </div>
+                <div class="row panel-body">
+                    <div class="col-sm-12 col-md-9 nomargin-bottom">
+                        {% blocktrans trimmed %}
+                            You can delete your event completely only as long as it does not contain any undeletable data, such as orders not performed in test mode.
+                        {% endblocktrans %}
+                    </div>
+                    <div class="col-sm-12 col-md-3">
+                        <a href="{% url 'control:event.delete' organizer=request.event.organizer.slug event=request.event.slug %}" class="btn btn-delete btn-danger btn-block btn-lg {% if not request.event.allow_delete %}disabled{% endif %}">
+                            <span class="fa fa-trash"></span>
+                            {% trans "Delete event" %}
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            {% if is_talk_event_created %}
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">{% translate "Delete talk data" %}</h3>
+                </div>
+                <div class="row panel-body">
+                    <div class="col-sm-12 col-md-9 nomargin-bottom">
+                        {% translate "Make it clear that this deletes Talk component data, not the whole event." %}
+                    </div>
+                    <div class="col-sm-12 col-md-3">
+                        <a href="{{ request.event.orga_urls.delete }}" class="btn btn-delete btn-danger btn-block btn-lg">
+                            <span class="fa fa-trash"></span>
+                            {% translate "Delete talk data" %}
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </fieldset>
     </div>
     <div class="form-group submit-group">
         <button type="submit" class="btn btn-primary btn-save">
