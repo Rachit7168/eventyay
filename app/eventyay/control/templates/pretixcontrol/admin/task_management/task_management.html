@@ -8,30 +8,25 @@
 
 {% block content %}
     <h1>{% trans "Task management" %}</h1>
-    <div class="panel panel-default">
-        <div class="panel-heading">
-            <h3 class="panel-title">{% trans "Filter" %}</h3>
-        </div>
-        <div class="panel-body">
-            <form class="" action="" method="get">
-                <div class="row filter-form">
-                    <div class="col-md-3 col-sm-6 col-xs-12">
-                         {% bootstrap_field filter_form.name layout='inline' %}
-                    </div>
-                    <div class="col-md-3 col-sm-6 col-xs-12">
-                         {% bootstrap_field filter_form.status layout='inline' %}
-                    </div>
-                    {% for mf in meta_fields %}
-                        <div class="col-md-3 col-sm-6 col-xs-12">
-                            {% bootstrap_field mf layout='inline' %}
-                        </div>
-                    {% endfor %}
-                    <div class="col-md-3 col-sm-6 col-xs-12">
-                        {% include "eventyay_common/filter_actions.html" %}
-                    </div>
+    <div class="list-filter-container">
+        <form action="" method="get" class="filter-form list-filter-form">
+            <div class="list-filter-grid">
+                <div class="list-filter-field">
+                     {% bootstrap_field filter_form.name layout='inline' %}
                 </div>
-            </form>
-        </div>
+                <div class="list-filter-field">
+                     {% bootstrap_field filter_form.status layout='inline' %}
+                </div>
+                {% for mf in meta_fields %}
+                    <div class="list-filter-field">
+                        {% bootstrap_field mf layout='inline' %}
+                    </div>
+                {% endfor %}
+                <div class="list-filter-field list-filter-field--actions">
+                    {% include "eventyay_common/filter_actions.html" %}
+                </div>
+            </div>
+        </form>
     </div>
     <div data-ajax-results-region>
         <div class="table-responsive">

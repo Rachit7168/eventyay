@@ -1,0 +1,33 @@
+{% load i18n %}
+
+<div class="list-filter-container">
+    <form action="" method="get" class="filter-form list-filter-form">
+        <div class="list-filter-search-bar">
+            <div class="input-group list-filter-query-group">
+                <input type="text"
+                       name="{{ filter_form.query.html_name }}"
+                       id="{{ filter_form.query.id_for_label }}"
+                       class="form-control"
+                       placeholder="{{ filter_form.query.field.widget.attrs.placeholder|default:_('Search…') }}"
+                       value="{{ filter_form.query.value|default_if_none:'' }}"
+                       {% if filter_form.query.field.widget.attrs.autofocus %}autofocus{% endif %}
+                       aria-label="{% trans 'Search' %}">
+                <span class="input-group-btn">
+                    <button class="btn btn-primary" type="submit">
+                        <span class="fa fa-search" aria-hidden="true"></span>
+                        {% trans "Search" %}
+                    </button>
+                </span>
+            </div>
+            <div class="list-filter-actions">
+                <a href="{{ clear_url|default:request.path }}"
+                   class="btn btn-default btn-clear-filter"
+                   aria-label="{% trans 'Clear filters' %}"
+                   title="{% trans 'Clear filters' %}">
+                    <span class="fa fa-eraser" aria-hidden="true"></span>
+                    <span class="sr-only">{% trans "Clear filters" %}</span>
+                </a>
+            </div>
+        </div>
+    </form>
+</div>

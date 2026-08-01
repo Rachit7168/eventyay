@@ -1,0 +1,103 @@
+.list-filter-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 15px;
+}
+
+.list-filter-form {
+  width: 100%;
+}
+
+.list-filter-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: flex-end;
+}
+
+.list-filter-field {
+  flex: 1 1 180px;
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+.list-filter-field .form-group {
+  margin-bottom: 0;
+}
+
+.list-filter-field .form-control,
+.list-filter-field select {
+  width: 100%;
+}
+
+.list-filter-field--actions {
+  flex: 0 0 auto;
+}
+
+.list-filter-search-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: stretch;
+  width: 100%;
+}
+
+.list-filter-query-group {
+  flex: 1 1 300px;
+  min-width: 0;
+}
+
+.list-filter-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  flex: 0 0 auto;
+}
+
+.list-filter-form .form-control,
+.list-filter-form .btn {
+  height: 38px;
+}
+
+.list-filter-form .filter-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 0;
+}
+
+@media (max-width: 767px) {
+  .list-filter-search-bar {
+    flex-direction: column;
+  }
+
+  .list-filter-query-group,
+  .list-filter-actions {
+    width: 100%;
+  }
+
+  .list-filter-actions .btn {
+    flex: 1 1 auto;
+  }
+
+  .list-filter-grid {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .list-filter-field,
+  .list-filter-field--actions {
+    flex: 1 1 auto;
+    width: 100%;
+  }
+
+  .list-filter-form .filter-actions {
+    width: 100%;
+  }
+
+  .list-filter-form .filter-actions .btn {
+    flex: 1 1 50%;
+  }
+}
