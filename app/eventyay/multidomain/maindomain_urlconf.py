@@ -2,7 +2,7 @@ import importlib.util
 import logging
 
 from django.apps import apps
-from django.urls import include, path, re_path
+from django.urls import include, path, re_path, reverse_lazy
 from django.views.generic.base import RedirectView
 
 from eventyay.common.urls import OrganizerSlugConverter  # noqa: F401 (registers converter)
@@ -39,9 +39,9 @@ presale_patterns_main = [
                     path('past/', PastEventsView.as_view(), name='events.past'),
                     path('followed-events/', FollowedEventsView.as_view(), name='events.followed'),
                     path('<orgslug:organizer>/', include(organizer_patterns)),
-                    path('all-events/upcoming/', RedirectView.as_view(url='/upcoming/', permanent=True)),
-                    path('all-events/past/', RedirectView.as_view(url='/past/', permanent=True)),
-                    path('all-events/', RedirectView.as_view(url='/', permanent=True)),
+                    path('all-events/upcoming/', RedirectView.as_view(url=reverse_lazy('presale:events.upcoming'), permanent=True)),
+                    path('all-events/past/', RedirectView.as_view(url=reverse_lazy('presale:events.past'), permanent=True)),
+                    path('all-events/', RedirectView.as_view(url=reverse_lazy('presale:index'), permanent=True)),
                     path(
                         '<orgslug:organizer>/<slug:event>/',
                         include(event_patterns),
