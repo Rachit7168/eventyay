@@ -129,12 +129,7 @@
                     {% bootstrap_field form.tax_rule_rate layout="control" %}
                     {% bootstrap_field form.tax_rule_price_includes_tax layout="control" %}
                 </div>
-                <script>
-                    document.getElementById('add-new-tax-btn').addEventListener('click', function() {
-                        document.getElementById('new-tax-fields').style.display = 'block';
-                        document.getElementById('add-new-tax-btn-group').style.display = 'none';
-                    });
-                </script>
+
             {% endif %}
         </fieldset>
         <div class="form-group submit-group">

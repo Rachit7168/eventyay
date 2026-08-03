@@ -55,7 +55,7 @@
                         <strong>{% trans "Tax rate (in %) (optional)" %}</strong>
                     </div>
                 </div>
-                <div class="row" style="margin-bottom: 15px;">
+                <div class="row quick-setup-tax-row">
                     <div class="col-md-6">
                         {% bootstrap_field form.tax_name layout="inline" form_group_class="" %}
                     </div>
@@ -90,7 +90,7 @@
                     <div data-formset-body id="ticket-type-formset">
                         {% with currency_code=form.currency.value|default:request.event.currency %}
                         {% for iform in formset %}
-                            <div class="row question-option-row" data-formset-form style="margin-bottom: 10px;">
+                            <div class="row question-option-row" data-formset-form>
                                 <div class="sr-only">
                                     {{ iform.id }}
                                     {% bootstrap_field iform.DELETE form_group_class="" layout="inline" %}
@@ -116,7 +116,7 @@
                     <script type="form-template" data-formset-empty-form>
                         {% escapescript %}
                             {% with currency_code=form.currency.value|default:request.event.currency %}
-                            <div class="row question-option-row" data-formset-form style="margin-bottom: 10px;">
+                            <div class="row question-option-row" data-formset-form>
                                 <div class="sr-only">
                                     {{ formset.empty_form.id }}
                                     {% bootstrap_field formset.empty_form.DELETE form_group_class="" layout="inline" %}

@@ -460,7 +460,7 @@ class ProductCreateForm(I18nModelForm):
                 user=self.user,
                 data={
                     'name': str(tax_rule.name),
-                    'rate': tax_rule.rate,
+                    'rate': str(tax_rule.rate),
                     'price_includes_tax': tax_rule.price_includes_tax,
                 },
             )
