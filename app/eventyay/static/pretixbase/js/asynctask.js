@@ -52,10 +52,19 @@ function async_task_check_callback(data, jqXHR, status) {
         }
         if (async_task_is_print && data.success) {
             _restore_async_old_url_once();
-            var $iframe = $("#preview-iframe");
-            $iframe.off("load");
+            var $iframe = $("#print-iframe");
+            if ($iframe.length === 0) {
+                $iframe = $('<iframe id="print-iframe" style="visibility:hidden; position:absolute; width:1px; height:1px; left:-9999px;"></iframe>');
+                $("body").append($iframe);
+            }
+            $iframe.off("load").on("load", function() {
+                try {
+                    this.contentWindow.print();
+                } catch(e) {
+                    console.log("Could not auto-print: ", e);
+                }
+            });
             $iframe.attr("src", data.redirect);
-            $("#preview-modal").modal("show");
             return;
         }
         location.href = data.redirect;
@@ -137,10 +146,19 @@ function async_task_callback(data, jqXHR, status) {
             history.replaceState({}, "pretix", async_task_old_url);
         }
         if (async_task_is_print && data.success) {
-            var $iframe = $("#preview-iframe");
-            $iframe.off("load");
+            var $iframe = $("#print-iframe");
+            if ($iframe.length === 0) {
+                $iframe = $('<iframe id="print-iframe" style="visibility:hidden; position:absolute; width:1px; height:1px; left:-9999px;"></iframe>');
+                $("body").append($iframe);
+            }
+            $iframe.off("load").on("load", function() {
+                try {
+                    this.contentWindow.print();
+                } catch(e) {
+                    console.log("Could not auto-print: ", e);
+                }
+            });
             $iframe.attr("src", data.redirect);
-            $("#preview-modal").modal("show");
             return;
         }
         location.href = data.redirect;
