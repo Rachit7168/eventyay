@@ -476,7 +476,6 @@ def event_has_redeemable_voucher_products(event, subevent=None, channel='web'):
     if res is not None:
         return res
 
-    # 1. Quick check: do active vouchers exist?
     active_vouchers = event.vouchers.filter(
         redeemed__lt=F('max_usages')
     ).filter(
@@ -486,7 +485,6 @@ def event_has_redeemable_voucher_products(event, subevent=None, channel='web'):
         event.cache.set(cache_key, False, 10)
         return False
 
-    # 2. Get active subevents to check
     if event.has_subevents and subevent is None:
         subevents_to_check = list(event.subevents.filter(active=True))
     else:
@@ -496,7 +494,6 @@ def event_has_redeemable_voucher_products(event, subevent=None, channel='web'):
         event.cache.set(cache_key, False, 10)
         return False
 
-    # Filter vouchers that are valid for the subevents we are checking
     if event.has_subevents:
         vouchers = list(active_vouchers.filter(
             Q(subevent__in=subevents_to_check) | Q(subevent__isnull=True)
@@ -510,7 +507,6 @@ def event_has_redeemable_voucher_products(event, subevent=None, channel='web'):
         event.cache.set(cache_key, False, 10)
         return False
 
-    # 3. Query all active, time-available products for the event
     products_qs = event.products.filter(
         active=True,
         require_bundling=False
@@ -529,7 +525,6 @@ def event_has_redeemable_voucher_products(event, subevent=None, channel='web'):
         event.cache.set(cache_key, False, 10)
         return False
 
-    # 4. Query all active variations
     variations_qs = ProductVariation.objects.filter(
         product__event=event,
         active=True
@@ -540,29 +535,6 @@ def event_has_redeemable_voucher_products(event, subevent=None, channel='web'):
     for var in variations_list:
         variations_by_product[var.product_id].append(var)
 
-    # 5. Gather all quotas that we need to check
-    all_quotas = set()
-    for se in subevents_to_check:
-        for p in products:
-            if p.has_variations:
-                for v in variations_by_product[p.pk]:
-                    for q in v.quotas.all():
-                        if q.subevent_id == (se.id if se else None):
-                            all_quotas.add(q)
-            else:
-                for q in p.quotas.all():
-                    if q.subevent_id == (se.id if se else None):
-                        all_quotas.add(q)
-
-    # Compute quota availability in one single batch!
-    quota_cache = {}
-    if all_quotas:
-        qa = QuotaAvailability()
-        qa.queue(*all_quotas)
-        qa.compute()
-        quota_cache = {q.pk: r for q, r in qa.results.items()}
-
-    # 6. Pre-fetch subevent-specific product/variation disabled states if subevents exist
     disabled_products = set()
     disabled_variations = set()
     if event.has_subevents:
@@ -581,7 +553,46 @@ def event_has_redeemable_voucher_products(event, subevent=None, channel='web'):
                 ).values_list('subevent_id', 'variation_id')
             )
 
-    # Helper function to check if a voucher matches a product/variation
+    all_quotas = set()
+    items_to_check = []
+
+    for se in subevents_to_check:
+        se_id = se.id if se else None
+        se_vouchers = [v for v in vouchers if v.subevent_id is None or v.subevent_id == se_id]
+        
+        if not se_vouchers:
+            continue
+            
+        for p in products:
+            if (se_id, p.pk) in disabled_products:
+                continue
+                
+            if p.has_variations:
+                for var in variations_by_product.get(p.pk, []):
+                    if (se_id, var.pk) in disabled_variations:
+                        continue
+                    
+                    items_to_check.append((se, se_vouchers, p, var))
+                    for q in var.quotas.all():
+                        if q.subevent_id == se_id:
+                            all_quotas.add(q)
+            else:
+                items_to_check.append((se, se_vouchers, p, None))
+                for q in p.quotas.all():
+                    if q.subevent_id == se_id:
+                        all_quotas.add(q)
+
+    if not items_to_check:
+        event.cache.set(cache_key, False, 10)
+        return False
+
+    quota_cache = {}
+    if all_quotas:
+        qa = QuotaAvailability()
+        qa.queue(*all_quotas)
+        qa.compute()
+        quota_cache = {q.pk: r for q, r in qa.results.items()}
+
     def voucher_applies_to(v, p, var=None):
         if v.quota_id:
             if var:
@@ -593,7 +604,6 @@ def event_has_redeemable_voucher_products(event, subevent=None, channel='web'):
             return v.product_id == p.pk and var and v.variation_id == var.pk
         return True
 
-    # Helper to check quota availability
     def check_item_avail(quotas, se, ignore_quota=False):
         if ignore_quota:
             return True
@@ -612,43 +622,20 @@ def event_has_redeemable_voucher_products(event, subevent=None, channel='web'):
                 return False
         return True
 
-    # 7. Check if any active voucher can purchase any available product on any of the subevents
-    for se in subevents_to_check:
-        se_id = se.id if se else None
-        se_vouchers = [v for v in vouchers if v.subevent_id is None or v.subevent_id == se_id]
-        if not se_vouchers:
-            continue
-
+    for se, se_vouchers, p, var in items_to_check:
+        quotas = var.quotas.all() if var else p.quotas.all()
+        is_normally_available = check_item_avail(quotas, se, False)
+        
         for v in se_vouchers:
-            ignore_quota = v.allow_ignore_quota or v.block_quota
-            for p in products:
-                # Check if product is disabled for this subevent
-                if (se_id, p.pk) in disabled_products:
+            if voucher_applies_to(v, p, var):
+                if p.hide_without_voucher and not v.show_hidden_products:
                     continue
-
-                if p.has_variations:
-                    vars_for_prod = variations_by_product.get(p.pk, [])
-                    for var in vars_for_prod:
-                        if (se_id, var.pk) in disabled_variations:
-                            continue
-                        if voucher_applies_to(v, p, var):
-                            if p.hide_without_voucher and not v.show_hidden_products:
-                                continue
-                            if check_item_avail(var.quotas.all(), se, ignore_quota):
-                                event.cache.set(cache_key, True, 10)
-                                return True
-                else:
-                    if voucher_applies_to(v, p, None):
-                        if p.hide_without_voucher and not v.show_hidden_products:
-                            continue
-                        if check_item_avail(p.quotas.all(), se, ignore_quota):
-                            event.cache.set(cache_key, True, 10)
-                            return True
+                if is_normally_available or v.allow_ignore_quota or v.block_quota:
+                    event.cache.set(cache_key, True, 10)
+                    return True
 
     event.cache.set(cache_key, False, 10)
     return False
-
-
 @method_decorator(allow_frame_if_namespaced, 'dispatch')
 @method_decorator(iframe_entry_view_wrapper, 'dispatch')
 class EventIndex(EventViewMixin, EventListMixin, CartMixin, TemplateView):
