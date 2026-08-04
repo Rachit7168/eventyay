@@ -63,6 +63,16 @@ def has_any_permission(user, obj):
     event = getattr(obj, 'event', None) or obj
     if user.is_administrator:
         return True
+    return bool(user.get_permissions_for_event(event))
+
+
+@rules.predicate
+def has_talk_permission(user, obj):
+    if not user or user.is_anonymous:
+        return False
+    event = getattr(obj, 'event', None) or obj
+    if user.is_administrator:
+        return True
     perms = user.get_permissions_for_event(event)
     return 'can_change_submissions' in perms or 'is_reviewer' in perms
 
