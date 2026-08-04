@@ -15,6 +15,8 @@ from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 from django.views import View
 from django.views.generic import CreateView, DeleteView, DetailView, FormView, ListView, TemplateView
+from django.views.decorators.clickjacking import xframe_options_sameorigin
+from django.utils.decorators import method_decorator
 from reportlab.lib import pagesizes
 from reportlab.pdfgen import canvas
 
@@ -456,6 +458,7 @@ class OrderPrintDo(BadgePluginEnabledMixin, EventPermissionRequiredMixin, AsyncA
 
 
 class BadgeCachedDownloadView(DownloadView):
+    @method_decorator(xframe_options_sameorigin)
     def get(self, request, *args, **kwargs):
         resp = super().get(request, *args, **kwargs)
         if request.GET.get('inline') in ('1', 'true') and getattr(self.object, 'file', None):
