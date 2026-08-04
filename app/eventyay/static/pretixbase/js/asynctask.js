@@ -53,13 +53,7 @@ function async_task_check_callback(data, jqXHR, status) {
         if (async_task_is_print && data.success) {
             _restore_async_old_url_once();
             var $iframe = $("#preview-iframe");
-            $iframe.off("load").on("load", function() {
-                try {
-                    this.contentWindow.print();
-                } catch(e) {
-                    console.log("Could not auto-print: ", e);
-                }
-            });
+            $iframe.off("load");
             $iframe.attr("src", data.redirect);
             $("#preview-modal").modal("show");
             return;
@@ -144,13 +138,7 @@ function async_task_callback(data, jqXHR, status) {
         }
         if (async_task_is_print && data.success) {
             var $iframe = $("#preview-iframe");
-            $iframe.off("load").on("load", function() {
-                try {
-                    this.contentWindow.print();
-                } catch(e) {
-                    console.log("Could not auto-print: ", e);
-                }
-            });
+            $iframe.off("load");
             $iframe.attr("src", data.redirect);
             $("#preview-modal").modal("show");
             return;
