@@ -10,6 +10,7 @@
     <div class="panel-body">
         <div style="display: flex; gap: 10px;">
             <form action="{% url 'plugins:badges:print' event=event.slug organizer=event.organizer.slug %}?code={{ order.code }}&action=print"
+                    data-asynctask-print="true"
                     method="post" data-asynctask data-asynctask-long class="form-inline helper-display-inline">
                 {% csrf_token %}
                 <button class="btn btn-primary" type="submit">
