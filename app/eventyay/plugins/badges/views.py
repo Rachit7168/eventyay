@@ -20,7 +20,7 @@ from django.utils.decorators import method_decorator
 from reportlab.lib import pagesizes
 from reportlab.pdfgen import canvas
 
-from eventyay.base.models import CachedFile, CachedTicket, OrderPosition, Question, QuestionAnswer
+from eventyay.base.models import CachedFile, OrderPosition, Question, QuestionAnswer
 from eventyay.base.services.tickets import invalidate_cache
 from eventyay.base.views.tasks import AsyncAction
 from eventyay.base.views.cachedfiles import DownloadView
