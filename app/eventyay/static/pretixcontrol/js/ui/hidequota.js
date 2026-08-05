@@ -38,7 +38,7 @@ $(function () {
   toggleblock();
 
   $('#add-new-tax-btn').on('click', function() {
-      $('#new-tax-fields').css('display', 'block');
-      $('#add-new-tax-btn-group').css('display', 'none');
+      $('#new-tax-fields').removeClass('hidden');
+      $('#add-new-tax-btn-group').addClass('hidden');
   });
 });
