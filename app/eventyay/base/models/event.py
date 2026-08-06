@@ -1249,78 +1249,80 @@ class Event(
         checkin_list_map = {}
         
         if clone_ticketing:
-            for c in ProductCategory.objects.filter(event=other):
-                category_map[c.pk] = c
-                c.pk = None
-                c.event = self
-                c.save()
-                c.log_action('eventyay.object.cloned')
-
-            for imp in other.product_meta_properties.all():
-                product_meta_properties_map[imp.pk] = imp
-                imp.pk = None
-                imp.event = self
-                imp.save()
-                imp.log_action('eventyay.object.cloned')
-
-            for i in Product.objects.filter(event=other).prefetch_related('variations'):
-                vars = list(i.variations.all())
-                product_map[i.pk] = i
-                i.pk = None
-                i.event = self
-                if i.picture:
-                    i.picture.save(i.picture.name, i.picture)
-                if i.category_id:
-                    i.category = category_map[i.category_id]
-                if i.tax_rule_id:
-                    i.tax_rule = tax_map[i.tax_rule_id]
-                i.save()
-                i.log_action('eventyay.object.cloned')
-                for v in vars:
-                    variation_map[v.pk] = v
-                    v.pk = None
-                    v.product = i
-                    v.save()
-
-            for imv in ProductMetaValue.objects.filter(product__event=other).prefetch_related('product', 'property'):
-                imv.pk = None
-                imv.property = product_meta_properties_map[imv.property.pk]
-                imv.product = product_map[imv.product.pk]
-                imv.save()
-
-            for ia in ProductAddOn.objects.filter(base_product__event=other).prefetch_related(
-                'base_product', 'addon_category'
-            ):
-                ia.pk = None
-                ia.base_product = product_map[ia.base_product.pk]
-                ia.addon_category = category_map[ia.addon_category.pk]
-                ia.save()
-
-            for ia in ProductBundle.objects.filter(base_product__event=other).prefetch_related(
-                'base_product', 'bundled_product', 'bundled_variation'
-            ):
-                ia.pk = None
-                ia.base_product = product_map[ia.base_product.pk]
-                ia.bundled_product = product_map[ia.bundled_product.pk]
-                if ia.bundled_variation:
-                    ia.bundled_variation = variation_map[ia.bundled_variation.pk]
-                ia.save()
-
-            for q in Quota.objects.filter(event=other, subevent__isnull=True).prefetch_related('products', 'variations'):
-                products = list(q.products.all())
-                vars = list(q.variations.all())
-                oldid = q.pk
-                q.pk = None
-                q.event = self
-                q.closed = False
-                q.save()
-                q.log_action('eventyay.object.cloned')
-                for i in products:
-                    if i.pk in product_map:
-                        q.products.add(product_map[i.pk])
-                for v in vars:
-                    q.variations.add(variation_map[v.pk])
-                self.products.filter(hidden_if_available_id=oldid).update(hidden_if_available=q)
+            if clone_products:
+                for c in ProductCategory.objects.filter(event=other):
+                    category_map[c.pk] = c
+                    c.pk = None
+                    c.event = self
+                    c.save()
+                    c.log_action('eventyay.object.cloned')
+    
+                for imp in other.product_meta_properties.all():
+                    product_meta_properties_map[imp.pk] = imp
+                    imp.pk = None
+                    imp.event = self
+                    imp.save()
+                    imp.log_action('eventyay.object.cloned')
+    
+                for i in Product.objects.filter(event=other).prefetch_related('variations'):
+                    vars = list(i.variations.all())
+                    product_map[i.pk] = i
+                    i.pk = None
+                    i.event = self
+                    if i.picture:
+                        i.picture.save(i.picture.name, i.picture)
+                    if i.category_id:
+                        i.category = category_map.get(i.category_id)
+                    if i.tax_rule_id:
+                        i.tax_rule = tax_map.get(i.tax_rule_id)
+                    i.save()
+                    i.log_action('eventyay.object.cloned')
+                    for v in vars:
+                        variation_map[v.pk] = v
+                        v.pk = None
+                        v.product = i
+                        v.save()
+    
+                for imv in ProductMetaValue.objects.filter(product__event=other).prefetch_related('product', 'property'):
+                    imv.pk = None
+                    imv.property = product_meta_properties_map.get(imv.property.pk)
+                    imv.product = product_map.get(imv.product.pk)
+                    imv.save()
+    
+                for ia in ProductAddOn.objects.filter(base_product__event=other).prefetch_related(
+                    'base_product', 'addon_category'
+                ):
+                    ia.pk = None
+                    ia.base_product = product_map.get(ia.base_product.pk)
+                    ia.addon_category = category_map.get(ia.addon_category.pk)
+                    ia.save()
+    
+                for ia in ProductBundle.objects.filter(base_product__event=other).prefetch_related(
+                    'base_product', 'bundled_product', 'bundled_variation'
+                ):
+                    ia.pk = None
+                    ia.base_product = product_map.get(ia.base_product.pk)
+                    ia.bundled_product = product_map.get(ia.bundled_product.pk)
+                    if ia.bundled_variation:
+                        ia.bundled_variation = variation_map.get(ia.bundled_variation.pk)
+                    ia.save()
+    
+                for q in Quota.objects.filter(event=other, subevent__isnull=True).prefetch_related('products', 'variations'):
+                    products = list(q.products.all())
+                    vars = list(q.variations.all())
+                    oldid = q.pk
+                    q.pk = None
+                    q.event = self
+                    q.closed = False
+                    q.save()
+                    q.log_action('eventyay.object.cloned')
+                    for i in products:
+                        if i.pk in product_map:
+                            q.products.add(product_map[i.pk])
+                    for v in vars:
+                        if v.pk in variation_map:
+                            q.variations.add(variation_map[v.pk])
+                    self.products.filter(hidden_if_available_id=oldid).update(hidden_if_available=q)
 
             if clone_questions:
                 for q in Question.objects.filter(event=other).prefetch_related('products', 'options'):
@@ -1333,7 +1335,8 @@ class Event(
                     q.log_action('eventyay.object.cloned')
     
                     for i in products:
-                        q.products.add(product_map[i.pk])
+                        if i.pk in product_map:
+                            q.products.add(product_map[i.pk])
                     for o in opts:
                         o.pk = None
                         o.question = q
@@ -1369,7 +1372,8 @@ class Event(
                     cl.save()
                     cl.log_action('eventyay.object.cloned')
                     for i in products:
-                        cl.limit_products.add(product_map[i.pk])
+                        if i.pk in product_map:
+                            cl.limit_products.add(product_map[i.pk])
     
                 if other.seating_plan:
                     if other.seating_plan.organizer_id == self.organizer_id:
@@ -1381,14 +1385,15 @@ class Event(
             for m in other.seat_category_mappings.filter(subevent__isnull=True):
                 m.pk = None
                 m.event = self
-                m.product = product_map[m.product_id]
-                m.save()
+                if m.product_id in product_map:
+                    m.product = product_map[m.product_id]
+                    m.save()
 
             for s in other.seats.filter(subevent__isnull=True):
                 s.pk = None
                 s.event = self
                 if s.product_id:
-                    s.product = product_map[s.product_id]
+                    s.product = product_map.get(s.product_id)
                 s.save()
 
         skip_settings = (
