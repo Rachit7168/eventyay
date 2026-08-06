@@ -34,9 +34,33 @@
 
     <fieldset>
         <legend>{% trans "Data to clone" %}</legend>
-        {% bootstrap_field form.clone_common_data layout="horizontal" %}
-        {% bootstrap_field form.clone_ticketing_data layout="horizontal" %}
-        {% bootstrap_field form.clone_talk_data layout="horizontal" %}
+        
+        <div class="clone-group">
+            {% bootstrap_field form.clone_common_data layout="horizontal" %}
+            <div class="clone-sub-options" style="margin-left: 20px;">
+                {% bootstrap_field form.clone_settings layout="horizontal" %}
+                {% bootstrap_field form.clone_design_texts layout="horizontal" %}
+                {% bootstrap_field form.clone_email_settings layout="horizontal" %}
+            </div>
+        </div>
+
+        <div class="clone-group">
+            {% bootstrap_field form.clone_ticketing_data layout="horizontal" %}
+            <div class="clone-sub-options" style="margin-left: 20px;">
+                {% bootstrap_field form.clone_products layout="horizontal" %}
+                {% bootstrap_field form.clone_questions layout="horizontal" %}
+                {% bootstrap_field form.clone_checkin_lists layout="horizontal" %}
+            </div>
+        </div>
+
+        <div class="clone-group">
+            {% bootstrap_field form.clone_talk_data layout="horizontal" %}
+            <div class="clone-sub-options" style="margin-left: 20px;">
+                {% bootstrap_field form.clone_cfp layout="horizontal" %}
+                {% bootstrap_field form.clone_session_types_tracks layout="horizontal" %}
+                {% bootstrap_field form.clone_review_settings layout="horizontal" %}
+            </div>
+        </div>
     </fieldset>
 
     <div class="form-group submit-group">
@@ -48,4 +72,29 @@
         </a>
     </div>
 </form>
+{% endblock %}
+
+{% block custom_js %}
+{{ block.super }}
+<script>
+    $(function() {
+        $('.clone-group').each(function() {
+            var $group = $(this);
+            var $parentCheckbox = $group.find('> .form-group input[type=checkbox]');
+            var $subCheckboxes = $group.find('.clone-sub-options input[type=checkbox]');
+
+            $parentCheckbox.on('change', function() {
+                var isChecked = $(this).prop('checked');
+                $subCheckboxes.prop('checked', isChecked);
+            });
+
+            $subCheckboxes.on('change', function() {
+                var allUnchecked = $subCheckboxes.filter(':checked').length === 0;
+                if (!allUnchecked && !$parentCheckbox.prop('checked')) {
+                    $parentCheckbox.prop('checked', true);
+                }
+            });
+        });
+    });
+</script>
 {% endblock %}

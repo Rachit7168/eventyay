@@ -1465,12 +1465,21 @@ class EventCloneView(EventSettingsViewMixin, EventPermissionRequiredMixin, FormV
         
         clone_options = {
             'clone_common_data': form.cleaned_data.get('clone_common_data'),
+            'clone_settings': form.cleaned_data.get('clone_settings'),
+            'clone_design_texts': form.cleaned_data.get('clone_design_texts'),
+            'clone_email_settings': form.cleaned_data.get('clone_email_settings'),
             'clone_ticketing_data': form.cleaned_data.get('clone_ticketing_data'),
+            'clone_products': form.cleaned_data.get('clone_products'),
+            'clone_questions': form.cleaned_data.get('clone_questions'),
+            'clone_checkin_lists': form.cleaned_data.get('clone_checkin_lists'),
             'clone_talk_data': form.cleaned_data.get('clone_talk_data'),
+            'clone_cfp': form.cleaned_data.get('clone_cfp'),
+            'clone_session_types_tracks': form.cleaned_data.get('clone_session_types_tracks'),
+            'clone_review_settings': form.cleaned_data.get('clone_review_settings'),
         }
 
         new_event.organizer = old_event.organizer
-        if clone_options.get('clone_common_data'):
+        if clone_options.get('clone_common_data') and clone_options.get('clone_settings'):
             new_event.plugins = old_event.plugins
         new_event.has_subevents = old_event.has_subevents
         new_event.is_video_creation = old_event.is_video_creation
@@ -1484,7 +1493,7 @@ class EventCloneView(EventSettingsViewMixin, EventPermissionRequiredMixin, FormV
         new_event.clone_from(old_event, new_secrets=True, clone_options=clone_options)
         new_event.copy_data_from(old_event, clone_options=clone_options)
         
-        if clone_options.get('clone_talk_data', True) and getattr(old_event, 'cfp', None):
+        if clone_options.get('clone_talk_data') and clone_options.get('clone_cfp', True) and getattr(old_event, 'cfp', None):
             new_event.cfp.copy_data_from(old_event.cfp)
 
         with scope(organizer=new_event.organizer):

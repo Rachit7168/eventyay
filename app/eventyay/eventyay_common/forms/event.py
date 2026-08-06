@@ -289,19 +289,75 @@ class EventUpdateForm(I18nModelForm):
 class EventCloneForm(I18nModelForm):
     clone_common_data = forms.BooleanField(
         label=_('Common event data'),
-        help_text=_('Settings, texts, languages, design, and email settings.'),
+        help_text=_('Parent toggle for common event data.'),
         required=False,
         initial=True,
     )
+    clone_settings = forms.BooleanField(
+        label=_('General settings'),
+        help_text=_('Location, currency, plugins, header/footer links.'),
+        required=False,
+        initial=True,
+    )
+    clone_design_texts = forms.BooleanField(
+        label=_('Design and texts'),
+        help_text=_('Colors, logo, custom CSS, frontpage texts.'),
+        required=False,
+        initial=True,
+    )
+    clone_email_settings = forms.BooleanField(
+        label=_('Email settings'),
+        help_text=_('Email templates and SMTP configuration.'),
+        required=False,
+        initial=True,
+    )
+
     clone_ticketing_data = forms.BooleanField(
         label=_('Ticketing data'),
-        help_text=_('Ticket settings, products, categories, quotas, check-in lists, tax rules, etc.'),
+        help_text=_('Parent toggle for ticketing data.'),
         required=False,
         initial=True,
     )
+    clone_products = forms.BooleanField(
+        label=_('Products & Quotas'),
+        help_text=_('Ticket products, categories, quotas, tax rules, add-ons.'),
+        required=False,
+        initial=True,
+    )
+    clone_questions = forms.BooleanField(
+        label=_('Questions'),
+        help_text=_('Order and attendee questions.'),
+        required=False,
+        initial=True,
+    )
+    clone_checkin_lists = forms.BooleanField(
+        label=_('Check-in lists'),
+        help_text=_('Check-in lists configuration.'),
+        required=False,
+        initial=True,
+    )
+
     clone_talk_data = forms.BooleanField(
         label=_('Talk data'),
-        help_text=_('Call for speakers, session types, tracks, review settings, speaker and schedule settings.'),
+        help_text=_('Parent toggle for talk data.'),
+        required=False,
+        initial=True,
+    )
+    clone_cfp = forms.BooleanField(
+        label=_('Call for speakers'),
+        help_text=_('Call for speakers configuration and basic text.'),
+        required=False,
+        initial=True,
+    )
+    clone_session_types_tracks = forms.BooleanField(
+        label=_('Session types & tracks'),
+        help_text=_('Session types, tracks, and submission questions.'),
+        required=False,
+        initial=True,
+    )
+    clone_review_settings = forms.BooleanField(
+        label=_('Review settings'),
+        help_text=_('Review phases and review scoring categories.'),
         required=False,
         initial=True,
     )

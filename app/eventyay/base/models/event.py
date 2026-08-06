@@ -1195,10 +1195,21 @@ class Event(
 
         clone_options = clone_options or {}
         clone_common = clone_options.get('clone_common_data', True)
+        clone_settings = clone_options.get('clone_settings', True)
+        clone_design_texts = clone_options.get('clone_design_texts', True)
+        clone_email_settings = clone_options.get('clone_email_settings', True)
+        
         clone_ticketing = clone_options.get('clone_ticketing_data', True)
+        clone_products = clone_options.get('clone_products', True)
+        clone_questions = clone_options.get('clone_questions', True)
+        clone_checkin_lists = clone_options.get('clone_checkin_lists', True)
+        
         clone_talks = clone_options.get('clone_talk_data', True)
+        clone_cfp = clone_options.get('clone_cfp', True)
+        clone_session_types_tracks = clone_options.get('clone_session_types_tracks', True)
+        clone_review_settings = clone_options.get('clone_review_settings', True)
 
-        if clone_common:
+        if clone_common and clone_settings:
             self.plugins = other.plugins
             self.is_public = other.is_public
             self.location = other.location
@@ -1222,7 +1233,7 @@ class Event(
         self.log_action('eventyay.object.cloned', data={'source': other.slug, 'source_id': other.pk})
 
         tax_map = {}
-        if clone_ticketing:
+        if clone_ticketing and clone_products:
             for t in other.tax_rules.all():
                 tax_map[t.pk] = t
                 t.pk = None
@@ -1311,25 +1322,26 @@ class Event(
                     q.variations.add(variation_map[v.pk])
                 self.products.filter(hidden_if_available_id=oldid).update(hidden_if_available=q)
 
-            for q in Question.objects.filter(event=other).prefetch_related('products', 'options'):
-                products = list(q.products.all())
-                opts = list(q.options.all())
-                question_map[q.pk] = q
-                q.pk = None
-                q.event = self
-                q.save()
-                q.log_action('eventyay.object.cloned')
-
-                for i in products:
-                    q.products.add(product_map[i.pk])
-                for o in opts:
-                    o.pk = None
-                    o.question = q
-                    o.save()
-
-            for q in self.questions.filter(dependency_question__isnull=False):
-                q.dependency_question = question_map[q.dependency_question_id]
-                q.save(update_fields=['dependency_question'])
+            if clone_questions:
+                for q in Question.objects.filter(event=other).prefetch_related('products', 'options'):
+                    products = list(q.products.all())
+                    opts = list(q.options.all())
+                    question_map[q.pk] = q
+                    q.pk = None
+                    q.event = self
+                    q.save()
+                    q.log_action('eventyay.object.cloned')
+    
+                    for i in products:
+                        q.products.add(product_map[i.pk])
+                    for o in opts:
+                        o.pk = None
+                        o.question = q
+                        o.save()
+    
+                for q in self.questions.filter(dependency_question__isnull=False):
+                    q.dependency_question = question_map[q.dependency_question_id]
+                    q.save(update_fields=['dependency_question'])
 
             def _walk_rules(rules):
                 if isinstance(rules, dict):
@@ -1345,25 +1357,26 @@ class Event(
                     for i in rules:
                         _walk_rules(i)
 
-            for cl in other.checkin_lists.filter(subevent__isnull=True).prefetch_related('limit_products'):
-                products = list(cl.limit_products.all())
-                checkin_list_map[cl.pk] = cl
-                cl.pk = None
-                cl.event = self
-                rules = cl.rules
-                _walk_rules(rules)
-                cl.rules = rules
-                cl.save()
-                cl.log_action('eventyay.object.cloned')
-                for i in products:
-                    cl.limit_products.add(product_map[i.pk])
-
-            if other.seating_plan:
-                if other.seating_plan.organizer_id == self.organizer_id:
-                    self.seating_plan = other.seating_plan
-                else:
-                    self.organizer.seating_plans.create(name=other.seating_plan.name, layout=other.seating_plan.layout)
-                self.save()
+            if clone_checkin_lists:
+                for cl in other.checkin_lists.filter(subevent__isnull=True).prefetch_related('limit_products'):
+                    products = list(cl.limit_products.all())
+                    checkin_list_map[cl.pk] = cl
+                    cl.pk = None
+                    cl.event = self
+                    rules = cl.rules
+                    _walk_rules(rules)
+                    cl.rules = rules
+                    cl.save()
+                    cl.log_action('eventyay.object.cloned')
+                    for i in products:
+                        cl.limit_products.add(product_map[i.pk])
+    
+                if other.seating_plan:
+                    if other.seating_plan.organizer_id == self.organizer_id:
+                        self.seating_plan = other.seating_plan
+                    else:
+                        self.organizer.seating_plans.create(name=other.seating_plan.name, layout=other.seating_plan.layout)
+                    self.save()
 
             for m in other.seat_category_mappings.filter(subevent__isnull=True):
                 m.pk = None
@@ -1382,9 +1395,21 @@ class Event(
             'ticket_secrets_eventyay_sig1_pubkey',
             'ticket_secrets_eventyay_sig1_privkey',
         )
+        def is_email_key(k):
+            return k.startswith('mail_') or k.startswith('smtp_')
+            
+        def is_design_key(k):
+            return k in ('primary_color', 'theme_color_success', 'theme_color_danger', 'logo_image', 'logo_image_large', 'custom_css', 'frontpage_text', 'header_pattern')
+
         if clone_common:
             for s in other.settings._objects.all():
                 if s.key in skip_settings:
+                    continue
+                if is_email_key(s.key) and not clone_email_settings:
+                    continue
+                if is_design_key(s.key) and not clone_design_texts:
+                    continue
+                if not is_email_key(s.key) and not is_design_key(s.key) and not clone_settings:
                     continue
 
                 s.object = self
@@ -1425,68 +1450,91 @@ class Event(
                 self.cfp.default_type = None
                 self.cfp.save(update_fields=['default_type'])
             
-            SubmissionType.objects.filter(event=self).delete()
-            submission_type_map = {}
-            for st in other.submission_types.all():
-                submission_type_map[st.pk] = st
-                st.pk = None
-                st.event = self
-                st.save()
-                st.log_action('eventyay.object.cloned')
-
-            track_map = {}
-            for tr in other.tracks.all():
-                track_map[tr.pk] = tr
-                tr.pk = None
-                tr.event = self
-                tr.save()
-                tr.log_action('eventyay.object.cloned')
+            if clone_session_types_tracks:
+                SubmissionType.objects.filter(event=self).delete()
+                submission_type_map = {}
+                for st in other.submission_types.all():
+                    submission_type_map[st.pk] = st
+                    st.pk = None
+                    st.event = self
+                    st.save()
+                    st.log_action('eventyay.object.cloned')
+    
+                track_map = {}
+                for tr in other.tracks.all():
+                    track_map[tr.pk] = tr
+                    tr.pk = None
+                    tr.event = self
+                    tr.save()
+                    tr.log_action('eventyay.object.cloned')
                 
-            talk_question_map = {}
-            talk_question_deps = {}
-            for tq in other.talkquestions.prefetch_related('options', 'tracks', 'submission_types'):
-                tq_tracks = list(tq.tracks.all())
-                tq_submission_types = list(tq.submission_types.all())
-                tq_options = list(tq.options.all())
-                old_dep_id = tq.dependency_question_id
-                
-                talk_question_map[tq.pk] = tq
-                tq.pk = None
-                tq.event = self
-                tq.dependency_question = None
-                tq.save()
-                tq.log_action('eventyay.object.cloned')
-                
-                if old_dep_id:
-                    talk_question_deps[tq] = old_dep_id
-                
-                for o in tq_options:
-                    o.pk = None
-                    o.question = tq
-                    o.save()
-                for tr in tq_tracks:
-                    tq.tracks.add(track_map[tr.pk])
-                for st in tq_submission_types:
-                    tq.submission_types.add(submission_type_map[st.pk])
+                talk_question_map = {}
+                talk_question_deps = {}
+                for tq in other.talkquestions.prefetch_related('options', 'tracks', 'submission_types'):
+                    tq_tracks = list(tq.tracks.all())
+                    tq_submission_types = list(tq.submission_types.all())
+                    tq_options = list(tq.options.all())
+                    old_dep_id = tq.dependency_question_id
                     
-            for tq, old_dep_id in talk_question_deps.items():
-                tq.dependency_question = talk_question_map.get(old_dep_id)
-                if tq.dependency_question:
-                    tq.save(update_fields=['dependency_question'])
-            
-            if hasattr(self, 'cfp') and hasattr(other, 'cfp') and other.cfp.default_type_id:
-                self.cfp.default_type = submission_type_map.get(other.cfp.default_type_id)
-                self.cfp.save(update_fields=['default_type'])
+                    talk_question_map[tq.pk] = tq
+                    tq.pk = None
+                    tq.event = self
+                    tq.dependency_question = None
+                    tq.save()
+                    tq.log_action('eventyay.object.cloned')
+                    
+                    if old_dep_id:
+                        talk_question_deps[tq] = old_dep_id
+                    
+                    for o in tq_options:
+                        o.pk = None
+                        o.question = tq
+                        o.save()
+                    for tr in tq_tracks:
+                        tq.tracks.add(track_map[tr.pk])
+                    for st in tq_submission_types:
+                        tq.submission_types.add(submission_type_map[st.pk])
+                        
+                for tq, old_dep_id in talk_question_deps.items():
+                    tq.dependency_question = talk_question_map.get(old_dep_id)
+                    if tq.dependency_question:
+                        tq.save(update_fields=['dependency_question'])
                 
-            for ac in other.submitter_access_codes.all():
-                ac.pk = None
-                ac.event = self
-                if ac.track_id:
-                    ac.track = track_map.get(ac.track_id)
-                if ac.submission_type_id:
-                    ac.submission_type = submission_type_map.get(ac.submission_type_id)
-                ac.save()
-                ac.log_action('eventyay.object.cloned')
+                if hasattr(self, 'cfp') and hasattr(other, 'cfp') and getattr(other.cfp, 'default_type_id', None):
+                    self.cfp.default_type = submission_type_map.get(other.cfp.default_type_id)
+                    self.cfp.save(update_fields=['default_type'])
+                    
+                for ac in other.submitter_access_codes.all():
+                    ac.pk = None
+                    ac.event = self
+                    if ac.track_id:
+                        ac.track = track_map.get(ac.track_id)
+                    if ac.submission_type_id:
+                        ac.submission_type = submission_type_map.get(ac.submission_type_id)
+                    ac.save()
+                    ac.log_action('eventyay.object.cloned')
+
+            if clone_review_settings:
+                from eventyay.base.models import ReviewPhase, ReviewScoreCategory, ReviewScore
+
+                self.review_phases.all().delete()
+                for rp in other.review_phases.all():
+                    rp.pk = None
+                    rp.event = self
+                    rp.save()
+                    rp.log_action('eventyay.object.cloned')
+
+                self.score_categories.all().delete()
+                for sc in other.score_categories.prefetch_related('scores'):
+                    scores = list(sc.scores.all())
+                    sc.pk = None
+                    sc.event = self
+                    sc.save()
+                    sc.log_action('eventyay.object.cloned')
+                    for score in scores:
+                        score.pk = None
+                        score.category = sc
+                        score.save()
         
         event_copy_data.send(
             sender=self,
