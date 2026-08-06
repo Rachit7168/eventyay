@@ -1411,6 +1411,10 @@ class Event(
             from eventyay.base.models.question import TalkQuestion
             from eventyay.base.models.access_code import SubmitterAccessCode
             
+            if hasattr(self, 'cfp') and getattr(self.cfp, 'default_type_id', None):
+                self.cfp.default_type = None
+                self.cfp.save(update_fields=['default_type'])
+            
             SubmissionType.objects.filter(event=self).delete()
             submission_type_map = {}
             for st in other.submission_types.all():
@@ -1429,10 +1433,12 @@ class Event(
                 tr.log_action('eventyay.object.cloned')
                 
             talk_question_map = {}
+            talk_question_deps = {}
             for tq in other.talkquestions.prefetch_related('options', 'tracks', 'submission_types'):
                 tq_tracks = list(tq.tracks.all())
                 tq_submission_types = list(tq.submission_types.all())
                 tq_options = list(tq.options.all())
+                old_dep_id = tq.dependency_question_id
                 
                 talk_question_map[tq.pk] = tq
                 tq.pk = None
@@ -1440,6 +1446,9 @@ class Event(
                 tq.dependency_question = None
                 tq.save()
                 tq.log_action('eventyay.object.cloned')
+                
+                if old_dep_id:
+                    talk_question_deps[tq] = old_dep_id
                 
                 for o in tq_options:
                     o.pk = None
@@ -1450,9 +1459,14 @@ class Event(
                 for st in tq_submission_types:
                     tq.submission_types.add(submission_type_map[st.pk])
                     
-            for tq in self.talkquestions.filter(dependency_question__isnull=False):
-                tq.dependency_question = talk_question_map[tq.dependency_question_id]
-                tq.save(update_fields=['dependency_question'])
+            for tq, old_dep_id in talk_question_deps.items():
+                tq.dependency_question = talk_question_map.get(old_dep_id)
+                if tq.dependency_question:
+                    tq.save(update_fields=['dependency_question'])
+            
+            if hasattr(self, 'cfp') and hasattr(other, 'cfp') and other.cfp.default_type_id:
+                self.cfp.default_type = submission_type_map.get(other.cfp.default_type_id)
+                self.cfp.save(update_fields=['default_type'])
                 
             for ac in other.submitter_access_codes.all():
                 ac.pk = None

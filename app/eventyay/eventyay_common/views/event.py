@@ -1463,19 +1463,24 @@ class EventCloneView(EventSettingsViewMixin, EventPermissionRequiredMixin, FormV
 
         old_event = self.request.event
         new_event = form.instance
-        new_event.organizer = old_event.organizer
-        new_event.plugins = old_event.plugins
-        new_event.has_subevents = old_event.has_subevents
-        new_event.is_video_creation = old_event.is_video_creation
-        new_event.testmode = False
-        new_event.private_testmode = False
-        form.save()
-
+        
         clone_options = {
             'clone_common_data': form.cleaned_data.get('clone_common_data'),
             'clone_ticketing_data': form.cleaned_data.get('clone_ticketing_data'),
             'clone_talk_data': form.cleaned_data.get('clone_talk_data'),
         }
+
+        new_event.organizer = old_event.organizer
+        if clone_options.get('clone_common_data'):
+            new_event.plugins = old_event.plugins
+        new_event.has_subevents = old_event.has_subevents
+        new_event.is_video_creation = old_event.is_video_creation
+        new_event.testmode = False
+        new_event.private_testmode = False
+        
+        new_event.timezone = form.cleaned_data['timezone']
+        new_event.locale = form.cleaned_data['locale']
+        form.save()
 
         new_event.clone_from(old_event, new_secrets=True, clone_options=clone_options)
         new_event.copy_data_from(old_event, clone_options=clone_options)
@@ -1488,7 +1493,14 @@ class EventCloneView(EventSettingsViewMixin, EventPermissionRequiredMixin, FormV
                 new_event.checkin_lists.create(name=_('Default'), all_products=True)
 
         new_event.set_defaults()
+        
+        # Override the values potentially cloned from the old event to the ones chosen in the form
+        new_event.timezone = form.cleaned_data['timezone']
+        new_event.locale = form.cleaned_data['locale']
+        new_event.save(update_fields=['timezone', 'locale'])
         new_event.settings.set('timezone', form.cleaned_data['timezone'])
+        new_event.settings.set('locale', form.cleaned_data['locale'])
+        new_event.settings.set('locales', [form.cleaned_data['locale']])
 
         new_event.log_action(
             action='eventyay.event.added',
