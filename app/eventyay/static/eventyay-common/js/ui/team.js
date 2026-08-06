@@ -26,11 +26,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const children = container.querySelectorAll('input[type="checkbox"]');
 
-        function syncFromParent() {
+        function syncFromParent(event) {
             const enabled = parent.checked;
             children.forEach(function (child) {
                 child.disabled = !enabled;
-                if (!enabled) {
+                if (event) {
+                    child.checked = enabled;
+                } else if (!enabled) {
                     child.checked = false;
                 }
             });

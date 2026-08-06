@@ -289,7 +289,7 @@ class EventUpdateForm(I18nModelForm):
 class EventCloneForm(I18nModelForm):
     clone_common_data = forms.BooleanField(
         label=_('Common event data'),
-        help_text=_('Parent toggle for common event data.'),
+        help_text=_('Includes general settings, design elements, and email configurations.'),
         required=False,
         initial=True,
     )
@@ -314,7 +314,7 @@ class EventCloneForm(I18nModelForm):
 
     clone_ticketing_data = forms.BooleanField(
         label=_('Ticketing data'),
-        help_text=_('Parent toggle for ticketing data.'),
+        help_text=_('Includes products, quotas, attendee questions, and check-in lists.'),
         required=False,
         initial=True,
     )
@@ -339,7 +339,7 @@ class EventCloneForm(I18nModelForm):
 
     clone_talk_data = forms.BooleanField(
         label=_('Talk data'),
-        help_text=_('Parent toggle for talk data.'),
+        help_text=_('Includes call for speakers, session tracks, submission questions, and review settings.'),
         required=False,
         initial=True,
     )
@@ -350,7 +350,7 @@ class EventCloneForm(I18nModelForm):
         initial=True,
     )
     clone_session_types_tracks = forms.BooleanField(
-        label=_('Session types & tracks'),
+        label=_('Session types, tracks & submission questions'),
         help_text=_('Session types, tracks, and submission questions.'),
         required=False,
         initial=True,
