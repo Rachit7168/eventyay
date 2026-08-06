@@ -1201,6 +1201,16 @@ class Event(
         if clone_common:
             self.plugins = other.plugins
             self.is_public = other.is_public
+            self.location = other.location
+            self.geo_lat = other.geo_lat
+            self.geo_lon = other.geo_lon
+            self.currency = other.currency
+            
+            for extra_link in other.extra_links.all():
+                extra_link.pk = None
+                extra_link.event = self
+                extra_link.save()
+                extra_link.log_action('eventyay.object.cloned')
 
         if other.date_admission:
             self.date_admission = self.date_from + (other.date_admission - other.date_from)
