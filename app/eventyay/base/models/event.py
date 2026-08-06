@@ -1404,7 +1404,14 @@ class Event(
             return k.startswith('mail_') or k.startswith('smtp_')
             
         def is_design_key(k):
-            return k in ('primary_color', 'theme_color_success', 'theme_color_danger', 'logo_image', 'logo_image_large', 'custom_css', 'frontpage_text', 'header_pattern')
+            return k in (
+                'primary_color', 'theme_color_success', 'theme_color_danger', 'theme_color_background', 'theme_round_borders',
+                'hover_button_color', 'video_navigation_background_color', 'video_sidebar_text_color', 'video_sidebar_hover_color',
+                'primary_font', 'header_background_color', 'header_text_color', 'navigation_text_color', 'menu_text_scroll_over_color',
+                'logo_image', 'logo_image_large', 'event_logo_image', 'event_preview_image', 'og_image',
+                'frontpage_text', 'banner_text', 'banner_text_bottom', 'header_pattern', 'logo_show_title',
+                'menu_label_tickets', 'menu_label_join_video'
+            )
 
         if clone_common:
             for s in other.settings._objects.all():
