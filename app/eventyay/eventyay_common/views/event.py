@@ -64,7 +64,7 @@ from eventyay.orga.forms.event import EventFooterLinkFormset, EventHeaderLinkFor
 from eventyay.eventyay_common.video.permissions import collect_user_video_traits
 from eventyay.helpers.plugin_enable import is_video_enabled
 from eventyay.multidomain.urlreverse import build_absolute_uri
-from ..forms.event import EventUpdateForm
+from ..forms.event import EventCloneForm, EventUpdateForm
 
 logger = logging.getLogger(__name__)
 
@@ -1421,3 +1421,84 @@ class EventSearchView(views.APIView):
                 results.append({'name': event.name, 'slug': event.slug, 'organizer': event.organizer.slug})
 
         return JsonResponse(results, safe=False)
+
+from django.views.generic import FormView
+
+class EventCloneView(EventSettingsViewMixin, EventPermissionRequiredMixin, FormView):
+    template_name = 'eventyay_common/event/clone.html'
+    permission = 'can_change_event_settings'
+    form_class = EventCloneForm
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['organizer'] = self.request.event.organizer
+        # Set initial values based on the current event
+        clone_from = self.request.event
+        user_tz = timezone(get_current_timezone_name())
+        now_dt = user_tz.localize(datetime.now())
+        default_start = now_dt + timedelta(days=90)
+        default_start = default_start.replace(hour=9, minute=0, second=0, microsecond=0)
+        default_end = default_start.replace(hour=17, minute=0, second=0, microsecond=0)
+
+        kwargs['initial'] = {
+            'name': clone_from.name,
+            'date_from': default_start,
+            'date_to': default_end,
+            'timezone': clone_from.settings.get('timezone') or clone_from.timezone,
+            'locale': clone_from.settings.get('locale') or clone_from.locale,
+            'clone_common_data': True,
+            'clone_ticketing_data': True,
+            'clone_talk_data': True,
+        }
+        return kwargs
+
+    def dispatch(self, request, *args, **kwargs):
+        if not check_create_permission(request):
+            raise PermissionDenied(_('You do not have permission to create events.'))
+        return super().dispatch(request, *args, **kwargs)
+
+    @transaction.atomic
+    def form_valid(self, form):
+        from eventyay.base.models import Event
+
+        old_event = self.request.event
+        new_event = form.instance
+        new_event.organizer = old_event.organizer
+        new_event.plugins = old_event.plugins
+        new_event.has_subevents = old_event.has_subevents
+        new_event.is_video_creation = old_event.is_video_creation
+        new_event.testmode = False
+        new_event.private_testmode = False
+        form.save()
+
+        clone_options = {
+            'clone_common_data': form.cleaned_data.get('clone_common_data'),
+            'clone_ticketing_data': form.cleaned_data.get('clone_ticketing_data'),
+            'clone_talk_data': form.cleaned_data.get('clone_talk_data'),
+        }
+
+        new_event.clone_from(old_event, new_secrets=True, clone_options=clone_options)
+        new_event.copy_data_from(old_event, clone_options=clone_options)
+        
+        if clone_options.get('clone_talk_data', True) and getattr(old_event, 'cfp', None):
+            new_event.cfp.copy_data_from(old_event.cfp)
+
+        with scope(organizer=new_event.organizer):
+            if not new_event.checkin_lists.exists():
+                new_event.checkin_lists.create(name=_('Default'), all_products=True)
+
+        new_event.set_defaults()
+        new_event.settings.set('timezone', form.cleaned_data['timezone'])
+
+        new_event.log_action(
+            action='eventyay.event.added',
+            user=self.request.user,
+        )
+
+        messages.success(self.request, _('Event has been cloned successfully.'))
+        return redirect(
+            reverse(
+                'eventyay_common:event.update',
+                kwargs={'event': new_event.slug, 'organizer': new_event.organizer.slug},
+            )
+        )

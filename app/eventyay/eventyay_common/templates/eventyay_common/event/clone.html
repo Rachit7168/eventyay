@@ -1,0 +1,51 @@
+{% extends "eventyay_common/event/settings_base.html" %}
+{% load i18n static %}
+{% load bootstrap3 %}
+{% block title %}{% trans "Clone event" %}{% endblock %}
+
+{% block inside %}
+<h1>{% trans "Clone event" %}</h1>
+
+<div class="alert alert-info">
+    {% trans "You can create a new event that is a copy of this event. Please enter a name, short form, and the new dates for the new event." %}
+    <br><br>
+    {% trans "By default, the following data is NOT cloned:" %}
+    <ul>
+        <li>{% trans "Orders, attendees, payments, invoices, check-ins" %}</li>
+        <li>{% trans "Submitted proposals, reviews, accepted sessions" %}</li>
+        <li>{% trans "Speaker accounts or profiles linked to submitted proposals" %}</li>
+        <li>{% trans "Message history, logs, or any personal data" %}</li>
+    </ul>
+</div>
+
+<form action="" method="post" class="form-horizontal">
+    {% csrf_token %}
+    {% bootstrap_form_errors form %}
+
+    <fieldset>
+        <legend>{% trans "New Event details" %}</legend>
+        {% bootstrap_field form.name layout="horizontal" %}
+        {% bootstrap_field form.slug layout="horizontal" %}
+        {% bootstrap_field form.date_from layout="horizontal" %}
+        {% bootstrap_field form.date_to layout="horizontal" %}
+        {% bootstrap_field form.timezone layout="horizontal" %}
+        {% bootstrap_field form.locale layout="horizontal" %}
+    </fieldset>
+
+    <fieldset>
+        <legend>{% trans "Data to clone" %}</legend>
+        {% bootstrap_field form.clone_common_data layout="horizontal" %}
+        {% bootstrap_field form.clone_ticketing_data layout="horizontal" %}
+        {% bootstrap_field form.clone_talk_data layout="horizontal" %}
+    </fieldset>
+
+    <div class="form-group submit-group">
+        <button type="submit" class="btn btn-primary btn-save">
+            {% trans "Clone event" %}
+        </button>
+        <a href="{% url 'eventyay_common:event.update' organizer=request.event.organizer.slug event=request.event.slug %}" class="btn btn-default btn-cancel">
+            {% trans "Cancel" %}
+        </a>
+    </div>
+</form>
+{% endblock %}

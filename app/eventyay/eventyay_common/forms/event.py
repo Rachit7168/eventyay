@@ -286,3 +286,58 @@ class EventUpdateForm(I18nModelForm):
             'date_to': SplitDateTimePickerWidget(attrs={'data-date-after': '#id_date_from_0'}),
             'date_admission': SplitDateTimePickerWidget(attrs={'data-date-default': '#id_date_from_0'}),
         }
+class EventCloneForm(I18nModelForm):
+    clone_common_data = forms.BooleanField(
+        label=_('Common event data'),
+        help_text=_('Settings, texts, languages, design, and email settings.'),
+        required=False,
+        initial=True,
+    )
+    clone_ticketing_data = forms.BooleanField(
+        label=_('Ticketing data'),
+        help_text=_('Ticket settings, products, categories, quotas, check-in lists, tax rules, etc.'),
+        required=False,
+        initial=True,
+    )
+    clone_talk_data = forms.BooleanField(
+        label=_('Talk data'),
+        help_text=_('Call for speakers, session types, tracks, review settings, speaker and schedule settings.'),
+        required=False,
+        initial=True,
+    )
+
+    class Meta:
+        model = Event
+        fields = [
+            'name',
+            'slug',
+            'date_from',
+            'date_to',
+            'timezone',
+            'locale',
+        ]
+        field_classes = {
+            'date_from': SplitDateTimeField,
+            'date_to': SplitDateTimeField,
+        }
+        widgets = {
+            'slug': SlugWidget(attrs={'data-slug-source': 'name'}),
+            'date_from': SplitDateTimePickerWidget(),
+            'date_to': SplitDateTimePickerWidget(attrs={'data-date-after': '#id_date_from_0'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        self.organizer = kwargs.pop('organizer', None)
+        super().__init__(*args, **kwargs)
+        if self.organizer:
+            self.fields['slug'].widget.organizer = self.organizer
+        self.fields['timezone'].choices = ((a, a) for a in common_timezones)
+        self.fields['locale'].choices = get_language_choices_native_with_ui_name()
+
+    def clean_slug(self):
+        slug = self.cleaned_data.get('slug')
+        if Event.objects.filter(slug=slug, organizer=self.organizer).exists():
+            raise forms.ValidationError(
+                _('You already have an event with this short name. Please choose another one.')
+            )
+        return slug

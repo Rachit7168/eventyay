@@ -1181,7 +1181,7 @@ class Event(
             tz,
         )
 
-    def copy_data_from(self, other):
+    def copy_data_from(self, other, clone_options=None):
         from ..signals import event_copy_data
         from . import (
             Product,
@@ -1193,8 +1193,15 @@ class Event(
             Quota,
         )
 
-        self.plugins = other.plugins
-        self.is_public = other.is_public
+        clone_options = clone_options or {}
+        clone_common = clone_options.get('clone_common_data', True)
+        clone_ticketing = clone_options.get('clone_ticketing_data', True)
+        clone_talks = clone_options.get('clone_talk_data', True)
+
+        if clone_common:
+            self.plugins = other.plugins
+            self.is_public = other.is_public
+
         if other.date_admission:
             self.date_admission = self.date_from + (other.date_admission - other.date_from)
         self.testmode = other.testmode
@@ -1205,194 +1212,258 @@ class Event(
         self.log_action('eventyay.object.cloned', data={'source': other.slug, 'source_id': other.pk})
 
         tax_map = {}
-        for t in other.tax_rules.all():
-            tax_map[t.pk] = t
-            t.pk = None
-            t.event = self
-            t.save()
-            t.log_action('eventyay.object.cloned')
+        if clone_ticketing:
+            for t in other.tax_rules.all():
+                tax_map[t.pk] = t
+                t.pk = None
+                t.event = self
+                t.save()
+                t.log_action('eventyay.object.cloned')
 
         category_map = {}
-        for c in ProductCategory.objects.filter(event=other):
-            category_map[c.pk] = c
-            c.pk = None
-            c.event = self
-            c.save()
-            c.log_action('eventyay.object.cloned')
-
         product_meta_properties_map = {}
-        for imp in other.product_meta_properties.all():
-            product_meta_properties_map[imp.pk] = imp
-            imp.pk = None
-            imp.event = self
-            imp.save()
-            imp.log_action('eventyay.object.cloned')
-
         product_map = {}
         variation_map = {}
-        for i in Product.objects.filter(event=other).prefetch_related('variations'):
-            vars = list(i.variations.all())
-            product_map[i.pk] = i
-            i.pk = None
-            i.event = self
-            if i.picture:
-                i.picture.save(i.picture.name, i.picture)
-            if i.category_id:
-                i.category = category_map[i.category_id]
-            if i.tax_rule_id:
-                i.tax_rule = tax_map[i.tax_rule_id]
-            i.save()
-            i.log_action('eventyay.object.cloned')
-            for v in vars:
-                variation_map[v.pk] = v
-                v.pk = None
-                v.product = i
-                v.save()
-
-        for imv in ProductMetaValue.objects.filter(product__event=other).prefetch_related('product', 'property'):
-            imv.pk = None
-            imv.property = product_meta_properties_map[imv.property.pk]
-            imv.product = product_map[imv.product.pk]
-            imv.save()
-
-        for ia in ProductAddOn.objects.filter(base_product__event=other).prefetch_related(
-            'base_product', 'addon_category'
-        ):
-            ia.pk = None
-            ia.base_product = product_map[ia.base_product.pk]
-            ia.addon_category = category_map[ia.addon_category.pk]
-            ia.save()
-
-        for ia in ProductBundle.objects.filter(base_product__event=other).prefetch_related(
-            'base_product', 'bundled_product', 'bundled_variation'
-        ):
-            ia.pk = None
-            ia.base_product = product_map[ia.base_product.pk]
-            ia.bundled_product = product_map[ia.bundled_product.pk]
-            if ia.bundled_variation:
-                ia.bundled_variation = variation_map[ia.bundled_variation.pk]
-            ia.save()
-
-        for q in Quota.objects.filter(event=other, subevent__isnull=True).prefetch_related('products', 'variations'):
-            products = list(q.products.all())
-            vars = list(q.variations.all())
-            oldid = q.pk
-            q.pk = None
-            q.event = self
-            q.closed = False
-            q.save()
-            q.log_action('eventyay.object.cloned')
-            for i in products:
-                if i.pk in product_map:
-                    q.products.add(product_map[i.pk])
-            for v in vars:
-                q.variations.add(variation_map[v.pk])
-            self.products.filter(hidden_if_available_id=oldid).update(hidden_if_available=q)
-
         question_map = {}
-        for q in Question.objects.filter(event=other).prefetch_related('products', 'options'):
-            products = list(q.products.all())
-            opts = list(q.options.all())
-            question_map[q.pk] = q
-            q.pk = None
-            q.event = self
-            q.save()
-            q.log_action('eventyay.object.cloned')
-
-            for i in products:
-                q.products.add(product_map[i.pk])
-            for o in opts:
-                o.pk = None
-                o.question = q
-                o.save()
-
-        for q in self.questions.filter(dependency_question__isnull=False):
-            q.dependency_question = question_map[q.dependency_question_id]
-            q.save(update_fields=['dependency_question'])
-
-        def _walk_rules(rules):
-            if isinstance(rules, dict):
-                for k, v in rules.items():
-                    if k == 'lookup':
-                        if v[0] == 'product':
-                            v[1] = str(product_map.get(int(v[1]), 0).pk) if int(v[1]) in product_map else '0'
-                        elif v[0] == 'variation':
-                            v[1] = str(variation_map.get(int(v[1]), 0).pk) if int(v[1]) in variation_map else '0'
-                    else:
-                        _walk_rules(v)
-            elif isinstance(rules, list):
-                for i in rules:
-                    _walk_rules(i)
-
         checkin_list_map = {}
-        for cl in other.checkin_lists.filter(subevent__isnull=True).prefetch_related('limit_products'):
-            products = list(cl.limit_products.all())
-            checkin_list_map[cl.pk] = cl
-            cl.pk = None
-            cl.event = self
-            rules = cl.rules
-            _walk_rules(rules)
-            cl.rules = rules
-            cl.save()
-            cl.log_action('eventyay.object.cloned')
-            for i in products:
-                cl.limit_products.add(product_map[i.pk])
+        
+        if clone_ticketing:
+            for c in ProductCategory.objects.filter(event=other):
+                category_map[c.pk] = c
+                c.pk = None
+                c.event = self
+                c.save()
+                c.log_action('eventyay.object.cloned')
 
-        if other.seating_plan:
-            if other.seating_plan.organizer_id == self.organizer_id:
-                self.seating_plan = other.seating_plan
-            else:
-                self.organizer.seating_plans.create(name=other.seating_plan.name, layout=other.seating_plan.layout)
-            self.save()
+            for imp in other.product_meta_properties.all():
+                product_meta_properties_map[imp.pk] = imp
+                imp.pk = None
+                imp.event = self
+                imp.save()
+                imp.log_action('eventyay.object.cloned')
 
-        for m in other.seat_category_mappings.filter(subevent__isnull=True):
-            m.pk = None
-            m.event = self
-            m.product = product_map[m.product_id]
-            m.save()
+            for i in Product.objects.filter(event=other).prefetch_related('variations'):
+                vars = list(i.variations.all())
+                product_map[i.pk] = i
+                i.pk = None
+                i.event = self
+                if i.picture:
+                    i.picture.save(i.picture.name, i.picture)
+                if i.category_id:
+                    i.category = category_map[i.category_id]
+                if i.tax_rule_id:
+                    i.tax_rule = tax_map[i.tax_rule_id]
+                i.save()
+                i.log_action('eventyay.object.cloned')
+                for v in vars:
+                    variation_map[v.pk] = v
+                    v.pk = None
+                    v.product = i
+                    v.save()
 
-        for s in other.seats.filter(subevent__isnull=True):
-            s.pk = None
-            s.event = self
-            if s.product_id:
-                s.product = product_map[s.product_id]
-            s.save()
+            for imv in ProductMetaValue.objects.filter(product__event=other).prefetch_related('product', 'property'):
+                imv.pk = None
+                imv.property = product_meta_properties_map[imv.property.pk]
+                imv.product = product_map[imv.product.pk]
+                imv.save()
+
+            for ia in ProductAddOn.objects.filter(base_product__event=other).prefetch_related(
+                'base_product', 'addon_category'
+            ):
+                ia.pk = None
+                ia.base_product = product_map[ia.base_product.pk]
+                ia.addon_category = category_map[ia.addon_category.pk]
+                ia.save()
+
+            for ia in ProductBundle.objects.filter(base_product__event=other).prefetch_related(
+                'base_product', 'bundled_product', 'bundled_variation'
+            ):
+                ia.pk = None
+                ia.base_product = product_map[ia.base_product.pk]
+                ia.bundled_product = product_map[ia.bundled_product.pk]
+                if ia.bundled_variation:
+                    ia.bundled_variation = variation_map[ia.bundled_variation.pk]
+                ia.save()
+
+            for q in Quota.objects.filter(event=other, subevent__isnull=True).prefetch_related('products', 'variations'):
+                products = list(q.products.all())
+                vars = list(q.variations.all())
+                oldid = q.pk
+                q.pk = None
+                q.event = self
+                q.closed = False
+                q.save()
+                q.log_action('eventyay.object.cloned')
+                for i in products:
+                    if i.pk in product_map:
+                        q.products.add(product_map[i.pk])
+                for v in vars:
+                    q.variations.add(variation_map[v.pk])
+                self.products.filter(hidden_if_available_id=oldid).update(hidden_if_available=q)
+
+            for q in Question.objects.filter(event=other).prefetch_related('products', 'options'):
+                products = list(q.products.all())
+                opts = list(q.options.all())
+                question_map[q.pk] = q
+                q.pk = None
+                q.event = self
+                q.save()
+                q.log_action('eventyay.object.cloned')
+
+                for i in products:
+                    q.products.add(product_map[i.pk])
+                for o in opts:
+                    o.pk = None
+                    o.question = q
+                    o.save()
+
+            for q in self.questions.filter(dependency_question__isnull=False):
+                q.dependency_question = question_map[q.dependency_question_id]
+                q.save(update_fields=['dependency_question'])
+
+            def _walk_rules(rules):
+                if isinstance(rules, dict):
+                    for k, v in rules.items():
+                        if k == 'lookup':
+                            if v[0] == 'product':
+                                v[1] = str(product_map.get(int(v[1]), 0).pk) if int(v[1]) in product_map else '0'
+                            elif v[0] == 'variation':
+                                v[1] = str(variation_map.get(int(v[1]), 0).pk) if int(v[1]) in variation_map else '0'
+                        else:
+                            _walk_rules(v)
+                elif isinstance(rules, list):
+                    for i in rules:
+                        _walk_rules(i)
+
+            for cl in other.checkin_lists.filter(subevent__isnull=True).prefetch_related('limit_products'):
+                products = list(cl.limit_products.all())
+                checkin_list_map[cl.pk] = cl
+                cl.pk = None
+                cl.event = self
+                rules = cl.rules
+                _walk_rules(rules)
+                cl.rules = rules
+                cl.save()
+                cl.log_action('eventyay.object.cloned')
+                for i in products:
+                    cl.limit_products.add(product_map[i.pk])
+
+            if other.seating_plan:
+                if other.seating_plan.organizer_id == self.organizer_id:
+                    self.seating_plan = other.seating_plan
+                else:
+                    self.organizer.seating_plans.create(name=other.seating_plan.name, layout=other.seating_plan.layout)
+                self.save()
+
+            for m in other.seat_category_mappings.filter(subevent__isnull=True):
+                m.pk = None
+                m.event = self
+                m.product = product_map[m.product_id]
+                m.save()
+
+            for s in other.seats.filter(subevent__isnull=True):
+                s.pk = None
+                s.event = self
+                if s.product_id:
+                    s.product = product_map[s.product_id]
+                s.save()
 
         skip_settings = (
             'ticket_secrets_eventyay_sig1_pubkey',
             'ticket_secrets_eventyay_sig1_privkey',
         )
-        for s in other.settings._objects.all():
-            if s.key in skip_settings:
-                continue
+        if clone_common:
+            for s in other.settings._objects.all():
+                if s.key in skip_settings:
+                    continue
 
-            s.object = self
-            s.pk = None
-            if s.value.startswith('file://'):
-                fi = default_storage.open(s.value[7:], 'rb')
-                nonce = get_random_string(length=8)
-                # TODO: make sure pub is always correct
-                fname = 'pub/%s/%s/%s.%s.%s' % (
-                    self.organizer.slug,
-                    self.slug,
-                    s.key,
-                    nonce,
-                    s.value.split('.')[-1],
-                )
-                newname = default_storage.save(fname, fi)
-                s.value = 'file://' + newname
-                s.save()
-            elif s.key == 'tax_rate_default':
-                try:
-                    if int(s.value) in tax_map:
-                        s.value = tax_map.get(int(s.value)).pk
-                        s.save()
-                except ValueError:
-                    pass
-            else:
-                s.save()
+                s.object = self
+                s.pk = None
+                if s.value.startswith('file://'):
+                    fi = default_storage.open(s.value[7:], 'rb')
+                    nonce = get_random_string(length=8)
+                    # TODO: make sure pub is always correct
+                    fname = 'pub/%s/%s/%s.%s.%s' % (
+                        self.organizer.slug,
+                        self.slug,
+                        s.key,
+                        nonce,
+                        s.value.split('.')[-1],
+                    )
+                    newname = default_storage.save(fname, fi)
+                    s.value = 'file://' + newname
+                    s.save()
+                elif s.key == 'tax_rate_default':
+                    try:
+                        if int(s.value) in tax_map:
+                            s.value = tax_map.get(int(s.value)).pk
+                            s.save()
+                    except ValueError:
+                        pass
+                else:
+                    s.save()
 
-        self.settings.flush()
+            self.settings.flush()
+            
+        if clone_talks:
+            from eventyay.base.models.type import SubmissionType
+            from eventyay.base.models.track import Track
+            from eventyay.base.models.question import TalkQuestion
+            from eventyay.base.models.access_code import SubmitterAccessCode
+            
+            SubmissionType.objects.filter(event=self).delete()
+            submission_type_map = {}
+            for st in other.submission_types.all():
+                submission_type_map[st.pk] = st
+                st.pk = None
+                st.event = self
+                st.save()
+                st.log_action('eventyay.object.cloned')
+
+            track_map = {}
+            for tr in other.tracks.all():
+                track_map[tr.pk] = tr
+                tr.pk = None
+                tr.event = self
+                tr.save()
+                tr.log_action('eventyay.object.cloned')
+                
+            talk_question_map = {}
+            for tq in other.talkquestions.prefetch_related('options', 'tracks', 'submission_types'):
+                tq_tracks = list(tq.tracks.all())
+                tq_submission_types = list(tq.submission_types.all())
+                tq_options = list(tq.options.all())
+                
+                talk_question_map[tq.pk] = tq
+                tq.pk = None
+                tq.event = self
+                tq.dependency_question = None
+                tq.save()
+                tq.log_action('eventyay.object.cloned')
+                
+                for o in tq_options:
+                    o.pk = None
+                    o.question = tq
+                    o.save()
+                for tr in tq_tracks:
+                    tq.tracks.add(track_map[tr.pk])
+                for st in tq_submission_types:
+                    tq.submission_types.add(submission_type_map[st.pk])
+                    
+            for tq in self.talkquestions.filter(dependency_question__isnull=False):
+                tq.dependency_question = talk_question_map[tq.dependency_question_id]
+                tq.save(update_fields=['dependency_question'])
+                
+            for ac in other.submitter_access_codes.all():
+                ac.pk = None
+                ac.event = self
+                if ac.track_id:
+                    ac.track = track_map.get(ac.track_id)
+                if ac.submission_type_id:
+                    ac.submission_type = submission_type_map.get(ac.submission_type_id)
+                ac.save()
+                ac.log_action('eventyay.object.cloned')
+        
         event_copy_data.send(
             sender=self,
             other=other,
@@ -1402,6 +1473,7 @@ class Event(
             variation_map=variation_map,
             question_map=question_map,
             checkin_list_map=checkin_list_map,
+            clone_options=clone_options,
         )
 
     def decode_token(self, token, allow_raise=False):
@@ -1663,12 +1735,18 @@ class Event(
         self.domain = None
         self.save()
 
-    def clone_from(self, old, new_secrets):
+    def clone_from(self, old, new_secrets, clone_options=None):
         from eventyay.base.models import Channel
         from eventyay.base.models.storage_model import StoredFile
 
         if self.pk == old.pk:
             raise ValueError('Illegal attempt to clone into same event')
+
+        clone_options = clone_options or {}
+        clone_common = clone_options.get('clone_common_data', True)
+        clone_ticketing = clone_options.get('clone_ticketing_data', True)
+        clone_talks = clone_options.get('clone_talk_data', True)
+
 
         def clone_stored_files(*, inst=None, attrs=None, struct=None, url=None):
             if inst and attrs:
