@@ -1499,7 +1499,11 @@ class EventCloneView(EventSettingsViewMixin, EventPermissionRequiredMixin, FormV
         new_event.save(update_fields=['timezone', 'locale'])
         new_event.settings.set('timezone', form.cleaned_data['timezone'])
         new_event.settings.set('locale', form.cleaned_data['locale'])
-        new_event.settings.set('locales', [form.cleaned_data['locale']])
+        
+        cloned_locales = new_event.settings.get('locales', as_type=list) or []
+        if form.cleaned_data['locale'] not in cloned_locales:
+            cloned_locales.append(form.cleaned_data['locale'])
+        new_event.settings.set('locales', cloned_locales)
 
         new_event.log_action(
             action='eventyay.event.added',
