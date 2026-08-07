@@ -36,7 +36,7 @@ from eventyay.base.models import (
     QuestionOption,
     Quota,
 )
-from eventyay.base.models.product import ProductAddOn, ProductBundle, ProductMetaValue
+from eventyay.base.models.product import ProductAddOn, ProductBundle, ProductMetaValue, default_product_available_until
 from eventyay.base.signals import product_copy_data
 from eventyay.consts import SizeKey
 from eventyay.control.forms import ExtFileField, SplitDateTimeField, SplitDateTimePickerWidget
@@ -451,6 +451,8 @@ class ProductCreateForm(I18nModelForm):
         else:
             # Add to all sales channels by default
             self.instance.sales_channels = list(get_all_sales_channels().keys())
+            if self.instance.available_until is None:
+                self.instance.available_until = default_product_available_until(self.event)
 
         tax_rule = self.cleaned_data.get('tax_rule')
         tax_rule_name = self.cleaned_data.get('tax_rule_name')
