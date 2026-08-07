@@ -70,16 +70,6 @@ def iter_video_permission_definitions() -> Iterable[VideoPermissionDefinition]:
     return VIDEO_PERMISSION_DEFINITIONS.values()
 
 
-def build_video_traits_for_event(event_slug: str) -> dict[str, str]:
-    """
-    Returns a mapping of trait name -> unique trait value for the given event slug.
-    """
-    return {
-        definition.trait_name: definition.trait_value(event_slug)
-        for definition in VIDEO_PERMISSION_DEFINITIONS.values()
-    }
-
-
 def collect_user_video_traits(event_slug: str, team_permission_set: Iterable[str]) -> list[str]:
     """
     Given an event slug and the permission set for the current user, return the list of
