@@ -473,6 +473,11 @@ class SubmissionInviteAcceptView(LoggedInEventPageMixin, DetailView):
             invitation_token__iexact=self.kwargs['invitation'],
         )
 
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_anonymous:
+            return get_login_redirect(request)
+        return super().dispatch(request, *args, **kwargs)
+
     @context
     @cached_property
     def can_accept_invite(self):

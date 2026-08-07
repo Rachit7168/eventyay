@@ -7,7 +7,7 @@ from urllib.parse import quote
 from csp.decorators import csp_exempt
 from django import forms
 from django.conf import settings
-from django.core.exceptions import FieldDoesNotExist, ImproperlyConfigured
+from django.core.exceptions import FieldDoesNotExist, ImproperlyConfigured, PermissionDenied
 from django.db.models import CharField, Q
 from django.db.models.functions import Lower
 from django.http import FileResponse, Http404, HttpRequest
@@ -261,17 +261,25 @@ class PermissionRequired(PermissionRequiredMixin):
         request = getattr(self, 'request', None)
         if not request or not isinstance(request, HttpRequest):
             raise ImproperlyConfigured('PermissionRequiredMixin requires a request.')
-        # Debug log to trace why 404 happened
         logger.debug('User %s has no permission to access %s', request.user, request.path)
-        if (
-            request
-            and hasattr(request, 'event')
-            and request.user.is_anonymous
-            and 'cfp' in request.resolver_match.namespaces
-        ):
+
+        # Unauthenticated user: redirect to login preserving the original URL
+        if request.user.is_anonymous:
             params = '&' + request.GET.urlencode() if request.GET else ''
-            return redirect(request.event.urls.login + f'?next={quote(request.path)}' + params)
-        raise Http404()
+            next_url = f'?next={quote(request.path)}{params}'
+            if hasattr(request, 'event') and 'cfp' in request.resolver_match.namespaces:
+                return redirect(request.event.urls.login + next_url)
+            from django.conf import settings as django_settings
+            from django.urls import reverse as dj_reverse
+            login_url = getattr(django_settings, 'LOGIN_URL', '/accounts/login/')
+            try:
+                login_url = dj_reverse('eventyay_common:auth.login')
+            except Exception:
+                pass
+            return redirect(login_url + next_url)
+
+        # Authenticated user without permission: raise a proper 403
+        raise PermissionDenied(_('You do not have permission to access this page.'))
 
 
 class EventPermissionRequired(PermissionRequired):

@@ -3,6 +3,7 @@ from urllib.parse import quote, urljoin
 
 from django.conf import settings
 from django.contrib.auth import REDIRECT_FIELD_NAME, logout
+from django.core.exceptions import PermissionDenied
 from django.http import (
     Http404,
     HttpRequest,
@@ -155,8 +156,10 @@ class PermissionMiddleware:
                     .first()
                 )
             request.event = event
-            if not event or not request.user.has_event_permission(event.organizer, event, request=request):
-                raise Http404(_('The selected event was not found or you have no permission to administrate it.'))
+            if not event:
+                raise Http404(_('The selected event was not found.'))
+            if not request.user.has_event_permission(event.organizer, event, request=request):
+                raise PermissionDenied(_('You do not have permission to administrate this event.'))
             logger.info(
                 'Found organizer %s from event %s. Attaching to request.',
                 event.organizer.slug,
@@ -171,14 +174,15 @@ class PermissionMiddleware:
             organizer = Organizer.objects.filter(
                 slug=url.kwargs['organizer'],
             ).first()
-            if organizer:
-                logger.info(
-                    'Found organizer from kwargs %s. Attaching to request.',
-                    organizer.slug,
-                )
+            if not organizer:
+                raise Http404(_('The selected organizer was not found.'))
+            logger.info(
+                'Found organizer from kwargs %s. Attaching to request.',
+                organizer.slug,
+            )
             request.organizer = organizer
-            if not organizer or not request.user.has_organizer_permission(organizer, request=request):
-                raise Http404(_('The selected organizer was not found or you have no permission to administrate it.'))
+            if not request.user.has_organizer_permission(organizer, request=request):
+                raise PermissionDenied(_('You do not have permission to administrate this organizer.'))
             if request.user.has_active_staff_session(request.session.session_key):
                 request.orgapermset = SuperuserPermissionSet()
             else:
