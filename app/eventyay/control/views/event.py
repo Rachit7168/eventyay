@@ -1667,6 +1667,7 @@ class QuickSetupView(FormView):
                 admission=True,
                 position=i,
                 sales_channels=list(get_all_sales_channels().keys()),
+                available_until=self.request.event.date_to,
             )
             product.log_action(
                 'eventyay.event.product.added',
