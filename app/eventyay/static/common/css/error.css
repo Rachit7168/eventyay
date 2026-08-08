@@ -1,7 +1,7 @@
 body {
-  background: color-mix(in hsl, var(--color-primary), hsl(120 0 0) 20%);
-  a,
-  a:hover {
+  background: var(--color-primary);
+  a:not(.btn),
+  a:not(.btn):hover {
     font-weight: bold;
     color: white;
     text-decoration: underline;

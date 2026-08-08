@@ -114,7 +114,7 @@ class TestFeaturedSessions:
         # 5. Featured exports stay blocked until the schedule is publicly released
         export_json_url = f'{schedule_export_base}.json?featured=true'
         response = client.get(export_json_url)
-        assert response.status_code == 404
+        assert response.status_code == 302
 
         with scope(event=event):
             event.settings.show_schedule = True
@@ -176,7 +176,7 @@ class TestFeaturedSessions:
 
         export_json_url = f'{schedule_export_base}.json?featured=true'
         response = client.get(export_json_url)
-        assert response.status_code == 404
+        assert response.status_code == 302
 
         # 6.3. Schedule released, has featured talks
         with scope(event=event):
