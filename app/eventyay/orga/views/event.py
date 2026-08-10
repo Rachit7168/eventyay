@@ -375,6 +375,38 @@ class EventDelete(PermissionRequired, ActionConfirmMixin, TemplateView):
         if request.POST.get('event_name_confirm') != str(self.get_object().name):
             messages.error(self.request, _('The event name you entered was incorrect.'))
             return redirect(self.request.path)
+        self.get_object().shred(person=self.request.user)
+        messages.success(self.request, _('The event has been deleted.'))
+        return redirect(reverse('eventyay_common:dashboard'))
+
+
+class EventDeleteTalkData(PermissionRequired, ActionConfirmMixin, TemplateView):
+    permission_required = 'base.administrator_user'
+    model = Event
+    action_text = (
+        _(
+            'ALL related data, such as proposals, speaker profiles, and '
+            'uploads, will also be deleted and cannot be restored.'
+        )
+        + ' '
+        + phrases.base.delete_warning
+    )
+    template_name = 'orga/settings/delete_confirm.html'
+
+    def get_object(self):
+        return self.request.event
+
+    def action_object_name(self):
+        return _('Talk Data for') + f' {self.get_object().name}'
+
+    @property
+    def action_back_url(self):
+        return self.get_object().orga_urls.settings
+
+    def post(self, request, *args, **kwargs):
+        if request.POST.get('event_name_confirm') != str(self.get_object().name):
+            messages.error(self.request, _('The event name you entered was incorrect.'))
+            return redirect(self.request.path)
         self.get_object().delete_talk_data()
         messages.success(self.request, _('Talk data has been successfully deleted.'))
         url = reverse(

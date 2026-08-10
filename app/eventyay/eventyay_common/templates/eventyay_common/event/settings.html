@@ -409,7 +409,7 @@
                                 {% endblocktrans %}
                             </div>
                             <div class="col-sm-12 col-md-3 text-right">
-                                <a href="{{ request.event.orga_urls.delete }}" class="btn btn-danger">
+                                <a href="{% url 'orga:event.delete_talk_data' organizer=request.event.organizer.slug event=request.event.slug %}" class="btn btn-danger">
                                     <span class="fa fa-trash"></span>
                                     {% translate "Delete talk data" %}
                                 </a>
