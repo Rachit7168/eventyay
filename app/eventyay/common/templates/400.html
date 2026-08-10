@@ -12,7 +12,8 @@
         {{ phrases.base.bad_request }}
         <br>
     </p>
-    </h2>
+{% endblock error_message %}
+{% block error_details %}
     <h3>
         <p class="ml-auto mr-auto text-center">
             {% blocktranslate trimmed %}
@@ -23,6 +24,5 @@
             {% endblocktranslate %}
         </p>
     </h3>
-    <h2>
-{% endblock error_message %}
+{% endblock error_details %}
 {% block error_code %}400{% endblock error_code %}
