@@ -2201,6 +2201,7 @@ class Event(
     def delete_talk_data(self):
         from django.core.exceptions import ObjectDoesNotExist
 
+        from eventyay.base.models.mail import QueuedMail
         from eventyay.base.models.profile import SpeakerProfile
         from eventyay.base.models.feedback import Feedback
         from eventyay.base.models.question import Answer, AnswerOption
@@ -2223,6 +2224,9 @@ class Event(
 
         SpeakerProfile.objects.filter(event=self).delete()
 
+        # Clear unsent (outbox) emails linked to this event
+        QueuedMail.objects.filter(event=self, sent__isnull=True).delete()
+
         self.talkquestions.all().delete()
         self.submissions.all().delete()
         self.rooms.all().delete()
@@ -2237,6 +2241,7 @@ class Event(
             cfp.delete()
         self.submitter_access_codes.all().delete()
         self.submission_types.all().delete()
+        self.build_initial_data()
 
     def set_active_plugins(self, modules, allow_restricted=False):
         from eventyay.base.plugins import get_all_plugins

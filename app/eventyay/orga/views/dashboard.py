@@ -158,6 +158,8 @@ class EventDashboardView(EventPermissionRequired, SubmissionStatsMixin, Template
 
     def get_cfp_tiles(self, _now, can_change_submissions=False):
         result = []
+        if not hasattr(self.request.event, 'cfp'):
+            return result
         if self.request.event.cfp.is_open:
             result.append(
                 {
@@ -245,6 +247,15 @@ class EventDashboardView(EventPermissionRequired, SubmissionStatsMixin, Template
         # general stats start at 50
         result = super().get_context_data(**kwargs)
         event = self.request.event
+        # Auto-heal: if CfP was deleted (by delete_talk_data) before the current fix was
+        # deployed, rebuild it transparently so the dashboard and all other pages work.
+        if not hasattr(event, 'cfp'):
+            event.build_initial_data()
+            # Refresh the cached attribute from the database
+            try:
+                del event.__dict__['cfp']
+            except KeyError:
+                pass
         stages = get_stages(event)
         result['timeline'] = stages.values()
         result['go_to_target'] = 'schedule' if stages['REVIEW']['phase'] == 'done' else 'cfp'
