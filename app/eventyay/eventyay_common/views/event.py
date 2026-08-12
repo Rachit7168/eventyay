@@ -1496,6 +1496,11 @@ class EventCloneView(EventSettingsViewMixin, EventPermissionRequiredMixin, FormV
         }
         return kwargs
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['organizer_slug_rng_url'] = reverse('control:events.add.slugrng', kwargs={'organizer': self.request.event.organizer.slug})
+        return context
+
     def dispatch(self, request, *args, **kwargs):
         if not check_create_permission(request):
             raise PermissionDenied(_('You do not have permission to create events.'))
