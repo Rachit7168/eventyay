@@ -336,7 +336,7 @@ class EventCloneForm(I18nModelForm):
     )
     clone_design_texts = forms.BooleanField(
         label=_('Design and texts'),
-        help_text=_('Colors, logo, custom CSS, frontpage texts.'),
+        help_text=_('Colors, logo, custom CSS.'),
         required=False,
         initial=True,
     )
@@ -368,6 +368,12 @@ class EventCloneForm(I18nModelForm):
     clone_checkin_lists = forms.BooleanField(
         label=_('Check-in lists'),
         help_text=_('Check-in lists configuration.'),
+        required=False,
+        initial=True,
+    )
+    clone_payment_settings = forms.BooleanField(
+        label=_('Payment settings'),
+        help_text=_('Payment providers and invoicing.'),
         required=False,
         initial=True,
     )

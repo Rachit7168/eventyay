@@ -1582,6 +1582,7 @@ class EventCloneView(EventSettingsViewMixin, EventPermissionRequiredMixin, FormV
             'clone_products': form.cleaned_data.get('clone_products'),
             'clone_questions': form.cleaned_data.get('clone_questions'),
             'clone_checkin_lists': form.cleaned_data.get('clone_checkin_lists'),
+            'clone_payment_settings': form.cleaned_data.get('clone_payment_settings'),
             'clone_talk_data': form.cleaned_data.get('clone_talk_data'),
             'clone_cfp': form.cleaned_data.get('clone_cfp'),
             'clone_session_types_tracks': form.cleaned_data.get('clone_session_types_tracks'),

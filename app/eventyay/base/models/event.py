@@ -1126,6 +1126,7 @@ class Event(
         clone_products = clone_options.get('clone_products', True)
         clone_questions = clone_options.get('clone_questions', True)
         clone_checkin_lists = clone_options.get('clone_checkin_lists', True)
+        clone_payment_settings = clone_options.get('clone_payment_settings', True)
         
         clone_talks = clone_options.get('clone_talk_data', True)
         clone_cfp = clone_options.get('clone_cfp', True)
@@ -1322,6 +1323,7 @@ class Event(
         skip_settings = (
             'ticket_secrets_eventyay_sig1_pubkey',
             'ticket_secrets_eventyay_sig1_privkey',
+            'frontpage_text',
         )
         def is_email_key(k):
             return k.startswith('mail_') or k.startswith('smtp_')
@@ -1332,9 +1334,12 @@ class Event(
                 'hover_button_color', 'video_navigation_background_color', 'video_sidebar_text_color', 'video_sidebar_hover_color',
                 'primary_font', 'header_background_color', 'header_text_color', 'navigation_text_color', 'menu_text_scroll_over_color',
                 'logo_image', 'logo_image_large', 'event_logo_image', 'event_preview_image', 'og_image',
-                'frontpage_text', 'banner_text', 'banner_text_bottom', 'header_pattern', 'logo_show_title',
+                'banner_text', 'banner_text_bottom', 'header_pattern', 'logo_show_title',
                 'menu_label_tickets', 'menu_label_join_video'
             )
+
+        def is_payment_key(k):
+            return k.startswith('payment_') or k.startswith('invoice_')
 
         if clone_common:
             for s in other.settings._objects.all():
@@ -1344,7 +1349,9 @@ class Event(
                     continue
                 if is_design_key(s.key) and not clone_design_texts:
                     continue
-                if not is_email_key(s.key) and not is_design_key(s.key) and not clone_settings:
+                if is_payment_key(s.key) and not clone_payment_settings:
+                    continue
+                if not is_email_key(s.key) and not is_design_key(s.key) and not is_payment_key(s.key) and not clone_settings:
                     continue
 
                 s.object = self
