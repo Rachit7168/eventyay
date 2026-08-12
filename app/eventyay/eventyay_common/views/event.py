@@ -1476,6 +1476,7 @@ class EventCloneView(EventSettingsViewMixin, EventPermissionRequiredMixin, FormV
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs['organizer'] = self.request.event.organizer
+        kwargs['locales'] = self.request.event.settings.get('locales')
         # Set initial values based on the current event
         clone_from = self.request.event
         user_tz = timezone(get_current_timezone_name())
