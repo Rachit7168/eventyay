@@ -22,6 +22,7 @@ from eventyay.base.models import Event
 from eventyay.base.settings import validate_event_settings
 from eventyay.common.language import get_language_choices_native_with_ui_name
 from eventyay.common.urls import get_file_url_path, is_http_url
+from eventyay.multidomain.urlreverse import build_absolute_uri
 from eventyay.control.forms import MultipleLanguagesWidget, SlugWidget, SplitDateTimeField, SplitDateTimePickerWidget
 from eventyay.helpers.image_optimize import optimize_uploaded_image
 from eventyay.multidomain.models import KnownDomain
@@ -311,6 +312,16 @@ class EventUpdateForm(I18nModelForm):
             'date_admission': SplitDateTimePickerWidget(attrs={'data-date-default': '#id_date_from_0'}),
         }
 class EventCloneForm(I18nModelForm):
+    locales = forms.MultipleChoiceField(
+        choices=django_settings.LANGUAGES,
+        label=_('Event languages'),
+        widget=MultipleLanguagesWidget,
+        help_text=_(
+            "Users will be able to use eventyay in these languages, and you will be able to provide all texts in "
+            "these languages. If you don't provide a text in the language a user selects, it will be shown in your "
+            "event's default language instead."
+        ),
+    )
     clone_common_data = forms.BooleanField(
         label=_('Common event Configuration'),
         help_text=_('Includes general settings, design elements, and email configurations.'),
@@ -389,6 +400,7 @@ class EventCloneForm(I18nModelForm):
     class Meta:
         model = Event
         fields = [
+            'locales',
             'name',
             'slug',
             'date_from',
@@ -412,6 +424,8 @@ class EventCloneForm(I18nModelForm):
         super().__init__(*args, **kwargs)
         if self.organizer:
             self.fields['slug'].widget.organizer = self.organizer
+            self.fields['slug'].widget.prefix = build_absolute_uri(self.organizer, 'presale:organizer.index')
+        self.fields['slug'].widget.attrs.setdefault('class', 'form-control')
         self.fields['timezone'].choices = ((a, a) for a in common_timezones)
         
         locale_choices = get_language_choices_native_with_ui_name()

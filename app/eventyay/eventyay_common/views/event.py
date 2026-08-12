@@ -1491,6 +1491,7 @@ class EventCloneView(EventSettingsViewMixin, EventPermissionRequiredMixin, FormV
             'date_to': default_end,
             'timezone': clone_from.settings.get('timezone') or clone_from.timezone,
             'locale': clone_from.settings.get('locale') or clone_from.locale,
+            'locales': clone_from.settings.get('locales') or [clone_from.locale],
             'clone_common_data': True,
             'clone_ticketing_data': True,
             'clone_talk_data': True,
@@ -1543,6 +1544,8 @@ class EventCloneView(EventSettingsViewMixin, EventPermissionRequiredMixin, FormV
 
         new_event.clone_from(old_event, new_secrets=True, clone_options=clone_options)
         new_event.copy_data_from(old_event, clone_options=clone_options)
+        
+        new_event.settings.set('locales', form.cleaned_data['locales'])
         
         if clone_options.get('clone_talk_data') and clone_options.get('clone_cfp', True) and getattr(old_event, 'cfp', None):
             new_event.cfp.copy_data_from(old_event.cfp)

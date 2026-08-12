@@ -29,12 +29,11 @@
         <div class="form-group{% if form.slug.errors %} has-error{% endif %}">
             <label class="col-md-3 control-label" for="{{ form.slug.id_for_label }}">{{ form.slug.label }}</label>
             <div class="col-md-9 form-inline">
-                {{ form.slug }}
-                <button class="btn btn-default" type="button" id="event-slug-random-generate"
-                        data-rng-url="{% url 'control:events.add.slugrng' organizer=request.event.organizer.slug %}"
-                        style="margin-left: 5px;">
+                <button class="btn btn-default pull-right flip" type="button" id="event-slug-random-generate"
+                        data-rng-url="{% url 'control:events.add.slugrng' organizer=request.event.organizer.slug %}">
                     {% trans "Set to random" %}
                 </button>
+                {{ form.slug }}
                 {% if form.slug.errors %}
                     <span class="text-danger ml-2"><small>{% trans "Slug not available" %}</small></span>
                 {% endif %}
@@ -52,6 +51,7 @@
         {% bootstrap_field form.date_from layout="horizontal" %}
         {% bootstrap_field form.date_to layout="horizontal" %}
         {% bootstrap_field form.timezone layout="horizontal" %}
+        {% bootstrap_field form.locales layout="horizontal" %}
         {% bootstrap_field form.locale layout="horizontal" %}
     </fieldset>
 
