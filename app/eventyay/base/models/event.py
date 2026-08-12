@@ -37,7 +37,15 @@ from django.utils.html import format_html
 from django.utils.timezone import make_aware, now
 from django.utils.translation import gettext
 from django.utils.translation import gettext_lazy as _
+from django.core.exceptions import ObjectDoesNotExist
 from django_scopes import ScopedManager, scope, scopes_disabled
+
+from eventyay.base.models.mail import QueuedMail
+from eventyay.base.models.profile import SpeakerProfile
+from eventyay.base.models.feedback import Feedback
+from eventyay.base.models.question import Answer, AnswerOption
+from eventyay.base.models.resource import Resource
+from eventyay.base.models.slot import TalkSlot
 from i18nfield.fields import I18nCharField, I18nTextField
 from rules.contrib.models import RulesModelBase, RulesModelMixin
 
@@ -2200,19 +2208,14 @@ class Event(
         self.submission_types.all().delete()
 
     @scopes_disabled()
+    @transaction.atomic
     def delete_talk_data(self):
-        from django.core.exceptions import ObjectDoesNotExist
-
-        from eventyay.base.models.mail import QueuedMail
-        from eventyay.base.models.profile import SpeakerProfile
-        from eventyay.base.models.feedback import Feedback
-        from eventyay.base.models.question import Answer, AnswerOption
-        from eventyay.base.models.resource import Resource
-        from eventyay.base.models.slot import TalkSlot
-
         answers = Answer.objects.filter(question__event=self)
         for answer in answers.only('pk', 'answer_file').iterator():
-            answer._delete_files()
+            try:
+                answer._delete_files()
+            except Exception:
+                logger.error("Failed to delete files for Answer %s", answer.pk, exc_info=True)
         answers.delete()
         AnswerOption.objects.filter(question__event=self).delete()
 
@@ -2221,7 +2224,10 @@ class Event(
 
         resources = Resource.objects.filter(submission__event=self)
         for resource in resources.only('pk', 'resource').iterator():
-            resource._delete_files()
+            try:
+                resource._delete_files()
+            except Exception:
+                logger.error("Failed to delete files for Resource %s", resource.pk, exc_info=True)
         resources.delete()
 
         SpeakerProfile.objects.filter(event=self).delete()

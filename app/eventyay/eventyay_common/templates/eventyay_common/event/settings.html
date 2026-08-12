@@ -399,7 +399,7 @@
                             </div>
                         </div>
                     </li>
-                    {% if is_talk_event_created and request.user.is_administrator %}
+                    {% if is_talk_event_created and can_delete_talk_data %}
                     <li class="list-group-item">
                         <div class="row">
                             <div class="col-sm-12 col-md-9">

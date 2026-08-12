@@ -652,6 +652,11 @@ class EventUpdate(
         ):
             # Ignore case Event is created only for Talk as it not enable yet.
             context['is_talk_event_created'] = True
+            
+        context['can_delete_talk_data'] = (
+            self.request.user.is_administrator and 
+            self.request.user.has_active_staff_session(self.request.session.session_key)
+        )
         return context
 
     def _run_email_test(self):

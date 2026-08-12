@@ -408,6 +408,7 @@ class EventDeleteTalkData(PermissionRequired, ActionConfirmMixin, TemplateView):
             messages.error(self.request, _('The event name you entered was incorrect.'))
             return redirect(self.request.path)
         self.get_object().delete_talk_data()
+        self.get_object().log_action('eventyay.event.talk_data.deleted', person=self.request.user, orga=True)
         messages.success(self.request, _('Talk data has been successfully deleted.'))
         url = reverse(
             'eventyay_common:event.update', 
