@@ -3,6 +3,7 @@
 {% load bootstrap3 %}
 {% block title %}{% trans "Clone event" %}{% endblock %}
 
+
 {% block inside %}
 <h1>{% trans "Clone event" %}</h1>
 
@@ -24,7 +25,9 @@
 
     <fieldset>
         <legend>{% trans "New Event details" %}</legend>
-        {% bootstrap_field form.name layout="horizontal" %}
+        <div id="event-name-field">
+            {% bootstrap_field form.name layout="horizontal" %}
+        </div>
         
         <div class="form-group{% if form.slug.errors %} has-error{% endif %}">
             <label class="col-md-3 control-label" for="{{ form.slug.id_for_label }}">{{ form.slug.label }}</label>
@@ -94,43 +97,5 @@
 {% block custom_header %}
 {{ block.super }}
 <script src="{% static 'eventyay-common/js/ui/team.js' %}"></script>
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        var slug = document.getElementById("id_slug") || document.querySelector('[name="slug"]');
-        if (slug) {
-            slug.addEventListener("input", function () {
-                slug.dataset.userEdited = "true";
-            });
-        }
-        var randomSlugButton = document.getElementById("event-slug-random-generate");
-        if (randomSlugButton) {
-            randomSlugButton.addEventListener("click", function () {
-                if (!slug || !randomSlugButton.dataset.rngUrl || randomSlugButton.dataset.generating === "true") {
-                    return;
-                }
-                randomSlugButton.dataset.generating = "true";
-                var oldVal = slug.value;
-                slug.value = "Generating...";
-                fetch(randomSlugButton.dataset.rngUrl)
-                    .then(function (response) {
-                        if (!response.ok) {
-                            throw new Error("Random slug request failed.");
-                        }
-                        return response.json();
-                    })
-                    .then(function (data) {
-                        slug.value = data.slug;
-                        delete slug.dataset.userEdited;
-                    })
-                    .catch(function (error) {
-                        console.error("Failed to generate random event slug.", error);
-                        slug.value = oldVal;
-                    })
-                    .finally(function () {
-                        delete randomSlugButton.dataset.generating;
-                    });
-            });
-        }
-    });
-</script>
+<script defer src="{% static 'eventyay-common/js/ui/event-create.js' %}"></script>
 {% endblock %}

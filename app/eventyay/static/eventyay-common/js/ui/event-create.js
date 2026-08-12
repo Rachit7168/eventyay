@@ -16,13 +16,13 @@
     }
 
     function selectedActiveLanguages() {
-        var hiddenSelect = document.querySelector('select[name="foundation-locales"]');
+        var hiddenSelect = document.querySelector('select[name="foundation-locales"], select[name="locales"]');
         if (hiddenSelect) {
             return Array.from(hiddenSelect.selectedOptions).map(function (option) {
                 return option.value;
             });
         }
-        return Array.from(document.querySelectorAll('input[name="foundation-locales"]:checked')).map(
+        return Array.from(document.querySelectorAll('input[name="foundation-locales"]:checked, input[name="locales"]:checked')).map(
             function (input) {
                 return input.value;
             }
@@ -30,15 +30,15 @@
     }
 
     function isActiveLanguageControl(target) {
-        if (target.matches('input[name="foundation-locales"], select[name="foundation-locales"]')) {
+        if (target.matches('input[name="foundation-locales"], select[name="foundation-locales"], input[name="locales"], select[name="locales"]')) {
             return true;
         }
         var wrapper = target.closest(".multi-language-select-wrapper");
-        return Boolean(wrapper && wrapper.querySelector('select[name="foundation-locales"]'));
+        return Boolean(wrapper && wrapper.querySelector('select[name="foundation-locales"], select[name="locales"]'));
     }
 
     function updateDefaultLanguageChoices() {
-        var defaultLanguage = document.getElementById("id_basics-locale");
+        var defaultLanguage = document.getElementById("id_basics-locale") || document.getElementById("id_locale");
         if (!defaultLanguage) {
             return;
         }
@@ -66,7 +66,7 @@
 
     function rememberEventI18nValues() {
         document.querySelectorAll(
-            '#event-name-field input[name^="basics-name_"], #event-location-field textarea[name^="basics-location_"]'
+            '#event-name-field input[name^="basics-name_"], #event-location-field textarea[name^="basics-location_"], #event-name-field input[name^="name_"]'
         ).forEach(function (input) {
             eventI18nValues[input.name] = input.value;
         });
@@ -84,8 +84,10 @@
         rememberEventI18nValues();
         var formData = new FormData(form);
         formData.delete("foundation-locales");
+        formData.delete("locales");
         activeLanguages.forEach(function (locale) {
             formData.append("foundation-locales", locale);
+            formData.append("locales", locale);
         });
         Object.keys(eventI18nValues).forEach(function (name) {
             if (!formData.has(name)) {
@@ -122,27 +124,31 @@
                 var fields = new DOMParser().parseFromString(data.fields, "text/html");
                 var eventNameTemplate = fields.querySelector("#event-name-field-template");
                 var eventLocationTemplate = fields.querySelector("#event-location-field-template");
-                if (!eventNameTemplate || !eventLocationTemplate) {
+                if (!eventNameTemplate) {
                     throw new Error("Event multilingual fields response is incomplete.");
                 }
                 eventNameField.replaceChildren(eventNameTemplate.content.cloneNode(true));
-                eventLocationField.replaceChildren(eventLocationTemplate.content.cloneNode(true));
+                if (eventLocationField && eventLocationTemplate) {
+                    eventLocationField.replaceChildren(eventLocationTemplate.content.cloneNode(true));
+                    eventLocationField.removeAttribute("aria-busy");
+                }
                 eventNameField.removeAttribute("aria-busy");
-                eventLocationField.removeAttribute("aria-busy");
                 eventI18nRequest = null;
             })
             .catch(function (error) {
                 if (error.name !== "AbortError" && eventI18nRequest === requestController) {
                     console.error("Failed to update the event multilingual fields.", error);
                     eventNameField.removeAttribute("aria-busy");
-                    eventLocationField.removeAttribute("aria-busy");
+                    if (eventLocationField) {
+                        eventLocationField.removeAttribute("aria-busy");
+                    }
                     eventI18nRequest = null;
                 }
             });
     }
 
     function getSlugInput() {
-        return document.getElementById("id_basics-slug") || document.querySelector('[name="basics-slug"]');
+        return document.getElementById("id_basics-slug") || document.querySelector('[name="basics-slug"]') || document.getElementById("id_slug") || document.querySelector('[name="slug"]');
     }
 
     function updateRandomSlug(randomSlugButton, force) {
