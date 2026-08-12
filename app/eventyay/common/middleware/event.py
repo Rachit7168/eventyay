@@ -46,9 +46,9 @@ def _agenda_featured_allowed_without_talks_published(url, request, event):
         and request.GET.get('featured') == 'true'
     )
     if is_featured_export:
-        from eventyay.talk_rules.submission import can_use_featured_exports
-
-        return can_use_featured_exports(user, event)
+        # Defer to the export view: it redirects anonymous users to login and
+        # returns 403 for authenticated users without schedule access.
+        return True
 
     return agenda_page_allowed_without_talks_published(url.url_name, user, event, url_kwargs=url.kwargs)
 
