@@ -1473,12 +1473,70 @@ class EventCloneView(EventSettingsViewMixin, EventPermissionRequiredMixin, FormV
     permission = 'can_change_event_settings'
     form_class = EventCloneForm
 
+    def post(self, request, *args, **kwargs):
+        if request.POST.get('ajax') == 'event-i18n-fields':
+            return self.render_event_i18n_fields()
+        return super().post(request, *args, **kwargs)
+
+    def render_event_i18n_fields(self):
+        valid_locale_codes = {code for code, _name in settings.LANGUAGES}
+        locales = [
+            locale for locale in self.request.POST.getlist('locales') if locale in valid_locale_codes
+        ]
+        if not locales:
+            from django.http import JsonResponse
+            from django.utils.translation import gettext as _
+            return JsonResponse({'error': _('Select at least one active language.')}, status=400)
+
+        clone_from = self.request.event
+        user_tz = timezone(get_current_timezone_name())
+        now_dt = user_tz.localize(datetime.now())
+        default_start = now_dt + timedelta(days=90)
+        default_start = default_start.replace(hour=9, minute=0, second=0, microsecond=0)
+        default_end = default_start.replace(hour=17, minute=0, second=0, microsecond=0)
+
+        initial = {
+            'name': clone_from.name,
+            'date_from': default_start,
+            'date_to': default_end,
+            'timezone': clone_from.settings.get('timezone') or clone_from.timezone,
+            'locale': clone_from.settings.get('locale') or clone_from.locale,
+            'locales': locales,
+        }
+        name_values = {}
+        for index, (locale, _name) in enumerate(settings.LANGUAGES):
+            if locale not in locales:
+                continue
+            key = f'name_{index}'
+            if key in self.request.POST:
+                value = self.request.POST.get(key, '').strip()
+                if value:
+                    name_values[locale] = value
+        if name_values:
+            initial['name'] = name_values
+
+        form = self.form_class(
+            data=None,
+            initial=initial,
+            organizer=clone_from.organizer,
+            locales=locales,
+        )
+
+        from django.template.loader import render_to_string
+        from django.http import JsonResponse
+        fields = render_to_string(
+            'eventyay_common/event/fragment_event_clone_i18n_fields.html',
+            {'form': form},
+            request=self.request,
+        )
+        return JsonResponse({'fields': fields})
+
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs['organizer'] = self.request.event.organizer
-        kwargs['locales'] = self.request.event.settings.get('locales')
-        # Set initial values based on the current event
         clone_from = self.request.event
+        clone_locales = list(clone_from.settings.get('locales') or [clone_from.locale or 'en'])
+        kwargs['locales'] = clone_locales
         user_tz = timezone(get_current_timezone_name())
         now_dt = user_tz.localize(datetime.now())
         default_start = now_dt + timedelta(days=90)
@@ -1491,7 +1549,7 @@ class EventCloneView(EventSettingsViewMixin, EventPermissionRequiredMixin, FormV
             'date_to': default_end,
             'timezone': clone_from.settings.get('timezone') or clone_from.timezone,
             'locale': clone_from.settings.get('locale') or clone_from.locale,
-            'locales': clone_from.settings.get('locales') or [clone_from.locale],
+            'locales': clone_locales,
             'clone_common_data': True,
             'clone_ticketing_data': True,
             'clone_talk_data': True,

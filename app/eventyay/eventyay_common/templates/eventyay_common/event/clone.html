@@ -19,12 +19,13 @@
     </ul>
 </div>
 
-<form action="" method="post" class="form-horizontal">
+<form action="" method="post" class="form-horizontal event-clone-form">
     {% csrf_token %}
     {% bootstrap_form_errors form %}
 
     <fieldset>
         <legend>{% trans "New Event details" %}</legend>
+        {% bootstrap_field form.locales layout="horizontal" %}
         <div id="event-name-field">
             {% bootstrap_field form.name layout="horizontal" %}
         </div>
@@ -54,7 +55,6 @@
         {% bootstrap_field form.date_from layout="horizontal" %}
         {% bootstrap_field form.date_to layout="horizontal" %}
         {% bootstrap_field form.timezone layout="horizontal" %}
-        {% bootstrap_field form.locales layout="horizontal" %}
         {% bootstrap_field form.locale layout="horizontal" %}
     </fieldset>
 

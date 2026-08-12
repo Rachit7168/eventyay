@@ -77,7 +77,7 @@
         var eventNameField = document.getElementById("event-name-field");
         var eventLocationField = document.getElementById("event-location-field");
         var activeLanguages = selectedActiveLanguages();
-        if (!form || !eventNameField || !eventLocationField || activeLanguages.length === 0) {
+        if (!form || !eventNameField || activeLanguages.length === 0) {
             return;
         }
 
@@ -102,7 +102,9 @@
         var requestController = new AbortController();
         eventI18nRequest = requestController;
         eventNameField.setAttribute("aria-busy", "true");
-        eventLocationField.setAttribute("aria-busy", "true");
+        if (eventLocationField) {
+            eventLocationField.setAttribute("aria-busy", "true");
+        }
 
         fetch(window.location.href, {
             method: "POST",
@@ -130,6 +132,8 @@
                 eventNameField.replaceChildren(eventNameTemplate.content.cloneNode(true));
                 if (eventLocationField && eventLocationTemplate) {
                     eventLocationField.replaceChildren(eventLocationTemplate.content.cloneNode(true));
+                    eventLocationField.removeAttribute("aria-busy");
+                } else if (eventLocationField) {
                     eventLocationField.removeAttribute("aria-busy");
                 }
                 eventNameField.removeAttribute("aria-busy");

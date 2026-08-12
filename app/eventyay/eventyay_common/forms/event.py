@@ -420,18 +420,21 @@ class EventCloneForm(I18nModelForm):
 
     def __init__(self, *args, **kwargs):
         self.organizer = kwargs.pop('organizer', None)
-        locales = kwargs.get('locales', None)
+        self.locales = kwargs.get('locales')
+        if self.locales is None and kwargs.get('initial'):
+            self.locales = kwargs['initial'].get('locales')
+        if not self.locales:
+            self.locales = ['en']
+        kwargs['locales'] = self.locales
         super().__init__(*args, **kwargs)
         if self.organizer:
             self.fields['slug'].widget.organizer = self.organizer
             self.fields['slug'].widget.prefix = build_absolute_uri(self.organizer, 'presale:organizer.index')
         self.fields['slug'].widget.attrs.setdefault('class', 'form-control')
         self.fields['timezone'].choices = ((a, a) for a in common_timezones)
-        
+
         locale_choices = get_language_choices_native_with_ui_name()
-        if locales:
-            locale_choices = [(k, v) for k, v in locale_choices if k in locales]
-        self.fields['locale'].choices = locale_choices
+        self.fields['locale'].choices = [(code, label) for code, label in locale_choices if code in self.locales]
 
     def clean_slug(self):
         slug = self.cleaned_data.get('slug')
