@@ -2,7 +2,6 @@ import logging
 import urllib
 from collections import defaultdict
 from contextlib import suppress
-from urllib.parse import quote
 
 from csp.decorators import csp_exempt
 from django import forms
@@ -23,6 +22,7 @@ from rules.contrib.views import PermissionRequiredMixin
 from eventyay.common.forms import SearchForm
 from eventyay.common.permissions import is_admin_mode_active
 from eventyay.common.text.phrases import phrases
+from eventyay.common.views.helpers import build_login_url_with_next
 
 SessionStore = import_string(f'{settings.SESSION_ENGINE}.SessionStore')
 logger = logging.getLogger(__name__)
@@ -262,21 +262,9 @@ class PermissionRequired(PermissionRequiredMixin):
         if not request or not isinstance(request, HttpRequest):
             raise ImproperlyConfigured('PermissionRequiredMixin requires a request.')
         logger.debug('User %s has no permission to access %s', request.user, request.path)
-
         # Unauthenticated user: redirect to login preserving the original URL
         if request.user.is_anonymous:
-            params = '&' + request.GET.urlencode() if request.GET else ''
-            next_url = f'?next={quote(request.path)}{params}'
-            if hasattr(request, 'event') and 'cfp' in request.resolver_match.namespaces:
-                return redirect(request.event.urls.login + next_url)
-            from django.conf import settings as django_settings
-            from django.urls import reverse as dj_reverse
-            login_url = getattr(django_settings, 'LOGIN_URL', '/accounts/login/')
-            try:
-                login_url = dj_reverse('eventyay_common:auth.login')
-            except Exception:
-                pass
-            return redirect(login_url + next_url)
+            return redirect(build_login_url_with_next(request.get_full_path()))
 
         # Authenticated user without permission: raise a proper 403
         raise PermissionDenied(_('You do not have permission to access this page.'))

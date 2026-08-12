@@ -24,7 +24,7 @@
             <a href="/" class="btn btn-lg shadow-sm" style="background-color: white; color: var(--color-primary); font-weight: bold;"><i class="fa fa-home mr-2"></i>{% trans "Go to Homepage" %}</a>
         {% else %}
             <a href="{% url 'eventyay_common:auth.login' %}?next={{ request.path|urlencode }}" class="btn btn-lg shadow-sm mr-2 mb-2" style="background-color: white; color: var(--color-primary); font-weight: bold;"><i class="fa fa-sign-in mr-2"></i>{% trans "Log in" %}</a>
-            <a href="/" class="btn btn-lg mb-2" style="background-color: transparent; border: 2px solid white; color: white; font-weight: bold;"><i class="fa fa-home mr-2"></i>{% trans "Go to Homepage" %}</a>
+            <a href="/" class="btn btn-lg mb-2" style="background-color: rgba(255, 255, 255, 0.2); border: none; color: white; font-weight: bold;"><i class="fa fa-home mr-2"></i>{% trans "Go to Homepage" %}</a>
         {% endif %}
     </div>
 {% endblock error_details %}
