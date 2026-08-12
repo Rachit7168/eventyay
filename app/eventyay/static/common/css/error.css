@@ -1,11 +1,12 @@
 body {
   background: var(--color-primary);
-  a:not(.btn),
-  a:not(.btn):hover {
-    font-weight: bold;
-    color: white;
-    text-decoration: underline;
-  }
+}
+
+body a:not(.btn),
+body a:not(.btn):hover {
+  font-weight: bold;
+  color: white;
+  text-decoration: underline;
 }
 
 #wrapper {
@@ -30,33 +31,35 @@ body {
 }
 
 .btn-white {
-  display: inline-block;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  background-color: white;
-  color: var(--color-primary);
-  border: 1px solid white;
-  text-decoration: none;
+  display: inline-block !important;
+  padding: 0.5rem 1.5rem !important;
+  border-radius: 4px !important;
+  background-color: white !important;
+  color: var(--color-primary) !important;
+  border: 1px solid white !important;
+  text-decoration: none !important;
+  font-weight: bold !important;
 }
 
 .btn-white:hover {
-  background-color: #f8f9fa;
-  color: var(--color-primary);
-  text-decoration: none;
+  background-color: #f8f9fa !important;
+  color: var(--color-primary) !important;
+  text-decoration: none !important;
 }
 
 .btn-outline-white {
-  display: inline-block;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  background-color: transparent;
-  color: white;
-  border: 1px solid white;
-  text-decoration: none;
+  display: inline-block !important;
+  padding: 0.5rem 1.5rem !important;
+  border-radius: 4px !important;
+  background-color: transparent !important;
+  color: white !important;
+  border: 1px solid white !important;
+  text-decoration: none !important;
+  font-weight: bold !important;
 }
 
 .btn-outline-white:hover {
-  background-color: white;
-  color: var(--color-primary);
-  text-decoration: none;
+  background-color: white !important;
+  color: var(--color-primary) !important;
+  text-decoration: none !important;
 }
