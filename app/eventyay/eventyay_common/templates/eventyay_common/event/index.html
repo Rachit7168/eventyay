@@ -12,7 +12,9 @@
                 <h2>
                     {{ request.event.name }}
                     <small class="event-date text-muted">
-                        {% if request.event.has_subevents %}
+                        {% if is_meetup_event %}
+                            {% trans "Meetup" %}
+                        {% elif request.event.has_subevents %}
                             {% trans "Event series" %}
                         {% else %}
                             {{ request.event.get_date_range_display }}
