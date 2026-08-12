@@ -374,7 +374,7 @@ class EventCloneForm(I18nModelForm):
 
     clone_talk_data = forms.BooleanField(
         label=_('Talk Configuration'),
-        help_text=_('Includes call for speakers, session tracks, submission questions, and review settings.'),
+        help_text=_('Includes call for speakers, session tracks, and review settings.'),
         required=False,
         initial=True,
     )
@@ -385,8 +385,8 @@ class EventCloneForm(I18nModelForm):
         initial=True,
     )
     clone_session_types_tracks = forms.BooleanField(
-        label=_('Session types, tracks & submission questions'),
-        help_text=_('Session types, tracks, and submission questions.'),
+        label=_('Session types & tracks'),
+        help_text=_('Session types and tracks.'),
         required=False,
         initial=True,
     )
