@@ -262,6 +262,16 @@ class PermissionRequired(PermissionRequiredMixin):
         if not request or not isinstance(request, HttpRequest):
             raise ImproperlyConfigured('PermissionRequiredMixin requires a request.')
         logger.debug('User %s has no permission to access %s', request.user, request.path)
+        
+        is_cfp_or_agenda = False
+        if hasattr(request, 'event') and getattr(request, 'resolver_match', None):
+            namespaces = request.resolver_match.namespaces
+            if 'cfp' in namespaces or 'agenda' in namespaces:
+                is_cfp_or_agenda = True
+
+        if not is_cfp_or_agenda:
+            raise Http404()
+
         # Unauthenticated user: redirect to login preserving the original URL
         if request.user.is_anonymous:
             return redirect(build_login_url_with_next(request.get_full_path()))
