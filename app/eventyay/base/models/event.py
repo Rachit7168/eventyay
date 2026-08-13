@@ -2947,7 +2947,7 @@ class Event(
     def build_initial_data(self):
         from eventyay.base.models import CfP, MailTemplateRoles, Schedule
 
-        if not hasattr(self, 'cfp'):
+        if not CfP.objects.filter(event=self).exists():
             CfP.objects.create(event=self, default_type=self._get_default_submission_type())
 
         with scope(event=self):
