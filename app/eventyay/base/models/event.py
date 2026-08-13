@@ -2250,6 +2250,8 @@ class Event(
             cfp.delete()
         self.submitter_access_codes.all().delete()
         self.submission_types.all().delete()
+        self.score_categories.all().delete()
+        self.review_phases.all().delete()
         self.build_initial_data()
 
     def set_active_plugins(self, modules, allow_restricted=False):

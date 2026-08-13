@@ -344,10 +344,10 @@
                                 {% endblocktrans %}
                             </div>
                             <div class="col-sm-12 col-md-3 text-right">
-                                <button type="submit" name="live" value="false" formaction="{% url 'eventyay_common:event.live' event=request.event.slug organizer=request.event.organizer.slug %}" formmethod="post" class="btn btn-danger">
+                                <a href="{% url 'eventyay_common:event.live' event=request.event.slug organizer=request.event.organizer.slug %}" class="btn btn-danger">
                                     <span class="fa fa-power-off"></span>
                                     {% trans "Go offline" %}
-                                </button>
+                                </a>
                             </div>
                         </div>
                     </li>
