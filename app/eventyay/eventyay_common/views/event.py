@@ -1490,9 +1490,7 @@ class EventCloneView(EventSettingsViewMixin, EventPermissionRequiredMixin, FormV
             'locales': locales,
         }
         name_values = {}
-        for index, (locale, _name) in enumerate(settings.LANGUAGES):
-            if locale not in locales:
-                continue
+        for index, locale in enumerate(locales):
             key = f'name_{index}'
             if key in self.request.POST:
                 value = self.request.POST.get(key, '').strip()

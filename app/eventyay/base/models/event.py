@@ -1341,17 +1341,17 @@ class Event(
         def is_payment_key(k):
             return k.startswith('payment_') or k.startswith('invoice_')
 
-        if clone_common:
+        if clone_common or clone_payment_settings:
             for s in other.settings._objects.all():
                 if s.key in skip_settings:
                     continue
-                if is_email_key(s.key) and not clone_email_settings:
+                if is_email_key(s.key) and not (clone_common and clone_email_settings):
                     continue
-                if is_design_key(s.key) and not clone_design_texts:
+                if is_design_key(s.key) and not (clone_common and clone_design_texts):
                     continue
                 if is_payment_key(s.key) and not clone_payment_settings:
                     continue
-                if not is_email_key(s.key) and not is_design_key(s.key) and not is_payment_key(s.key) and not clone_settings:
+                if not is_email_key(s.key) and not is_design_key(s.key) and not is_payment_key(s.key) and not (clone_common and clone_settings):
                     continue
 
                 s.object = self
@@ -1783,11 +1783,6 @@ class Event(
             raise ValueError('Illegal attempt to clone into same event')
 
         clone_options = clone_options or {}
-        clone_common = clone_options.get('clone_common_data', True)
-        clone_ticketing = clone_options.get('clone_ticketing_data', True)
-        clone_talks = clone_options.get('clone_talk_data', True)
-
-
         def clone_stored_files(*, inst=None, attrs=None, struct=None, url=None):
             if inst and attrs:
                 for a in attrs:

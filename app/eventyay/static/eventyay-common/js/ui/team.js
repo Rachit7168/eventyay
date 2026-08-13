@@ -30,9 +30,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const enabled = parent.checked;
             children.forEach(function (child) {
                 child.disabled = !enabled;
-                if (event) {
-                    child.checked = enabled;
-                } else if (!enabled) {
+                if (!enabled) {
                     child.checked = false;
                 }
             });
