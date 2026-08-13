@@ -2248,6 +2248,10 @@ class Event(
             cfp = None
         if cfp is not None and cfp.pk is not None:
             cfp.delete()
+            try:
+                del self.__dict__['cfp']
+            except KeyError:
+                pass
         self.submitter_access_codes.all().delete()
         self.submission_types.all().delete()
         self.score_categories.all().delete()
