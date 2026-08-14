@@ -2379,6 +2379,7 @@ class Event(
             self.content_locale_array = ','.join(content_locales_list)
             self.settings.set('content_locales', content_locales_list)
         if locales_list or content_locales is not None or default_locale:
+            self.save()
             self._clear_language_caches()
 
     @cached_property
