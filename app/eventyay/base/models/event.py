@@ -109,6 +109,7 @@ FEATURE_FLAGS = [
     'page.landing',
     'zoom',
     'janus',
+    'jitsi',
     'polls',
     'poster',
     'conftool',
@@ -2326,6 +2327,7 @@ class Event(
 
         self.bbbserver_set.update(event_exclusive=None)
         self.janusserver_set.update(event_exclusive=None)
+        self.jitsiserver_set.update(event_exclusive=None)
         self.turnserver_set.update(event_exclusive=None)
 
         self.vouchers.all().delete()
@@ -2482,6 +2484,7 @@ class Event(
             self.content_locale_array = ','.join(content_locales_list)
             self.settings.set('content_locales', content_locales_list)
         if locales_list or content_locales is not None or default_locale:
+            self.save()
             self._clear_language_caches()
 
     @cached_property
