@@ -1484,8 +1484,8 @@ class EventCloneView(EventSettingsViewMixin, EventPermissionRequiredMixin, FormV
             return JsonResponse({'error': _('Select at least one active language.')}, status=400)
 
         clone_from = self.request.event
-        user_tz = timezone(get_current_timezone_name())
-        now_dt = user_tz.localize(datetime.now())
+        user_tz = ZoneInfo(get_current_timezone_name())
+        now_dt = datetime.now(user_tz)
         default_start = now_dt + timedelta(days=90)
         default_start = default_start.replace(hour=9, minute=0, second=0, microsecond=0)
         default_end = default_start.replace(hour=17, minute=0, second=0, microsecond=0)
@@ -1530,8 +1530,8 @@ class EventCloneView(EventSettingsViewMixin, EventPermissionRequiredMixin, FormV
         clone_from = self.request.event
         clone_locales = list(clone_from.settings.get('locales') or [clone_from.locale or 'en'])
         kwargs['locales'] = clone_locales
-        user_tz = timezone(get_current_timezone_name())
-        now_dt = user_tz.localize(datetime.now())
+        user_tz = ZoneInfo(get_current_timezone_name())
+        now_dt = datetime.now(user_tz)
         default_start = now_dt + timedelta(days=90)
         default_start = default_start.replace(hour=9, minute=0, second=0, microsecond=0)
         default_end = default_start.replace(hour=17, minute=0, second=0, microsecond=0)
