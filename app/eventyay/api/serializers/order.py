@@ -663,15 +663,17 @@ class CheckinListOrderPositionSerializer(OrderPositionSerializer):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        
+        request = self.context.get('request')
+        if request:
+            if 'subevent' in request.query_params.getlist('expand'):
+                self.fields['subevent'] = SubEventSerializer(read_only=True)
 
-        if 'subevent' in self.context['request'].query_params.getlist('expand'):
-            self.fields['subevent'] = SubEventSerializer(read_only=True)
+            if 'product' in request.query_params.getlist('expand'):
+                self.fields['product'] = ProductSerializer(read_only=True)
 
-        if 'product' in self.context['request'].query_params.getlist('expand'):
-            self.fields['product'] = ProductSerializer(read_only=True)
-
-        if 'variation' in self.context['request'].query_params.getlist('expand'):
-            self.fields['variation'] = InlineProductVariationSerializer(read_only=True)
+            if 'variation' in request.query_params.getlist('expand'):
+                self.fields['variation'] = InlineProductVariationSerializer(read_only=True)
 
 
 class OrderPaymentTypeField(serializers.Field):
@@ -1119,7 +1121,8 @@ class OrderCreateSerializer(I18nAwareModelSerializer):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['positions'].child.fields['voucher'].queryset = self.context['event'].vouchers.all()
+        if 'event' in self.context:
+            self.fields['positions'].child.fields['voucher'].queryset = self.context['event'].vouchers.all()
 
     class Meta:
         model = Order
