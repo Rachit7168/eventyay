@@ -3,7 +3,6 @@ from urllib.parse import quote, urljoin
 
 from django.conf import settings
 from django.contrib.auth import REDIRECT_FIELD_NAME, logout
-from django.core.exceptions import PermissionDenied
 from django.http import (
     Http404,
     HttpRequest,
