@@ -225,12 +225,12 @@ with scopes_disabled():
             OpenApiParameter('include_canceled_fees', OpenApiTypes.BOOL, OpenApiParameter.QUERY, description='Include canceled fees in the response (default false).'),
             OpenApiParameter('include_canceled_positions', OpenApiTypes.BOOL, OpenApiParameter.QUERY, description='Include canceled positions in the response (default false).'),
             OpenApiParameter('pdf_data', OpenApiTypes.BOOL, OpenApiParameter.QUERY, description='Include PDF generation data in positions (default false).'),
+            OpenApiParameter('X-Page-Generated', OpenApiTypes.DATETIME, OpenApiParameter.HEADER, response=[200], description='The server time at the beginning of the operation.'),
         ],
         responses={
             200: OpenApiResponse(
                 response=OrderSerializer(many=True),
                 description='Successful response.',
-                headers={'X-Page-Generated': OpenApiTypes.DATETIME},
             )
         },
     ),
