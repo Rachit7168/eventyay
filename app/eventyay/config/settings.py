@@ -1,6 +1,7 @@
 import importlib.util
 import os
 import sys
+import datetime
 from enum import StrEnum
 from importlib.metadata import entry_points
 from pathlib import Path
@@ -159,6 +160,10 @@ class BaseSettings(_BaseSettings):
     call_for_speaker_login_button_label: str = 'default'
     # Set to 1 to enable Vite dev servers with HMR for live frontend development.
     npm_dev: bool = False
+    
+    billing_reminder_schedule: list[int] = [15, 29]
+    cache_tickets_hours: int = 24
+    eventyay_ticket_base_path: HttpUrl | None = None
 
     @classmethod
     def settings_customise_sources(
@@ -254,6 +259,10 @@ conf = BaseSettings()
 DEBUG = conf.debug
 SECRET_KEY = conf.secret_key
 DATABASE_REPLICA = 'default'
+
+BILLING_REMINDER_SCHEDULE = conf.billing_reminder_schedule
+CACHE_TICKETS_MAX_AGE = datetime.timedelta(hours=conf.cache_tickets_hours)
+EVENTYAY_TICKET_BASE_PATH = str(conf.eventyay_ticket_base_path) if conf.eventyay_ticket_base_path else str(conf.site_url)
 
 DATA_DIR = BASE_DIR / 'data'
 LOG_DIR = DATA_DIR / 'logs'
