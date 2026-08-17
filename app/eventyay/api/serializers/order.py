@@ -1764,3 +1764,39 @@ class RevokedTicketSecretSerializer(I18nAwareModelSerializer):
     class Meta:
         model = RevokedTicketSecret
         fields = ('id', 'secret', 'created')
+
+
+class OrderActionSendEmailSerializer(serializers.Serializer):
+    send_email = serializers.BooleanField(
+        default=True,
+        help_text="Whether to send an email to the user about this action.",
+    )
+
+
+class OrderActionCancelSerializer(OrderActionSendEmailSerializer):
+    cancellation_fee = serializers.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        required=False,
+        allow_null=True,
+        help_text="Optional cancellation fee to retain.",
+    )
+
+
+class OrderActionDenySerializer(OrderActionSendEmailSerializer):
+    comment = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        help_text="Optional comment to attach to the denial.",
+    )
+
+
+class OrderActionExtendSerializer(serializers.Serializer):
+    expires = serializers.DateField(
+        required=True,
+        help_text="New expiration date for the order.",
+    )
+    force = serializers.BooleanField(
+        default=False,
+        help_text="Force the extension even if there are quota issues.",
+    )
