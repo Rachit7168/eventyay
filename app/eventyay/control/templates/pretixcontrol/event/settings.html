@@ -157,7 +157,7 @@
                 {% trans "Save" %}
             </button>
             <div class="pull-left event-settings-danger-actions">
-                <a href="{% url "control:event.dangerzone" organizer=request.organizer.slug event=request.event.slug %}"
+                <a href="{% url "eventyay_common:event.update" organizer=request.organizer.slug event=request.event.slug %}#danger-zone-tab"
                    class="btn btn-danger btn-lg">
                     <span class="fa fa-trash"></span>
                     {% trans "Cancel or delete event" %}
