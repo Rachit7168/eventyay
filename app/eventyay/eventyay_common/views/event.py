@@ -1085,6 +1085,22 @@ class EventLive(TemplateView):
                     if ticket_issues:
                         messages.error(self.request, _('Please resolve the ticketing issues before publishing tickets.'))
                         return redirect(self.request.path)
+
+                    if event.testmode and self.request.POST.get('delete_test_orders') == 'yes':
+                        try:
+                            with transaction.atomic():
+                                for order in event.orders.filter(testmode=True):
+                                    order.gracefully_delete(user=self.request.user)
+                            event.cache.delete('complain_testmode_orders')
+                        except ProtectedError:
+                            messages.error(
+                                self.request,
+                                _(
+                                    'An order could not be deleted as some constraints (e.g. data '
+                                    'created by plug-ins) do not allow it.'
+                                ),
+                            )
+
                     event.tickets_published = True
                     event.settings.private_testmode_tickets = False
                     event.private_testmode = event.settings.get('private_testmode_talks', False, as_type=bool)

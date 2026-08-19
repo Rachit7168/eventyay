@@ -105,7 +105,11 @@
                         {% csrf_token %}
                         {% if request.event.live %}
                             <input type="hidden" name="live" value="false">
-                            <button type="submit" class="btn btn-default btn-custom-margin">{% trans "Unpublish event" %}</button>
+                            {% if request.event.tickets_published or request.event.talks_published %}
+                                <button type="button" class="btn btn-default btn-custom-margin" data-toggle="modal" data-target="#unpublishErrorModal">{% trans "Unpublish event" %}</button>
+                            {% else %}
+                                <button type="submit" class="btn btn-default btn-custom-margin">{% trans "Unpublish event" %}</button>
+                            {% endif %}
                         {% else %}
                             <input type="hidden" name="live" value="true">
                             <button type="submit" class="btn btn-primary btn-custom-margin" {% if info_publish_issues %}disabled{% endif %}>{% trans "Publish event" %}</button>
@@ -234,6 +238,14 @@
                                 {% if request.event.tickets_published and not request.event.testmode %}
                                     <div class="btn active-badge-status"><i class="fa fa-check-circle"></i> {% trans "Active" %}</div>
                                 {% else %}
+                                    {% if request.event.testmode %}
+                                        <div class="checkbox text-left" style="margin-top:0; margin-bottom:10px;">
+                                            <label style="font-size: 13px;">
+                                                <input type="checkbox" name="delete_test_orders" value="yes" checked>
+                                                {% trans "Delete test orders" %}
+                                            </label>
+                                        </div>
+                                    {% endif %}
                                     <button type="submit" class="btn btn-primary btn-custom" {% if ticket_issues or not ticketing_ready or not request.event.live %}disabled{% endif %}>{% trans "Go live" %}</button>
                                 {% endif %}
                             </form>
@@ -416,6 +428,28 @@
                             class="btn btn-danger btn-custom-margin">
                         <i class="fa fa-trash"></i> {% trans "Cancel or delete event" %}
                     </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Unpublish Error Modal -->
+    <div class="modal fade" id="unpublishErrorModal" tabindex="-1" role="dialog" aria-labelledby="unpublishErrorModalLabel">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title" id="unpublishErrorModalLabel">{% trans "Cannot unpublish event" %}</h4>
+                </div>
+                <div class="modal-body">
+                    {% if request.event.tickets_published %}
+                        <p>{% trans "You cannot unpublish the event while tickets are published. Please switch ticketing to private test mode first." %}</p>
+                    {% elif request.event.talks_published %}
+                        <p>{% trans "You cannot unpublish the event while talks are published. Please switch talks to private test mode first." %}</p>
+                    {% endif %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-dismiss="modal">{% trans "OK" %}</button>
                 </div>
             </div>
         </div>
