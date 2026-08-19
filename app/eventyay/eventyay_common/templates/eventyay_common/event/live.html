@@ -418,7 +418,7 @@
                             </button>
                         </form>
                     {% else %}
-                        <button type="button" class="btn btn-default btn-custom" disabled>{% trans "Not configured" %}</button>
+                        <button type="button" class="btn btn-default btn-custom" onclick="document.getElementById('videoNotConfiguredDialog').showModal()">{% trans "Not configured" %}</button>
                     {% endif %}
                 </div>
             </div>
@@ -448,6 +448,26 @@
             </div>
         </div>
     </div>
+
+    <!-- Video Not Configured Dialog -->
+    <dialog id="videoNotConfiguredDialog" class="permission-required-dialog" aria-labelledby="video-dialog-title" aria-describedby="video-dialog-message">
+        <form method="dialog" class="modal-card-stacked-permission">
+            <p class="modal-card-stacked-permission__icon">
+                <i class="fa fa-video-camera" aria-hidden="true"></i>
+            </p>
+            <h3 id="video-dialog-title">{% trans "Video not configured" %}</h3>
+            <p id="video-dialog-message" class="modal-card-stacked-permission__message">
+                {% blocktrans trimmed %}
+                    To show the video link publicly, you need to create or configure at least one video room.
+                    Please set up the video integration first.
+                {% endblocktrans %}
+            </p>
+            <div class="button-group">
+                <a href="{% url 'eventyay_common:event.create_access_to_video' organizer=request.organizer.slug event=request.event.slug %}" class="btn btn-primary">{% trans "Configure video" %}</a>
+                <button type="submit" class="btn btn-default">{% trans "Cancel" %}</button>
+            </div>
+        </form>
+    </dialog>
 
     <!-- Unpublish Error Dialog -->
     <dialog id="unpublishErrorDialog" class="permission-required-dialog" aria-labelledby="unpublish-dialog-title" aria-describedby="unpublish-dialog-message">
