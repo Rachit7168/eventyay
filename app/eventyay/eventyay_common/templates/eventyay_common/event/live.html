@@ -407,16 +407,22 @@
                 </div>
                 <div class="card-action-col">
                     {% if is_video_enabled %}
-                        <form action="" method="post" class="form-full-width">
-                            {% csrf_token %}
-                            <button type="submit" name="toggle_video_visibility" class="btn btn-default btn-custom">
-                                {% if request.event.settings.venueless_show_public_link %}
-                                    {% trans "Disable video" %}
-                                {% else %}
-                                    {% trans "Enable video" %}
-                                {% endif %}
+                        {% if not request.event.settings.venueless_show_public_link and not request.event.rooms.all %}
+                            <button type="button" class="btn btn-default btn-custom" onclick="document.getElementById('videoNoRoomDialog').showModal()">
+                                {% trans "Enable video" %}
                             </button>
-                        </form>
+                        {% else %}
+                            <form action="" method="post" class="form-full-width">
+                                {% csrf_token %}
+                                <button type="submit" name="toggle_video_visibility" class="btn btn-default btn-custom">
+                                    {% if request.event.settings.venueless_show_public_link %}
+                                        {% trans "Disable video" %}
+                                    {% else %}
+                                        {% trans "Enable video" %}
+                                    {% endif %}
+                                </button>
+                            </form>
+                        {% endif %}
                     {% else %}
                         <button type="button" class="btn btn-default btn-custom" onclick="document.getElementById('videoNotConfiguredDialog').showModal()">{% trans "Not configured" %}</button>
                     {% endif %}
@@ -465,6 +471,25 @@
             <div class="button-group">
                 <a href="{% url 'eventyay_common:event.create_access_to_video' organizer=request.organizer.slug event=request.event.slug %}" class="btn btn-primary">{% trans "Configure video" %}</a>
                 <button type="submit" class="btn btn-default">{% trans "Cancel" %}</button>
+            </div>
+        </form>
+    </dialog>
+
+    <!-- Video No Room Dialog -->
+    <dialog id="videoNoRoomDialog" class="permission-required-dialog" aria-labelledby="video-no-room-title" aria-describedby="video-no-room-message">
+        <form method="dialog" class="modal-card-stacked-permission">
+            <p class="modal-card-stacked-permission__icon">
+                <i class="fa fa-video-camera" aria-hidden="true"></i>
+            </p>
+            <h3 id="video-no-room-title">{% trans "No rooms available" %}</h3>
+            <p id="video-no-room-message" class="modal-card-stacked-permission__message">
+                {% blocktrans trimmed %}
+                    To show the video link publicly, you need to create at least one room.
+                    Please add a room to your event schedule first.
+                {% endblocktrans %}
+            </p>
+            <div class="button-group">
+                <button type="submit" class="btn btn-default">{% trans "OK" %}</button>
             </div>
         </form>
     </dialog>
