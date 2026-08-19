@@ -459,7 +459,7 @@
     <dialog id="videoNotConfiguredDialog" class="permission-required-dialog" aria-labelledby="video-dialog-title" aria-describedby="video-dialog-message">
         <form method="dialog" class="modal-card-stacked-permission">
             <p class="modal-card-stacked-permission__icon">
-                <i class="fa fa-video-camera" aria-hidden="true"></i>
+                <i class="fa fa-exclamation-triangle" aria-hidden="true"></i>
             </p>
             <h3 id="video-dialog-title">{% trans "Video not configured" %}</h3>
             <p id="video-dialog-message" class="modal-card-stacked-permission__message">
@@ -468,10 +468,7 @@
                     Please set up the video integration first.
                 {% endblocktrans %}
             </p>
-            <div class="button-group">
-                <a href="{% url 'eventyay_common:event.create_access_to_video' organizer=request.organizer.slug event=request.event.slug %}" class="btn btn-primary">{% trans "Configure video" %}</a>
-                <button type="submit" class="btn btn-default">{% trans "Cancel" %}</button>
-            </div>
+            <button type="submit" class="btn btn-primary">{% trans "OK" %}</button>
         </form>
     </dialog>
 
@@ -479,7 +476,7 @@
     <dialog id="videoNoRoomDialog" class="permission-required-dialog" aria-labelledby="video-no-room-title" aria-describedby="video-no-room-message">
         <form method="dialog" class="modal-card-stacked-permission">
             <p class="modal-card-stacked-permission__icon">
-                <i class="fa fa-video-camera" aria-hidden="true"></i>
+                <i class="fa fa-exclamation-triangle" aria-hidden="true"></i>
             </p>
             <h3 id="video-no-room-title">{% trans "No rooms available" %}</h3>
             <p id="video-no-room-message" class="modal-card-stacked-permission__message">
@@ -488,9 +485,7 @@
                     Please add a room to your event schedule first.
                 {% endblocktrans %}
             </p>
-            <div class="button-group">
-                <button type="submit" class="btn btn-default">{% trans "OK" %}</button>
-            </div>
+            <button type="submit" class="btn btn-primary">{% trans "OK" %}</button>
         </form>
     </dialog>
 
