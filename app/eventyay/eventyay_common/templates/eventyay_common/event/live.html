@@ -247,10 +247,10 @@
                                     <div class="btn active-badge-status"><i class="fa fa-check-circle"></i> {% trans "Active" %}</div>
                                 {% else %}
                                     {% if request.event.testmode %}
-                                        <div class="checkbox text-left" style="margin-top:0; margin-bottom:10px;">
-                                            <label style="font-size: 13px;">
+                                        <div class="checkbox text-left">
+                                            <label>
                                                 <input type="checkbox" name="delete_test_orders" value="yes" checked>
-                                                {% trans "Delete test orders" %}
+                                                <small>{% trans "Delete test orders" %}</small>
                                             </label>
                                         </div>
                                     {% endif %}
@@ -450,114 +450,134 @@
     </div>
 
     <!-- Unpublish Error Modal -->
-    <div class="modal fade" id="unpublishErrorModal" tabindex="-1" role="dialog" aria-labelledby="unpublishErrorModalLabel">
+    <div class="modal popup-modal" id="unpublishErrorModal" tabindex="-1" role="dialog">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
-                <div class="modal-header">
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                    <h4 class="modal-title" id="unpublishErrorModalLabel">{% trans "Cannot unpublish event" %}</h4>
-                </div>
                 <div class="modal-body">
-                    {% if request.event.tickets_published %}
-                        <p>{% trans "You cannot unpublish the event while tickets are published. Please switch ticketing to private test mode first." %}</p>
-                    {% elif request.event.talks_published %}
-                        <p>{% trans "You cannot unpublish the event while talks are published. Please switch talks to private test mode first." %}</p>
-                    {% endif %}
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-primary" data-dismiss="modal">{% trans "OK" %}</button>
+                    <div class="modal-card">
+                        <div class="modal-card-icon">
+                            <i class="fa fa-exclamation-circle text-danger"></i>
+                        </div>
+                        <div class="modal-card-content">
+                            <h3>{% trans "Cannot unpublish event" %}</h3>
+                            {% if request.event.tickets_published %}
+                                <p>{% trans "You cannot unpublish the event while tickets are published. Please switch ticketing to private test mode first." %}</p>
+                            {% elif request.event.talks_published %}
+                                <p>{% trans "You cannot unpublish the event while talks are published. Please switch talks to private test mode first." %}</p>
+                            {% endif %}
+                            <div class="button-group">
+                                <button type="button" class="btn btn-primary" data-dismiss="modal">{% trans "OK" %}</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Publish Event Error Modal -->
-    <div class="modal fade" id="publishEventErrorModal" tabindex="-1" role="dialog" aria-labelledby="publishEventErrorModalLabel">
+    <div class="modal popup-modal" id="publishEventErrorModal" tabindex="-1" role="dialog">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
-                <div class="modal-header">
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                    <h4 class="modal-title" id="publishEventErrorModalLabel">{% trans "Cannot publish event" %}</h4>
-                </div>
                 <div class="modal-body">
-                    <p>{% trans "Please resolve the following issues before publishing the event:" %}</p>
-                    <ul>
-                        {% for issue in info_publish_issues %}
-                            <li>{{ issue|safe }}</li>
-                        {% endfor %}
-                    </ul>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-primary" data-dismiss="modal">{% trans "OK" %}</button>
+                    <div class="modal-card">
+                        <div class="modal-card-icon">
+                            <i class="fa fa-exclamation-circle text-danger"></i>
+                        </div>
+                        <div class="modal-card-content">
+                            <h3>{% trans "Cannot publish event" %}</h3>
+                            <p>{% trans "Please resolve the following issues before publishing the event:" %}</p>
+                            <ul class="text-left" style="display: inline-block; margin-bottom: 20px;">
+                                {% for issue in info_publish_issues %}
+                                    <li>{{ issue|safe }}</li>
+                                {% endfor %}
+                            </ul>
+                            <div class="button-group">
+                                <button type="button" class="btn btn-primary" data-dismiss="modal">{% trans "OK" %}</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Ticketing Test Mode Error Modal -->
-    <div class="modal fade" id="ticketingTestErrorModal" tabindex="-1" role="dialog" aria-labelledby="ticketingTestErrorModalLabel">
+    <div class="modal popup-modal" id="ticketingTestErrorModal" tabindex="-1" role="dialog">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
-                <div class="modal-header">
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                    <h4 class="modal-title" id="ticketingTestErrorModalLabel">{% trans "Cannot enable public test mode" %}</h4>
-                </div>
                 <div class="modal-body">
-                    {% if not request.event.live %}
-                        <p>{% trans "You must publish the event main page before enabling public test mode for tickets." %}</p>
-                    {% elif not ticketing_ready %}
-                        <p>{% trans "You must set up ticketing and create at least one product before enabling test mode." %}</p>
-                    {% endif %}
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-primary" data-dismiss="modal">{% trans "OK" %}</button>
+                    <div class="modal-card">
+                        <div class="modal-card-icon">
+                            <i class="fa fa-exclamation-circle text-danger"></i>
+                        </div>
+                        <div class="modal-card-content">
+                            <h3>{% trans "Cannot enable public test mode" %}</h3>
+                            {% if not request.event.live %}
+                                <p>{% trans "You must publish the event main page before enabling public test mode for tickets." %}</p>
+                            {% elif not ticketing_ready %}
+                                <p>{% trans "You must set up ticketing and create at least one product before enabling test mode." %}</p>
+                            {% endif %}
+                            <div class="button-group">
+                                <button type="button" class="btn btn-primary" data-dismiss="modal">{% trans "OK" %}</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Ticketing Live Error Modal -->
-    <div class="modal fade" id="ticketingLiveErrorModal" tabindex="-1" role="dialog" aria-labelledby="ticketingLiveErrorModalLabel">
+    <div class="modal popup-modal" id="ticketingLiveErrorModal" tabindex="-1" role="dialog">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
-                <div class="modal-header">
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                    <h4 class="modal-title" id="ticketingLiveErrorModalLabel">{% trans "Cannot publish ticket sales" %}</h4>
-                </div>
                 <div class="modal-body">
-                    {% if not request.event.live %}
-                        <p>{% trans "You must publish the event main page before going live with ticket sales." %}</p>
-                    {% elif not ticketing_ready %}
-                        <p>{% trans "You must set up ticketing and create at least one product before going live." %}</p>
-                    {% elif ticket_issues %}
-                        <p>{% trans "Please resolve the following ticketing issues before publishing tickets:" %}</p>
-                        <ul>
-                            {% for issue in ticket_issues %}
-                                <li>{{ issue|safe }}</li>
-                            {% endfor %}
-                        </ul>
-                    {% endif %}
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-primary" data-dismiss="modal">{% trans "OK" %}</button>
+                    <div class="modal-card">
+                        <div class="modal-card-icon">
+                            <i class="fa fa-exclamation-circle text-danger"></i>
+                        </div>
+                        <div class="modal-card-content">
+                            <h3>{% trans "Cannot publish ticket sales" %}</h3>
+                            {% if not request.event.live %}
+                                <p>{% trans "You must publish the event main page before going live with ticket sales." %}</p>
+                            {% elif not ticketing_ready %}
+                                <p>{% trans "You must set up ticketing and create at least one product before going live." %}</p>
+                            {% elif ticket_issues %}
+                                <p>{% trans "Please resolve the following ticketing issues before publishing tickets:" %}</p>
+                                <ul class="text-left" style="display: inline-block; margin-bottom: 20px;">
+                                    {% for issue in ticket_issues %}
+                                        <li>{{ issue|safe }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                            <div class="button-group">
+                                <button type="button" class="btn btn-primary" data-dismiss="modal">{% trans "OK" %}</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Talks Live Error Modal -->
-    <div class="modal fade" id="talksLiveErrorModal" tabindex="-1" role="dialog" aria-labelledby="talksLiveErrorModalLabel">
+    <div class="modal popup-modal" id="talksLiveErrorModal" tabindex="-1" role="dialog">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
-                <div class="modal-header">
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                    <h4 class="modal-title" id="talksLiveErrorModalLabel">{% trans "Cannot publish talks" %}</h4>
-                </div>
                 <div class="modal-body">
-                    <p>{% trans "You must publish the event main page before publishing talks." %}</p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-primary" data-dismiss="modal">{% trans "OK" %}</button>
+                    <div class="modal-card">
+                        <div class="modal-card-icon">
+                            <i class="fa fa-exclamation-circle text-danger"></i>
+                        </div>
+                        <div class="modal-card-content">
+                            <h3>{% trans "Cannot publish talks" %}</h3>
+                            <p>{% trans "You must publish the event main page before publishing talks." %}</p>
+                            <div class="button-group">
+                                <button type="button" class="btn btn-primary" data-dismiss="modal">{% trans "OK" %}</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
