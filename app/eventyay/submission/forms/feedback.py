@@ -3,7 +3,7 @@ from django.utils.translation import gettext_lazy as _
 
 from eventyay.common.forms.mixins import ReadOnlyFlag
 from eventyay.common.forms.renderers import InlineFormRenderer
-from eventyay.common.forms.widgets import TiptapWidget
+from eventyay.common.forms.widgets import RichTextWidget
 from eventyay.base.models import Feedback
 
 
@@ -37,7 +37,7 @@ class FeedbackForm(ReadOnlyFlag, forms.ModelForm):
         model = Feedback
         fields = ['speaker', 'rating', 'review', 'is_public', 'parent']
         widgets = {
-            'review': TiptapWidget(attrs={'class': 'tiptap-editor'}),
+            'review': RichTextWidget(attrs={'class': 'tiptap-editor'}),
             'rating': forms.RadioSelect(
                 choices=[(i, str(i)) for i in range(5, 0, -1)],
                 attrs={'class': 'star-rating-input'},
