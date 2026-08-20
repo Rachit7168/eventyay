@@ -310,7 +310,7 @@ class FeedbackSettingsForm(ReadOnlyFlag, JsonSubfieldMixin, forms.Form):
             ('attendees', _('Only attendees can comment')),
             ('registered', _('Any registered user can comment')),
         ],
-        required=False,
+        required=True,
         widget=forms.RadioSelect,
         initial='attendees'
     )
@@ -320,7 +320,7 @@ class FeedbackSettingsForm(ReadOnlyFlag, JsonSubfieldMixin, forms.Form):
             ('published', _('Comments are enabled after talk is published')),
             ('finished', _('Comments are enabled after session is finished')),
         ],
-        required=False,
+        required=True,
         widget=forms.RadioSelect,
         initial='finished'
     )
