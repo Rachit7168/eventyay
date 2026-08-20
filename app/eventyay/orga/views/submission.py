@@ -1239,6 +1239,25 @@ class AllFeedbacksList(EventPermissionRequired, PaginationMixin, ListView):
         context['current_tab'] = self.request.GET.get('tab', 'published')
         return context
 
+class FeedbackBulkAction(EventPermissionRequired, View):
+    permission_required = 'base.orga_list_submission'
+
+    def post(self, request, *args, **kwargs):
+        action = request.POST.get('action')
+        feedback_ids = request.POST.getlist('feedback_ids')
+        
+        if not feedback_ids:
+            messages.warning(request, _('No items selected.'))
+            return redirect(request.GET.get('next', request.event.orga_urls.feedback))
+            
+        feedbacks = Feedback.objects.filter(pk__in=feedback_ids, talk__event=request.event)
+        
+        if action == 'approve':
+            count = feedbacks.filter(status='pending').update(status='published')
+            messages.success(request, _('Successfully approved %d feedback(s).') % count)
+            
+        return redirect(request.GET.get('next', request.event.orga_urls.feedback))
+
 class FeedbackUpdateStatus(EventPermissionRequired, View):
     permission_required = 'base.orga_list_submission'
 

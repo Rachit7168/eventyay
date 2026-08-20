@@ -39,11 +39,32 @@
         </div>
     </div>
 
-    <div class="table-responsive mt-4">
-        <table class="table table-hover table-sm">
-            <thead>
-                <tr>
-                    <th>{% translate "COMMENT" %}</th>
+    <form method="post" action="{% url 'orga:submissions.feedback.bulk' organizer=request.event.organizer.slug event=request.event.slug %}?next={{ request.get_full_path|urlencode }}">
+        {% csrf_token %}
+        {% if current_tab == 'pending' or current_tab == 'hidden' %}
+            <div class="mb-2">
+                <div class="btn-group dropdown">
+                    <button type="button" class="btn btn-outline-secondary btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        {% translate "Select action" %}
+                    </button>
+                    <div class="dropdown-menu">
+                        <button type="submit" name="action" value="approve" class="dropdown-item">
+                            <i class="fa fa-check text-success"></i> {% translate "Approve selected" %}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+        <div class="table-responsive mt-4">
+            <table class="table table-hover table-sm">
+                <thead>
+                    <tr>
+                        {% if current_tab == 'pending' or current_tab == 'hidden' %}
+                            <th style="width: 40px;">
+                                <input type="checkbox" id="selectAll" onclick="document.querySelectorAll('input[name=feedback_ids]').forEach(cb => cb.checked = this.checked);">
+                            </th>
+                        {% endif %}
+                        <th>{% translate "COMMENT" %}</th>
                     <th>{% translate "SESSION" %}</th>
                     <th>{% translate "AUTHOR" %}</th>
                     <th>{% translate "RECEIVED" %}</th>
@@ -55,6 +76,11 @@
                     {% has_event_perm "base.view_feedback_submission" request.user request entry.talk as can_see_feedback %}
                     {% if can_see_feedback %}
                         <tr>
+                            {% if current_tab == 'pending' or current_tab == 'hidden' %}
+                                <td>
+                                    <input type="checkbox" name="feedback_ids" value="{{ entry.pk }}">
+                                </td>
+                            {% endif %}
                             <td>
                                 <div class="text-break" style="max-width: 400px;">
                                     {{ entry.review|rich_text }}
@@ -82,28 +108,14 @@
                             </td>
                             <td class="text-right">
                                 {% if current_tab == 'pending' or current_tab == 'hidden' %}
-                                    <form method="post" action="{% url 'orga:submissions.feedback.action' organizer=request.event.organizer.slug event=request.event.slug pk=entry.pk %}?next={{ request.get_full_path|urlencode }}" class="d-inline">
-                                        {% csrf_token %}
-                                        <button type="submit" name="action" value="approve" class="btn btn-sm btn-outline-success">
-                                            {% translate "Approve" %}
-                                        </button>
-                                    </form>
-                                {% endif %}
-                                {% if current_tab == 'pending' %}
-                                    <form method="post" action="{% url 'orga:submissions.feedback.action' organizer=request.event.organizer.slug event=request.event.slug pk=entry.pk %}?next={{ request.get_full_path|urlencode }}" class="d-inline">
-                                        {% csrf_token %}
-                                        <button type="submit" name="action" value="reject" class="btn btn-sm btn-outline-danger">
-                                            {% translate "Reject" %}
-                                        </button>
-                                    </form>
+                                    <button type="submit" name="action" value="approve" class="btn btn-sm btn-success" title="{% translate 'Approve' %}" formaction="{% url 'orga:submissions.feedback.action' organizer=request.event.organizer.slug event=request.event.slug pk=entry.pk %}?next={{ request.get_full_path|urlencode }}">
+                                        <i class="fa fa-check"></i> {% translate "Approve" %}
+                                    </button>
                                 {% endif %}
                                 {% if current_tab == 'published' %}
-                                    <form method="post" action="{% url 'orga:submissions.feedback.action' organizer=request.event.organizer.slug event=request.event.slug pk=entry.pk %}?next={{ request.get_full_path|urlencode }}" class="d-inline">
-                                        {% csrf_token %}
-                                        <button type="submit" name="action" value="hide" class="btn btn-sm btn-outline-warning">
-                                            {% translate "Hide" %}
-                                        </button>
-                                    </form>
+                                    <button type="submit" name="action" value="hide" class="btn btn-sm btn-outline-warning" formaction="{% url 'orga:submissions.feedback.action' organizer=request.event.organizer.slug event=request.event.slug pk=entry.pk %}?next={{ request.get_full_path|urlencode }}">
+                                        {% translate "Hide" %}
+                                    </button>
                                     <a href="{% url 'orga:submissions.feedback.action' organizer=request.event.organizer.slug event=request.event.slug pk=entry.pk %}?action=delete&next={{ request.get_full_path|urlencode }}" class="btn btn-sm btn-outline-danger">
                                         {% translate "Delete" %}
                                     </a>
@@ -121,6 +133,8 @@
             </tbody>
         </table>
     </div>
+
+    </form>
 
     {% include "orga/includes/pagination.html" %}
 
