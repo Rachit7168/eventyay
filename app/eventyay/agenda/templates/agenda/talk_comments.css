@@ -1,0 +1,70 @@
+.youtube-comment-form textarea {
+    border: none;
+    border-bottom: 1px solid #ccc;
+    border-radius: 0;
+    box-shadow: none;
+    resize: none;
+    overflow: hidden;
+    min-height: 38px;
+    background: transparent;
+    padding-left: 0;
+}
+.youtube-comment-form textarea:focus {
+    border-bottom: 2px solid #000;
+    outline: none;
+}
+.comment-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #007bff;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    font-weight: bold;
+    flex-shrink: 0;
+}
+.comment-item {
+    margin-bottom: 1.5rem;
+}
+.comment-actions .btn {
+    border: none;
+    padding: 0.25rem 0.5rem;
+    color: #606060;
+    background: transparent;
+    font-size: 0.9rem;
+}
+.comment-actions .btn:hover {
+    background-color: #f2f2f2;
+    border-radius: 16px;
+}
+.comment-actions .reply-btn {
+    font-weight: 500;
+}
+.rating-stars-inline .btn {
+    border: none;
+    padding: 0 5px;
+    font-size: 1.2rem;
+    background: transparent;
+    color: #ccc;
+    box-shadow: none;
+}
+.rating-stars-inline .btn.active, .rating-stars-inline .btn:hover {
+    color: #ffc107;
+}
+.action-buttons {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+}
+.comment-meta {
+    font-size: 0.85rem;
+    color: #606060;
+}
+.comment-author {
+    font-weight: 600;
+    color: #030303;
+    font-size: 0.9rem;
+}

@@ -310,7 +310,7 @@ class FeedbackSettingsForm(ReadOnlyFlag, JsonSubfieldMixin, forms.Form):
             ('attendees', _('Only attendees can comment')),
             ('registered', _('Any registered user can comment')),
         ],
-        required=False,
+        required=True,
         widget=forms.RadioSelect,
         initial='attendees'
     )
@@ -320,7 +320,7 @@ class FeedbackSettingsForm(ReadOnlyFlag, JsonSubfieldMixin, forms.Form):
             ('published', _('Comments are enabled after session is published')),
             ('finished', _('Comments are enabled after session is finished')),
         ],
-        required=False,
+        required=True,
         widget=forms.RadioSelect,
         initial='finished'
     )
@@ -340,6 +340,14 @@ class FeedbackSettingsForm(ReadOnlyFlag, JsonSubfieldMixin, forms.Form):
         required=False,
     )
 
+    def clean(self):
+        cleaned_data = super().clean()
+        if not cleaned_data.get('use_feedback'):
+            for field in ['feedback_who_can_comment', 'feedback_enable_time']:
+                if field in self.errors:
+                    del self.errors[field]
+                cleaned_data[field] = self.fields[field].initial
+        return cleaned_data
 
     def clean_feedback_who_can_comment(self):
         return self.cleaned_data.get('feedback_who_can_comment') or 'attendees'
