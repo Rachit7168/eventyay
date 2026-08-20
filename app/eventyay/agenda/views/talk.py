@@ -789,3 +789,42 @@ class TalkFeedbackReactView(TalkMixin, View):
         upvotes = FeedbackReaction.objects.filter(feedback=feedback, is_upvote=True).count()
         downvotes = FeedbackReaction.objects.filter(feedback=feedback, is_upvote=False).count()
         return JsonResponse({'upvotes': upvotes, 'downvotes': downvotes})
+
+
+class TalkFeedbackPublicActionView(TalkMixin, View):
+    permission_required = 'base.view_public_submission'
+
+    def post(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return HttpResponse(status=HTTPStatus.UNAUTHORIZED)
+
+        feedback_id = kwargs.get('feedback_id')
+        feedback = get_object_or_404(
+            self.submission.feedback,
+            id=feedback_id
+        )
+
+        action = request.POST.get('action')
+        
+        if action == 'report':
+            feedback.is_reported = True
+            feedback.save()
+            messages.success(request, _('Feedback reported successfully.'))
+        elif action == 'delete':
+            if feedback.author == request.user or request.user.has_perm('base.orga_change_submission', self.submission):
+                feedback.status = 'deleted'
+                feedback.save()
+                messages.success(request, _('Feedback deleted successfully.'))
+            else:
+                messages.error(request, _('You do not have permission to delete this feedback.'))
+        elif action == 'hide':
+            if request.user.has_perm('base.orga_change_submission', self.submission):
+                feedback.status = 'hidden'
+                feedback.save()
+                messages.success(request, _('Feedback hidden successfully.'))
+            else:
+                messages.error(request, _('You do not have permission to hide this feedback.'))
+        else:
+            messages.error(request, _('Invalid action.'))
+
+        return redirect(self.submission.urls.public + '#feedback')

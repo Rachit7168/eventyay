@@ -131,6 +131,9 @@
                                     <a href="{% url 'orga:submissions.feedback.action' organizer=request.event.organizer.slug event=request.event.slug pk=entry.pk %}?action=delete&next={{ request.get_full_path|urlencode }}" class="btn btn-sm btn-outline-danger" title="{% translate 'Delete' %}">
                                         <i class="fa fa-trash"></i> {% translate "Delete" %}
                                     </a>
+                                    <button type="submit" name="action" value="ban" class="btn btn-sm btn-outline-dark" title="{% translate 'Ban User' %}" formaction="{% url 'orga:submissions.feedback.action' organizer=request.event.organizer.slug event=request.event.slug pk=entry.pk %}?next={{ request.get_full_path|urlencode }}">
+                                        <i class="fa fa-ban"></i> {% translate "Ban User" %}
+                                    </button>
                                 {% endif %}
                                 {% if current_tab == 'published' %}
                                     <button type="submit" name="action" value="hide" class="btn btn-sm btn-outline-warning" formaction="{% url 'orga:submissions.feedback.action' organizer=request.event.organizer.slug event=request.event.slug pk=entry.pk %}?next={{ request.get_full_path|urlencode }}">

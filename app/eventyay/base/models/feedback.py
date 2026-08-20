@@ -48,6 +48,11 @@ class Feedback(PretalxModel):
         verbose_name=_('Is public'),
         help_text=_('If disabled, the feedback is anonymous to the speaker and not shown publicly.')
     )
+    is_reported = models.BooleanField(
+        default=False,
+        verbose_name=_('Is reported'),
+        help_text=_('Indicates whether this feedback has been reported by a user.')
+    )
     status = models.CharField(
         max_length=20,
         default='published',

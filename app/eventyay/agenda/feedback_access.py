@@ -95,6 +95,9 @@ def user_can_give_feedback(user, submission) -> bool:
         return False
 
     event = submission.event
+    if event.banned_users.filter(id=user.id).exists():
+        return False
+
     if user.has_perm('base.orga_change_submission', submission):
         return True
 

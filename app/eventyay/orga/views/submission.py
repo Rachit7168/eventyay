@@ -1291,6 +1291,14 @@ class FeedbackUpdateStatus(EventPermissionRequired, View):
             feedback.status = 'deleted'
             feedback.save()
             messages.success(request, _('Feedback deleted.'))
+        elif action == 'ban':
+            if feedback.author:
+                request.event.banned_users.add(feedback.author)
+                feedback.status = 'deleted'
+                feedback.save()
+                messages.success(request, _('User banned successfully.'))
+            else:
+                messages.error(request, _('Cannot ban anonymous user.'))
             
         next_url = request.GET.get('next', request.event.orga_urls.feedback)
         return redirect(next_url)

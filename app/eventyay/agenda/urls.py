@@ -133,6 +133,11 @@ urlpatterns = [
         name='feedback.react',
     ),
     path(
+        'talk/<slug>/feedback/<int:feedback_id>/action/',
+        talk.TalkFeedbackPublicActionView.as_view(),
+        name='feedback.public_action',
+    ),
+    path(
         'talk/<slug>.ics',
         talk.SingleICalView.as_view(),
         name='ical',
