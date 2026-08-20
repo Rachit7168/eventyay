@@ -42,19 +42,19 @@
     <form method="post" action="{% url 'orga:submissions.feedback.bulk' organizer=request.event.organizer.slug event=request.event.slug %}?next={{ request.get_full_path|urlencode }}">
         {% csrf_token %}
         <div class="mb-3" id="bulk-action-container" style="display: none;">
-            <details class="dropdown" aria-haspopup="menu" role="menu">
+            <details class="dropdown d-inline-block" aria-haspopup="menu" role="menu">
                 <summary class="btn btn-outline-info btn-sm">
                     {% translate "Select action" %} <i class="fa fa-caret-down"></i>
                 </summary>
                 <div class="dropdown-content dropdown-content-se">
-                    <button type="submit" name="action" value="approve" class="dropdown-item text-success" role="menuitem">
-                        <i class="fa fa-check"></i> {% translate "Approve selected" %}
+                    <button type="submit" name="action" value="approve" class="dropdown-item" role="menuitem">
+                        <i class="fa fa-check text-success"></i> {% translate "Approve selected" %}
                     </button>
-                    <button type="submit" name="action" value="hide" class="dropdown-item text-warning" role="menuitem">
-                        <i class="fa fa-eye-slash"></i> {% translate "Hide selected" %}
+                    <button type="submit" name="action" value="hide" class="dropdown-item" role="menuitem">
+                        <i class="fa fa-eye-slash text-warning"></i> {% translate "Hide selected" %}
                     </button>
-                    <button type="submit" name="action" value="delete" class="dropdown-item text-danger" role="menuitem">
-                        <i class="fa fa-trash"></i> {% translate "Delete selected" %}
+                    <button type="submit" name="action" value="delete" class="dropdown-item" role="menuitem">
+                        <i class="fa fa-trash text-danger"></i> {% translate "Delete selected" %}
                     </button>
                 </div>
             </details>
