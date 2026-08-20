@@ -89,3 +89,5 @@ class FeedbackReaction(PretalxModel):
 
     class Meta:
         unique_together = (('feedback', 'user'),)
+
+    objects = ScopedManager(event='feedback__talk__event')

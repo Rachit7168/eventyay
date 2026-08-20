@@ -1241,7 +1241,15 @@ class AllFeedbacksList(EventPermissionRequired, PaginationMixin, ListView):
 
 class FeedbackUpdateStatus(EventPermissionRequired, View):
     permission_required = 'base.orga_list_submission'
-    
+
+    def get(self, request, *args, **kwargs):
+        feedback = get_object_or_404(Feedback, pk=self.kwargs['pk'], talk__event=request.event)
+        action = request.GET.get('action')
+        if action == 'delete':
+            from django.shortcuts import render
+            return render(request, 'orga/submission/feedback_delete.html', {'object': feedback})
+        return redirect(request.GET.get('next', request.event.orga_urls.feedback))
+
     def post(self, request, *args, **kwargs):
         feedback = get_object_or_404(Feedback, pk=self.kwargs['pk'], talk__event=request.event)
         action = request.POST.get('action')

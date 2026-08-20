@@ -294,12 +294,12 @@ class TalkView(TalkMixin, TemplateView):
         if self.request.event.get_feature_flag('use_feedback'):
             from django.db.models import Count, Q
             
-            replies_qs = Feedback.objects.filter(is_public=True).select_related('author').annotate(
+            replies_qs = Feedback.objects.filter(is_public=True, status='published').select_related('author').annotate(
                 upvote_count=Count('reactions', filter=Q(reactions__is_upvote=True)),
                 downvote_count=Count('reactions', filter=Q(reactions__is_upvote=False))
             )
             ctx['public_feedback'] = self.submission.feedback.filter(
-                is_public=True, parent__isnull=True
+                is_public=True, parent__isnull=True, status='published'
             ).select_related('author').prefetch_related(
                 Prefetch('replies', queryset=replies_qs)
             ).annotate(
