@@ -38,7 +38,7 @@ def _agenda_featured_allowed_without_talks_published(url, request, event):
         return False
 
     user = getattr(request, 'user', None)
-    if user is None:
+    if user is None or user.is_anonymous:
         return False
 
 
