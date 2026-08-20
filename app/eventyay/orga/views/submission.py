@@ -1237,6 +1237,7 @@ class AllFeedbacksList(EventPermissionRequired, PaginationMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['current_tab'] = self.request.GET.get('tab', 'published')
+        context['banned_user_ids'] = list(self.request.event.banned_users.values_list('id', flat=True))
         return context
 
 class FeedbackBulkAction(EventPermissionRequired, View):
@@ -1299,6 +1300,12 @@ class FeedbackUpdateStatus(EventPermissionRequired, View):
                 messages.success(request, _('User banned successfully.'))
             else:
                 messages.error(request, _('Cannot ban anonymous user.'))
+        elif action == 'unban':
+            if feedback.author:
+                request.event.banned_users.remove(feedback.author)
+                messages.success(request, _('User unbanned successfully.'))
+            else:
+                messages.error(request, _('Cannot unban anonymous user.'))
             
         next_url = request.GET.get('next', request.event.orga_urls.feedback)
         return redirect(next_url)

@@ -3023,6 +3023,38 @@ button.btn-speaker-not-arrived {
   }
 }
 
+.feedback-comment-cell {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.feedback-comment-cell__text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.feedback-comment-cell__text > :last-child {
+  margin-bottom: 0;
+}
+
+.feedback-report-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  background-color: #dc3545;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+  margin-top: 0.1rem;
+}
+
 .feedback-confirm-dialog {
   border: none;
   border-radius: 8px;

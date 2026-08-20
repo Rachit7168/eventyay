@@ -9,7 +9,7 @@ import jwt
 import vobject
 from django.conf import settings
 from django.contrib import messages
-from django.db.models import Q
+from django.db.models import F, Q
 from django.http import Http404, HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.template.loader import get_template
@@ -316,9 +316,15 @@ class TalkView(TalkMixin, TemplateView):
             )
             ctx['can_moderate_feedback'] = (
                 self.request.user.is_authenticated
-                and self.request.user.has_perm('base.orga_change_submission', self.submission)
+                and self.request.user.has_perm('base.orga_update_submission', self.submission)
             )
+            if ctx['can_moderate_feedback']:
+                ctx['banned_user_ids'] = list(self.request.event.banned_users.values_list('id', flat=True))
+            else:
+                ctx['banned_user_ids'] = []
+                
             ctx['feedback_period_open'] = self.submission.does_accept_feedback
+                 
                 
         return ctx
 
@@ -811,24 +817,46 @@ class TalkFeedbackPublicActionView(TalkMixin, View):
         action = request.POST.get('action')
         
         if action == 'report':
-            feedback.is_reported = True
-            feedback.save()
+            Feedback.objects.filter(pk=feedback.pk).update(
+                is_reported=True,
+                report_count=F('report_count') + 1,
+            )
             messages.success(request, _('Feedback reported successfully.'))
         elif action == 'delete':
-            if feedback.author == request.user or request.user.has_perm('base.orga_change_submission', self.submission):
+            if feedback.author == request.user or request.user.has_perm('base.orga_update_submission', self.submission):
                 feedback.status = 'deleted'
                 feedback.save()
                 messages.success(request, _('Feedback deleted successfully.'))
             else:
                 messages.error(request, _('You do not have permission to delete this feedback.'))
         elif action == 'hide':
-            if request.user.has_perm('base.orga_change_submission', self.submission):
+            if request.user.has_perm('base.orga_update_submission', self.submission):
                 feedback.status = 'hidden'
                 feedback.save()
                 messages.success(request, _('Feedback hidden successfully.'))
             else:
                 messages.error(request, _('You do not have permission to hide this feedback.'))
+        elif action == 'ban':
+            if request.user.has_perm('base.orga_update_submission', self.submission):
+                if feedback.author:
+                    request.event.banned_users.add(feedback.author)
+                    feedback.status = 'deleted'
+                    feedback.save()
+                    messages.success(request, _('User banned successfully.'))
+                else:
+                    messages.error(request, _('Cannot ban an anonymous user.'))
+            else:
+                messages.error(request, _('You do not have permission to ban this user.'))
+        elif action == 'unban':
+            if request.user.has_perm('base.orga_update_submission', self.submission):
+                if feedback.author:
+                    request.event.banned_users.remove(feedback.author)
+                    messages.success(request, _('User unbanned successfully.'))
+                else:
+                    messages.error(request, _('Cannot unban an anonymous user.'))
+            else:
+                messages.error(request, _('You do not have permission to unban this user.'))
         else:
             messages.error(request, _('Invalid action.'))
 
-        return redirect(self.submission.urls.public + '#feedback')
+        return HttpResponseRedirect(self.submission.urls.public + '#feedback')

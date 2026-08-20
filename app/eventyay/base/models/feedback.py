@@ -53,6 +53,11 @@ class Feedback(PretalxModel):
         verbose_name=_('Is reported'),
         help_text=_('Indicates whether this feedback has been reported by a user.')
     )
+    report_count = models.IntegerField(
+        default=0,
+        verbose_name=_('Report count'),
+        help_text=_('Number of times this feedback has been reported.')
+    )
     status = models.CharField(
         max_length=20,
         default='published',
