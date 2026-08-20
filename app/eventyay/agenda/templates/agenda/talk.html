@@ -39,19 +39,69 @@
         <p>{{ submission_description|event_localize }}</p>
     </noscript>
     {% if submission.does_accept_feedback and request.event|get_feature_flag:"use_feedback" and not is_html_export %}
-        <div class="mt-5 pt-4 border-top">
+        <div class="mt-5 pt-4 border-top feedback-section">
             <h3 class="mb-4">{{ phrases.agenda.feedback }}</h3>
             
             {% if public_feedback %}
                 <div class="mb-5">
                 {% for fb in public_feedback %}
-                    <div class="card mb-3 shadow-sm">
+                    <div class="card mb-3 shadow-sm" id="feedback-{{ fb.id }}">
                         <div class="card-body">
                             <div class="d-flex align-items-center mb-2">
                                 <strong>{% if fb.author %}{{ fb.author.get_display_name }}{% else %}{{ phrases.agenda.anonymous|default:"Anonymous" }}{% endif %}</strong>
-                                <small class="text-muted ml-2">{{ fb.created_at|date:"SHORT_DATE_FORMAT" }} {{ fb.created_at|time:"TIME_FORMAT" }}</small>
+                                <small class="text-muted ml-2">{{ fb.created|date:"SHORT_DATETIME_FORMAT" }}</small>
                             </div>
-                            <div class="mb-0">{{ fb.review|rich_text }}</div>
+                            <div class="mb-3">{{ fb.review|rich_text }}</div>
+                            <div class="d-flex align-items-center">
+                                <button class="btn btn-sm btn-outline-secondary mr-2 react-btn" data-action="upvote" data-id="{{ fb.id }}" data-url="{% url 'agenda:feedback.react' organizer=request.event.organizer.slug event=request.event.slug slug=submission.code feedback_id=fb.id %}">
+                                    <i class="fa fa-thumbs-up"></i> <span class="upvote-count">{{ fb.upvote_count }}</span>
+                                </button>
+                                <button class="btn btn-sm btn-outline-secondary mr-2 react-btn" data-action="downvote" data-id="{{ fb.id }}" data-url="{% url 'agenda:feedback.react' organizer=request.event.organizer.slug event=request.event.slug slug=submission.code feedback_id=fb.id %}">
+                                    <i class="fa fa-thumbs-down"></i> <span class="downvote-count">{{ fb.downvote_count }}</span>
+                                </button>
+                                {% if feedback_form %}
+                                    <button class="btn btn-sm btn-outline-primary reply-btn" data-id="{{ fb.id }}">
+                                        <i class="fa fa-reply"></i> {% translate "Reply" %}
+                                    </button>
+                                {% endif %}
+                            </div>
+
+                            {% if fb.replies.all %}
+                                <div class="mt-4 ml-4 pl-4 border-left">
+                                    {% for reply in fb.replies.all %}
+                                        <div class="mb-3" id="feedback-{{ reply.id }}">
+                                            <div class="d-flex align-items-center mb-1">
+                                                <strong>{% if reply.author %}{{ reply.author.get_display_name }}{% else %}{{ phrases.agenda.anonymous|default:"Anonymous" }}{% endif %}</strong>
+                                                <small class="text-muted ml-2">{{ reply.created|date:"SHORT_DATETIME_FORMAT" }}</small>
+                                            </div>
+                                            <div class="mb-2">{{ reply.review|rich_text }}</div>
+                                            <div class="d-flex align-items-center">
+                                                <button class="btn btn-sm btn-outline-secondary mr-2 react-btn" data-action="upvote" data-id="{{ reply.id }}" data-url="{% url 'agenda:feedback.react' organizer=request.event.organizer.slug event=request.event.slug slug=submission.code feedback_id=reply.id %}">
+                                                    <i class="fa fa-thumbs-up"></i> <span class="upvote-count">{{ reply.upvote_count }}</span>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-secondary react-btn" data-action="downvote" data-id="{{ reply.id }}" data-url="{% url 'agenda:feedback.react' organizer=request.event.organizer.slug event=request.event.slug slug=submission.code feedback_id=reply.id %}">
+                                                    <i class="fa fa-thumbs-down"></i> <span class="downvote-count">{{ reply.downvote_count }}</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+
+                            {% if feedback_form %}
+                                <div class="reply-form-container mt-3" id="reply-form-{{ fb.id }}" class="d-none">
+                                    <form method="post" action="">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="parent" value="{{ fb.id }}">
+                                        <input type="hidden" name="is_public" value="True">
+                                        <div class="form-group">
+                                            {{ feedback_form.review }}
+                                        </div>
+                                        <button type="submit" class="btn btn-sm btn-success"><i class="fa fa-paper-plane"></i> {% translate "Post Reply" %}</button>
+                                        <button type="button" class="btn btn-sm btn-secondary cancel-reply-btn" data-id="{{ fb.id }}">{% translate "Cancel" %}</button>
+                                    </form>
+                                </div>
+                            {% endif %}
                         </div>
                     </div>
                 {% endfor %}
@@ -72,15 +122,17 @@
                             
                             <div class="form-group mb-4 star-rating">
                                 <div class="rating-container">
-                                    <label class="rating-label">
+                                    <label class="rating-label font-weight-bold">
                                         {{ phrases.agenda.feedback_rating|default:"Rating" }}
                                     </label>
-                                    <div class="rating-stars">
+                                    <div class="rating-stars d-flex">
                                         {% for radio in feedback_form.rating %}
-                                            {{ radio.tag }}
-                                            <label for="{{ radio.id_for_label }}" title="{{ radio.choice_label }} stars">
-                                                ★
-                                            </label>
+                                            <div class="mr-3">
+                                                {{ radio.tag }}
+                                                <label for="{{ radio.id_for_label }}" title="{{ radio.choice_label }} stars" class="cursor-pointer">
+                                                    ★ {{ radio.choice_label }}
+                                                </label>
+                                            </div>
                                         {% endfor %}
                                     </div>
                                 </div>
@@ -100,6 +152,73 @@
             {% endif %}
         </div>
     {% endif %}
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const replyBtns = document.querySelectorAll('.reply-btn');
+            replyBtns.forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    const id = this.getAttribute('data-id');
+                    const formContainer = document.getElementById('reply-form-' + id);
+                    if (formContainer) {
+                        formContainer.classList.remove('d-none');
+                        formContainer.style.display = 'block';
+                    }
+                });
+            });
+
+            const cancelBtns = document.querySelectorAll('.cancel-reply-btn');
+            cancelBtns.forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    const id = this.getAttribute('data-id');
+                    const formContainer = document.getElementById('reply-form-' + id);
+                    if (formContainer) {
+                        formContainer.classList.add('d-none');
+                        formContainer.style.display = 'none';
+                    }
+                });
+            });
+
+            const reactBtns = document.querySelectorAll('.react-btn');
+            reactBtns.forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    const action = this.getAttribute('data-action');
+                    const url = this.getAttribute('data-url');
+                    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                    const container = this.closest('.d-flex');
+
+                    const formData = new FormData();
+                    formData.append('action', action);
+
+                    fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            alert(data.error);
+                            return;
+                        }
+                        container.querySelector('.upvote-count').textContent = data.upvotes;
+                        container.querySelector('.downvote-count').textContent = data.downvotes;
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    });
+                });
+            });
+            
+            // hide all reply forms initially
+            const forms = document.querySelectorAll('.reply-form-container');
+            forms.forEach(function(f) {
+                f.style.display = 'none';
+            });
+        });
+    </script>
 </div>
 {% html_signal "eventyay.agenda.signals.html_below_session_pages" sender=request.event request=request submission=submission %}
 {% endblock agenda_content %}

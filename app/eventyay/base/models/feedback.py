@@ -73,3 +73,19 @@ class Feedback(PretalxModel):
     def __str__(self):
         """Help when debugging."""
         return f'Feedback(event={self.talk.event.slug}, talk={self.talk.title}, rating={self.rating}, status={self.status})'
+
+class FeedbackReaction(PretalxModel):
+    feedback = models.ForeignKey(
+        to='Feedback',
+        related_name='reactions',
+        on_delete=models.CASCADE,
+    )
+    user = models.ForeignKey(
+        to='User',
+        related_name='feedback_reactions',
+        on_delete=models.CASCADE,
+    )
+    is_upvote = models.BooleanField(default=True)
+
+    class Meta:
+        unique_together = (('feedback', 'user'),)

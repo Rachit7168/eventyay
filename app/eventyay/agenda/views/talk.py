@@ -33,6 +33,7 @@ from eventyay.agenda.views.utils import (
 )
 from eventyay.base.models import (
     Event,
+    Feedback,
     Order,
     OrderPosition,
     Submission,
@@ -291,7 +292,20 @@ class TalkView(TalkMixin, TemplateView):
         
         # Add public feedback and form to context
         if self.request.event.get_feature_flag('use_feedback'):
-            ctx['public_feedback'] = self.submission.feedback.filter(is_public=True).select_related('author')
+            from django.db.models import Count, Q
+            
+            replies_qs = Feedback.objects.filter(is_public=True).select_related('author').annotate(
+                upvote_count=Count('reactions', filter=Q(reactions__is_upvote=True)),
+                downvote_count=Count('reactions', filter=Q(reactions__is_upvote=False))
+            )
+            ctx['public_feedback'] = self.submission.feedback.filter(
+                is_public=True, parent__isnull=True
+            ).select_related('author').prefetch_related(
+                Prefetch('replies', queryset=replies_qs)
+            ).annotate(
+                upvote_count=Count('reactions', filter=Q(reactions__is_upvote=True)),
+                downvote_count=Count('reactions', filter=Q(reactions__is_upvote=False))
+            )
             if self.request.user.is_authenticated:
                 from eventyay.submission.forms import FeedbackForm
                 ctx['feedback_form'] = FeedbackForm(talk=self.submission)
@@ -769,3 +783,35 @@ def check_user_owning_ticket(user: User, event: Event) -> TicketCheckResult:
     if has_ticket:
         return TicketCheckResult.HAS_TICKET
     return TicketCheckResult.NO_TICKET
+
+class TalkFeedbackReactView(TalkMixin, View):
+    permission_required = 'base.view_public_submission'
+
+    def post(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return JsonResponse({'error': 'Authentication required'}, status=HTTPStatus.UNAUTHORIZED)
+
+        feedback_id = kwargs.get('feedback_id')
+        feedback = get_object_or_404(
+            self.submission.feedback.filter(is_public=True),
+            id=feedback_id
+        )
+
+        action = request.POST.get('action')
+        if action not in ('upvote', 'downvote', 'remove'):
+            return JsonResponse({'error': 'Invalid action'}, status=HTTPStatus.BAD_REQUEST)
+
+        from eventyay.base.models import FeedbackReaction
+        if action == 'remove':
+            FeedbackReaction.objects.filter(feedback=feedback, user=request.user).delete()
+        else:
+            is_upvote = (action == 'upvote')
+            FeedbackReaction.objects.update_or_create(
+                feedback=feedback,
+                user=request.user,
+                defaults={'is_upvote': is_upvote}
+            )
+
+        upvotes = FeedbackReaction.objects.filter(feedback=feedback, is_upvote=True).count()
+        downvotes = FeedbackReaction.objects.filter(feedback=feedback, is_upvote=False).count()
+        return JsonResponse({'upvotes': upvotes, 'downvotes': downvotes})
