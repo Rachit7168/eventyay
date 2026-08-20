@@ -40,11 +40,25 @@
         {% include "orga/includes/submit_row.html" %}
     </form>
 
+    <dialog id="feedback-disable-dialog" class="modal-card" aria-labelledby="feedback-disable-title">
+        <div class="modal-card-content">
+            <h3 id="feedback-disable-title" style="margin-top: 0;">{% translate "Disable Feedback" %}</h3>
+            <p style="margin-bottom: 20px;">{% translate "Disabling will also hide all the comments. Are you sure you want to proceed?" %}</p>
+            <div class="text-right">
+                <button type="button" class="btn btn-default" id="btn-cancel-disable">{% translate "Cancel" %}</button>
+                <button type="button" class="btn btn-danger" id="btn-confirm-disable">{% translate "Proceed" %}</button>
+            </div>
+        </div>
+    </dialog>
+
     <script>
         document.addEventListener("DOMContentLoaded", function() {
             const useFeedbackCheckbox = document.getElementById('id_use_feedback');
             const fieldsets = document.querySelectorAll('fieldset');
             const closeAfterInput = document.getElementById('id_feedback_close_after_days');
+            const dialog = document.getElementById('feedback-disable-dialog');
+            const btnCancel = document.getElementById('btn-cancel-disable');
+            const btnConfirm = document.getElementById('btn-confirm-disable');
             
             function toggleInputs() {
                 if (!useFeedbackCheckbox) return;
@@ -74,11 +88,29 @@
                 if (form) {
                     form.addEventListener('submit', function(e) {
                         if (initiallyChecked && !useFeedbackCheckbox.checked) {
-                            if (!confirm("{% translate 'Disabling will also hide all the comments. Are you sure you want to proceed?' %}")) {
-                                e.preventDefault();
+                            e.preventDefault();
+                            if (dialog && typeof dialog.showModal === 'function') {
+                                dialog.showModal();
+                            } else {
+                                // Fallback for browsers that don't support dialog natively
+                                if (confirm("{% translate 'Disabling will also hide all the comments. Are you sure you want to proceed?' %}")) {
+                                    HTMLFormElement.prototype.submit.call(form);
+                                }
                             }
                         }
                     });
+
+                    if (btnCancel && btnConfirm) {
+                        btnCancel.addEventListener('click', function() {
+                            dialog.close();
+                        });
+                        
+                        btnConfirm.addEventListener('click', function() {
+                            dialog.close();
+                            // Safely submit the form
+                            HTMLFormElement.prototype.submit.call(form);
+                        });
+                    }
                 }
             }
         });
