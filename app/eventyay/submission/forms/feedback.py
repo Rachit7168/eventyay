@@ -9,6 +9,7 @@ from eventyay.base.models import Feedback
 
 class FeedbackForm(ReadOnlyFlag, forms.ModelForm):
     default_renderer = InlineFormRenderer
+    parent = forms.IntegerField(required=False, widget=forms.HiddenInput())
 
     def __init__(self, talk, **kwargs):
         super().__init__(**kwargs)
@@ -23,9 +24,18 @@ class FeedbackForm(ReadOnlyFlag, forms.ModelForm):
         self.fields['is_public'].help_text = _('If unchecked, this feedback will only be visible to the speakers and organizers.')
 
     def save(self, *args, **kwargs):
-        if not self.cleaned_data['speaker'] and self.instance.talk.speakers.count() == 1:
-            self.instance.speaker = self.instance.talk.speakers.first()
-        return super().save(*args, **kwargs)
+        feedback = super().save(commit=False)
+        if not self.cleaned_data.get('speaker') and self.instance.talk.speakers.count() == 1:
+            feedback.speaker = self.instance.talk.speakers.first()
+            
+        parent_id = self.cleaned_data.get('parent')
+        if parent_id:
+            feedback.parent_id = parent_id
+            
+        if kwargs.get('commit', True):
+            feedback.save()
+            
+        return feedback
 
     def clean_rating(self):
         rating = self.cleaned_data.get('rating')
@@ -35,7 +45,7 @@ class FeedbackForm(ReadOnlyFlag, forms.ModelForm):
 
     class Meta:
         model = Feedback
-        fields = ['speaker', 'rating', 'review', 'is_public', 'parent']
+        fields = ['speaker', 'rating', 'review', 'is_public']
         widgets = {
             'review': RichTextWidget(attrs={'class': 'tiptap-editor'}),
             'rating': forms.RadioSelect(
