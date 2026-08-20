@@ -22,28 +22,20 @@
         </a>
     </div>
 
-    <ul class="nav nav-tabs mt-4">
-        <li class="nav-item">
-            <a class="nav-link {% if current_tab == 'published' %}active{% endif %}" href="?tab=published">
-                {% translate "Published" %}
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link {% if current_tab == 'pending' %}active{% endif %}" href="?tab=pending">
-                {% translate "Review Queue" %}
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link {% if current_tab == 'hidden' %}active{% endif %}" href="?tab=hidden">
-                {% translate "Hidden" %}
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link {% if current_tab == 'anonymous' %}active{% endif %}" href="?tab=anonymous">
-                {% translate "Anonymous" %}
-            </a>
-        </li>
-    </ul>
+    <div class="btn-group mt-4 mb-4" role="group">
+        <a class="btn {% if current_tab == 'published' %}btn-primary{% else %}btn-outline-primary{% endif %}" href="?tab=published">
+            {% translate "Published" %}
+        </a>
+        <a class="btn {% if current_tab == 'pending' %}btn-primary{% else %}btn-outline-primary{% endif %}" href="?tab=pending">
+            {% translate "Review Queue" %}
+        </a>
+        <a class="btn {% if current_tab == 'hidden' %}btn-primary{% else %}btn-outline-primary{% endif %}" href="?tab=hidden">
+            {% translate "Hidden" %}
+        </a>
+        <a class="btn {% if current_tab == 'anonymous' %}btn-primary{% else %}btn-outline-primary{% endif %}" href="?tab=anonymous">
+            {% translate "Anonymous" %}
+        </a>
+    </div>
 
     <div class="table-responsive mt-4">
         <table class="table table-hover table-sm">

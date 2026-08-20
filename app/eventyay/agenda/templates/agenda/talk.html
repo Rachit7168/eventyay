@@ -112,9 +112,10 @@
             {% if feedback_form %}
                 <div class="card bg-light shadow-sm">
                     <div class="card-body">
-                        <h4 class="card-title mb-3">Leave a Comment</h4>
+                        <h4 class="card-title mb-3">{% translate "Leave a Comment" %}</h4>
                         <form method="post" action="">
                             {% csrf_token %}
+                            {{ feedback_form.media }}
                             {% if feedback_form.speaker %}
                                 {{ feedback_form.speaker.as_field_group }}
                             {% endif %}
@@ -123,17 +124,14 @@
                             
                             <div class="form-group mb-4 star-rating">
                                 <div class="rating-container">
-                                    <label class="rating-label font-weight-bold">
+                                    <label class="rating-label font-weight-bold d-block mb-2">
                                         {{ phrases.agenda.feedback_rating|default:"Rating" }}
                                     </label>
-                                    <div class="rating-stars d-flex">
+                                    <div class="rating-stars btn-group btn-group-toggle" data-toggle="buttons">
                                         {% for radio in feedback_form.rating %}
-                                            <div class="mr-3">
-                                                {{ radio.tag }}
-                                                <label for="{{ radio.id_for_label }}" title="{{ radio.choice_label }} stars" class="cursor-pointer">
-                                                    ★ {{ radio.choice_label }}
-                                                </label>
-                                            </div>
+                                            <label class="btn btn-outline-warning {% if radio.data.selected %}active{% endif %}">
+                                                {{ radio.tag }} ★ {{ radio.choice_label }}
+                                            </label>
                                         {% endfor %}
                                     </div>
                                 </div>
