@@ -71,12 +71,12 @@
                                 {{ feedback_form.review.errors }}
                             </div>
                             
-                            <div class="d-flex justify-content-between align-items-center flex-wrap">
+                            <div class="d-flex justify-content-between align-items-center flex-wrap comment-action-container d-none">
                                 <div class="d-flex align-items-center mt-2">
-                                    <div class="rating-stars-inline btn-group btn-group-toggle mr-4" data-toggle="buttons">
+                                    <div class="youtube-rating-stars mr-4">
                                         {% for radio in feedback_form.rating %}
-                                            <label class="btn btn-outline-warning {% if radio.data.selected %}active{% endif %}" title="{{ radio.choice_label }}">
-                                                {{ radio.tag }} ★
+                                            <label class="star-label {% if radio.data.selected %}selected{% endif %}" title="{{ radio.choice_label }}">
+                                                {{ radio.tag }} <i class="fa fa-star"></i>
                                             </label>
                                         {% endfor %}
                                     </div>
@@ -255,6 +255,68 @@
                 });
             });
             
+            
+            // Main comment input focus to show actions
+            const mainCommentInput = document.getElementById('{{ feedback_form.review.id_for_label }}');
+            const mainActionContainer = document.querySelector('.comment-action-container');
+            const mainCancelBtn = document.querySelector('.comment-action-container button[type="reset"]');
+            
+            if (mainCommentInput && mainActionContainer) {
+                mainCommentInput.addEventListener('focus', function() {
+                    mainActionContainer.classList.remove('d-none');
+                });
+                if (mainCancelBtn) {
+                    mainCancelBtn.addEventListener('click', function() {
+                        mainCommentInput.value = '';
+                        mainActionContainer.classList.add('d-none');
+                    });
+                }
+            }
+
+            // Star rating interaction
+            const starContainers = document.querySelectorAll('.youtube-rating-stars');
+            starContainers.forEach(container => {
+                const labels = Array.from(container.querySelectorAll('.star-label'));
+                
+                function updateStars(index) {
+                    labels.forEach((lbl, i) => {
+                        if (i <= index) {
+                            lbl.classList.add('active');
+                        } else {
+                            lbl.classList.remove('active');
+                        }
+                    });
+                }
+                
+                labels.forEach((label, index) => {
+                    label.addEventListener('mouseover', () => {
+                        updateStars(index);
+                    });
+                    
+                    label.addEventListener('click', () => {
+                        labels.forEach(lbl => lbl.classList.remove('selected'));
+                        label.classList.add('selected');
+                        const radio = label.querySelector('input[type="radio"]');
+                        if(radio) radio.checked = true;
+                    });
+                });
+                
+                container.addEventListener('mouseleave', () => {
+                    labels.forEach(lbl => lbl.classList.remove('active'));
+                    // Restore selected state if any
+                    const selectedIndex = labels.findIndex(lbl => lbl.classList.contains('selected'));
+                    if (selectedIndex !== -1) {
+                        updateStars(selectedIndex);
+                    }
+                });
+                
+                // Initialize selected
+                const initialSelected = labels.findIndex(lbl => lbl.classList.contains('selected'));
+                if (initialSelected !== -1) {
+                    updateStars(initialSelected);
+                }
+            });
+
             // hide all reply forms initially
             const forms = document.querySelectorAll('.reply-form-container');
             forms.forEach(function(f) {

@@ -765,3 +765,22 @@ dialog.agenda-wip-preview-leave-dialog::backdrop {
 .reply-item .comment-time {
   font-size: 0.8rem;
 }
+
+.youtube-rating-stars {
+  display: inline-flex;
+  gap: 0.25rem;
+}
+.youtube-rating-stars input[type="radio"] {
+  display: none;
+}
+.youtube-rating-stars label {
+  font-size: 1.25rem;
+  color: #ccc;
+  cursor: pointer;
+  margin: 0;
+  transition: color 0.2s;
+}
+.youtube-rating-stars label.active,
+.youtube-rating-stars label:hover {
+  color: #ffc107;
+}
