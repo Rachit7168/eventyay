@@ -41,7 +41,8 @@
 
     <form method="post" action="{% url 'orga:submissions.feedback.bulk' organizer=request.event.organizer.slug event=request.event.slug %}?next={{ request.get_full_path|urlencode }}">
         {% csrf_token %}
-        <div class="mb-3" id="bulk-action-container" style="display: none;">
+        {% if current_tab == 'pending' %}
+            <div class="mb-3" id="bulk-action-container" style="display: none;">
             <details class="dropdown d-inline-block" aria-haspopup="menu" role="menu">
                 <summary class="btn btn-outline-info btn-sm">
                     {% translate "Select action" %} <i class="fa fa-caret-down"></i>
@@ -59,6 +60,7 @@
                 </div>
             </details>
         </div>
+        {% endif %}
 
         <script>
             function updateBulkActionVisibility() {
@@ -71,9 +73,11 @@
             <table class="table table-hover table-sm">
                 <thead>
                     <tr>
-                        <th class="text-center" style="width: 1%;">
-                            <input type="checkbox" id="selectAll" onclick="document.querySelectorAll('input[name=feedback_ids]').forEach(cb => cb.checked = this.checked); updateBulkActionVisibility();">
-                        </th>
+                        {% if current_tab == 'pending' %}
+                            <th class="text-center" style="width: 1%;">
+                                <input type="checkbox" id="selectAll" onclick="document.querySelectorAll('input[name=feedback_ids]').forEach(cb => cb.checked = this.checked); updateBulkActionVisibility();">
+                            </th>
+                        {% endif %}
                         <th>{% translate "COMMENT" %}</th>
                     <th>{% translate "SESSION" %}</th>
                     <th>{% translate "AUTHOR" %}</th>
@@ -86,9 +90,11 @@
                     {% has_event_perm "base.view_feedback_submission" request.user request entry.talk as can_see_feedback %}
                     {% if can_see_feedback %}
                         <tr>
-                            <td class="text-center">
-                                <input type="checkbox" name="feedback_ids" value="{{ entry.pk }}" onchange="updateBulkActionVisibility();">
-                            </td>
+                            {% if current_tab == 'pending' %}
+                                <td class="text-center">
+                                    <input type="checkbox" name="feedback_ids" value="{{ entry.pk }}" onchange="updateBulkActionVisibility();">
+                                </td>
+                            {% endif %}
                             <td>
                                 <div class="text-break" style="max-width: 400px;">
                                     {{ entry.review|rich_text }}
@@ -115,10 +121,16 @@
                                 {{ entry.created|timesince }} {% translate "ago" %}
                             </td>
                             <td class="text-right">
-                                {% if current_tab == 'pending' or current_tab == 'hidden' %}
+                                {% if current_tab == 'pending' %}
                                     <button type="submit" name="action" value="approve" class="btn btn-sm btn-outline-success" title="{% translate 'Approve' %}" formaction="{% url 'orga:submissions.feedback.action' organizer=request.event.organizer.slug event=request.event.slug pk=entry.pk %}?next={{ request.get_full_path|urlencode }}">
                                         <i class="fa fa-check"></i> {% translate "Approve" %}
                                     </button>
+                                    <button type="submit" name="action" value="hide" class="btn btn-sm btn-outline-warning" title="{% translate 'Hide' %}" formaction="{% url 'orga:submissions.feedback.action' organizer=request.event.organizer.slug event=request.event.slug pk=entry.pk %}?next={{ request.get_full_path|urlencode }}">
+                                        <i class="fa fa-eye-slash"></i> {% translate "Hide" %}
+                                    </button>
+                                    <a href="{% url 'orga:submissions.feedback.action' organizer=request.event.organizer.slug event=request.event.slug pk=entry.pk %}?action=delete&next={{ request.get_full_path|urlencode }}" class="btn btn-sm btn-outline-danger" title="{% translate 'Delete' %}">
+                                        <i class="fa fa-trash"></i> {% translate "Delete" %}
+                                    </a>
                                 {% endif %}
                                 {% if current_tab == 'published' %}
                                     <button type="submit" name="action" value="hide" class="btn btn-sm btn-outline-warning" formaction="{% url 'orga:submissions.feedback.action' organizer=request.event.organizer.slug event=request.event.slug pk=entry.pk %}?next={{ request.get_full_path|urlencode }}">
