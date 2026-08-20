@@ -97,7 +97,13 @@
                 </div>
             {% else %}
                 <div class="alert alert-info mb-5">
-                    You must <a href="{% url 'auth.login' %}?next={{ request.path|urlencode }}">log in</a> to leave a comment.
+                    {% if not request.user.is_authenticated %}
+                        {% translate "You must log in to leave a comment." %}
+                    {% elif not feedback_period_open %}
+                        {% translate "Comments are currently closed for this session." %}
+                    {% else %}
+                        {% translate "Only attendees can leave comments on this session." %}
+                    {% endif %}
                 </div>
             {% endif %}
             
