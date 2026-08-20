@@ -41,14 +41,6 @@ def _agenda_featured_allowed_without_talks_published(url, request, event):
     if user is None:
         return False
 
-    is_featured_export = (
-        (url.url_name in ('export', 'export-tokenized') or url.url_name.startswith('export.'))
-        and request.GET.get('featured') == 'true'
-    )
-    if is_featured_export:
-        # Defer to the export view: it redirects anonymous users to login and
-        # returns 403 for authenticated users without schedule access.
-        return True
 
     return agenda_page_allowed_without_talks_published(url.url_name, user, event, url_kwargs=url.kwargs)
 
