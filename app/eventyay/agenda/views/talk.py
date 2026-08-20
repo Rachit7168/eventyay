@@ -314,6 +314,10 @@ class TalkView(TalkMixin, TemplateView):
                 self.request.user.is_authenticated
                 and user_can_give_feedback(self.request.user, self.submission)
             )
+            ctx['can_moderate_feedback'] = (
+                self.request.user.is_authenticated
+                and self.request.user.has_perm('base.orga_change_submission', self.submission)
+            )
             ctx['feedback_period_open'] = self.submission.does_accept_feedback
                 
         return ctx
