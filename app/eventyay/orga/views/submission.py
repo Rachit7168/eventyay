@@ -1255,6 +1255,12 @@ class FeedbackBulkAction(EventPermissionRequired, View):
         if action == 'approve':
             count = feedbacks.filter(status='pending').update(status='published')
             messages.success(request, _('Successfully approved %d feedback(s).') % count)
+        elif action == 'hide':
+            count = feedbacks.exclude(status='hidden').update(status='hidden')
+            messages.success(request, _('Successfully hid %d feedback(s).') % count)
+        elif action == 'delete':
+            count = feedbacks.exclude(status='deleted').update(status='deleted')
+            messages.success(request, _('Successfully deleted %d feedback(s).') % count)
             
         return redirect(request.GET.get('next', request.event.orga_urls.feedback))
 
