@@ -37,7 +37,50 @@
         </fieldset>
 
 
-
         {% include "orga/includes/submit_row.html" %}
     </form>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const useFeedbackCheckbox = document.getElementById('id_use_feedback');
+            const fieldsets = document.querySelectorAll('fieldset');
+            const closeAfterInput = document.getElementById('id_feedback_close_after_days');
+            
+            function toggleInputs() {
+                if (!useFeedbackCheckbox) return;
+                const isEnabled = useFeedbackCheckbox.checked;
+                
+                fieldsets.forEach(fs => {
+                    if (!fs.contains(useFeedbackCheckbox)) {
+                        fs.disabled = !isEnabled;
+                        fs.style.opacity = isEnabled ? '1' : '0.5';
+                    }
+                });
+                
+                if (closeAfterInput) {
+                    closeAfterInput.disabled = !isEnabled;
+                    // Find the parent div wrapping the input to apply opacity
+                    const wrapper = closeAfterInput.closest('.form-group') || closeAfterInput.closest('.mb-3') || closeAfterInput.parentElement;
+                    if (wrapper) wrapper.style.opacity = isEnabled ? '1' : '0.5';
+                }
+            }
+            
+            if (useFeedbackCheckbox) {
+                const initiallyChecked = useFeedbackCheckbox.checked;
+                useFeedbackCheckbox.addEventListener('change', toggleInputs);
+                toggleInputs();
+                
+                const form = useFeedbackCheckbox.closest('form');
+                if (form) {
+                    form.addEventListener('submit', function(e) {
+                        if (initiallyChecked && !useFeedbackCheckbox.checked) {
+                            if (!confirm("{% translate 'Disabling will also hide all the comments. Are you sure you want to proceed?' %}")) {
+                                e.preventDefault();
+                            }
+                        }
+                    });
+                }
+            }
+        });
+    </script>
 {% endblock settings_content %}
