@@ -288,7 +288,35 @@ class TalkView(TalkMixin, TemplateView):
             )
         )
         ctx['speakers'] = self._build_speakers_context(speakers)
+        
+        # Add public feedback and form to context
+        if self.request.event.get_feature_flag('use_feedback'):
+            ctx['public_feedback'] = self.submission.feedback.filter(is_public=True).select_related('author')
+            if self.request.user.is_authenticated:
+                from eventyay.submission.forms import FeedbackForm
+                ctx['feedback_form'] = FeedbackForm(talk=self.submission)
+            else:
+                ctx['feedback_form'] = None
+                
         return ctx
+
+    def post(self, request, *args, **kwargs):
+        if not self.request.user.is_authenticated:
+            return HttpResponse(status=HTTPStatus.FORBIDDEN)
+            
+        from eventyay.submission.forms import FeedbackForm
+        form = FeedbackForm(talk=self.submission, data=request.POST)
+        if form.is_valid():
+            feedback = form.save(commit=False)
+            feedback.author = request.user
+            feedback.save()
+            messages.success(self.request, _('Your feedback has been submitted.'))
+            return HttpResponseRedirect(self.submission.urls.public)
+            
+        # On error, render the page again with the form
+        ctx = self.get_context_data(**kwargs)
+        ctx['feedback_form'] = form
+        return self.render_to_response(ctx)
 
     @context
     @cached_property

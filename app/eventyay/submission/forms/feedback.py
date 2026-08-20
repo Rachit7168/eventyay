@@ -18,6 +18,9 @@ class FeedbackForm(ReadOnlyFlag, forms.ModelForm):
         self.fields['speaker'].empty_label = _('All speakers')
         if len(speakers) == 1:
             self.fields['speaker'].widget = forms.HiddenInput()
+            
+        self.fields['is_public'].label = _('Visible to public')
+        self.fields['is_public'].help_text = _('If unchecked, this feedback will only be visible to the speakers and organizers.')
 
     def save(self, *args, **kwargs):
         if not self.cleaned_data['speaker'] and self.instance.talk.speakers.count() == 1:
@@ -32,7 +35,7 @@ class FeedbackForm(ReadOnlyFlag, forms.ModelForm):
 
     class Meta:
         model = Feedback
-        fields = ['speaker', 'rating', 'review']
+        fields = ['speaker', 'rating', 'review', 'is_public']
         widgets = {
             'review': MarkdownWidget,
             'rating': forms.RadioSelect(

@@ -34,9 +34,42 @@ class Feedback(PretalxModel):
     )
     rating = models.IntegerField(null=True, blank=True, verbose_name=_('Rating'))
     review = models.TextField(verbose_name=_('Feedback'), help_text=phrases.base.use_markdown)
+    
+    author = models.ForeignKey(
+        to='User',
+        related_name='submitted_feedbacks',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        verbose_name=_('Author'),
+    )
+    is_public = models.BooleanField(
+        default=True,
+        verbose_name=_('Is public'),
+        help_text=_('If disabled, the feedback is anonymous to the speaker and not shown publicly.')
+    )
+    status = models.CharField(
+        max_length=20,
+        default='published',
+        choices=(
+            ('published', _('Published')),
+            ('pending', _('Pending Review')),
+            ('hidden', _('Hidden')),
+            ('deleted', _('Deleted')),
+        ),
+        verbose_name=_('Status'),
+    )
+    parent = models.ForeignKey(
+        to='self',
+        related_name='replies',
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        verbose_name=_('Parent feedback'),
+    )
 
     objects = ScopedManager(event='talk__event')
 
     def __str__(self):
         """Help when debugging."""
-        return f'Feedback(event={self.talk.event.slug}, talk={self.talk.title}, rating={self.rating})'
+        return f'Feedback(event={self.talk.event.slug}, talk={self.talk.title}, rating={self.rating}, status={self.status})'

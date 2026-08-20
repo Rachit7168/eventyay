@@ -233,6 +233,11 @@ urlpatterns = [
                     submission.FeedbackExportView.as_view(),
                     name='submissions.feedback.export',
                 ),
+                path(
+                    'submissions/feedback/<int:pk>/action/',
+                    submission.FeedbackUpdateStatus.as_view(),
+                    name='submissions.feedback.action',
+                ),
                 *submission.TagView.get_urls(
                     url_base='submissions/tags',
                     url_name='submissions.tags',

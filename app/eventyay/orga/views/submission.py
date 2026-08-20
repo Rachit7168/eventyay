@@ -1220,7 +1220,47 @@ class AllFeedbacksList(EventPermissionRequired, PaginationMixin, ListView):
     paginate_by = 25
 
     def get_queryset(self):
-        return Feedback.objects.order_by('-pk').select_related('talk').filter(talk__event=self.request.event)
+        qs = Feedback.objects.order_by('-pk').select_related('talk', 'author').filter(talk__event=self.request.event)
+        
+        tab = self.request.GET.get('tab', 'published')
+        if tab == 'published':
+            qs = qs.filter(status='published', is_public=True)
+        elif tab == 'pending':
+            qs = qs.filter(status='pending', is_public=True)
+        elif tab == 'hidden':
+            qs = qs.filter(status='hidden', is_public=True)
+        elif tab == 'anonymous':
+            qs = qs.filter(is_public=False)
+            
+        return qs
+        
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['current_tab'] = self.request.GET.get('tab', 'published')
+        return context
+
+class FeedbackUpdateStatus(EventPermissionRequired, View):
+    permission_required = 'base.orga_list_submission'
+    
+    def post(self, request, *args, **kwargs):
+        feedback = get_object_or_404(Feedback, pk=self.kwargs['pk'], talk__event=request.event)
+        action = request.POST.get('action')
+        
+        if action == 'approve' and feedback.status == 'pending':
+            feedback.status = 'published'
+            feedback.save()
+            messages.success(request, _('Feedback approved.'))
+        elif action == 'hide' and feedback.status != 'hidden':
+            feedback.status = 'hidden'
+            feedback.save()
+            messages.success(request, _('Feedback hidden.'))
+        elif action == 'delete':
+            feedback.status = 'deleted'
+            feedback.save()
+            messages.success(request, _('Feedback deleted.'))
+            
+        next_url = request.GET.get('next', request.event.orga_urls.feedback)
+        return redirect(next_url)
 
 
 class FeedbackExportView(EventPermissionRequired, View):

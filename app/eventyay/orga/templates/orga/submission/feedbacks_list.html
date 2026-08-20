@@ -22,35 +22,98 @@
         </a>
     </div>
 
-    {% regroup feedback|dictsort:"talk.title" by talk.title as feedbacks_list %}
+    <ul class="nav nav-tabs mt-4">
+        <li class="nav-item">
+            <a class="nav-link {% if current_tab == 'published' %}active{% endif %}" href="?tab=published">
+                {% translate "Published" %}
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if current_tab == 'pending' %}active{% endif %}" href="?tab=pending">
+                {% translate "Review Queue" %}
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if current_tab == 'hidden' %}active{% endif %}" href="?tab=hidden">
+                {% translate "Hidden" %}
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if current_tab == 'anonymous' %}active{% endif %}" href="?tab=anonymous">
+                {% translate "Anonymous" %}
+            </a>
+        </li>
+    </ul>
 
-    {% for submission in feedbacks_list %}
-        <h4>
-            {% translate "Feedback" %}: {{ quotation_open }}<a href="{{ submission.list.0.talk.orga_urls.feedback }}">{{ submission.grouper }}</a>{{ quotation_close }}
-        </h4>
+    <div class="mt-4">
+        {% regroup feedback|dictsort:"talk.title" by talk.title as feedbacks_list %}
 
-        {% for entry in submission.list %}
-            {% has_event_perm "base.view_feedback_submission" request.user request entry.talk as can_see_feedback %}
-            {% if can_see_feedback %}
-                <div class="card mb-2">
-                    <div class="card-body pb-0">
-                        {% if entry.rating %}
-                            <div class="feedback-rating mb-2" aria-label="{% translate 'Rating' %}: {{ entry.rating }} / 5" title="{% translate 'Rating' %}: {{ entry.rating }} / 5">
-                                {% for i in "12345"|make_list %}
-                                    <span class="{% if forloop.counter <= entry.rating %}text-warning{% else %}text-muted{% endif %}">★</span>
-                                {% endfor %}
+        {% for submission in feedbacks_list %}
+            <h4>
+                {% translate "Feedback" %}: {{ quotation_open }}<a href="{{ submission.list.0.talk.orga_urls.feedback }}">{{ submission.grouper }}</a>{{ quotation_close }}
+            </h4>
+
+            {% for entry in submission.list %}
+                {% has_event_perm "base.view_feedback_submission" request.user request entry.talk as can_see_feedback %}
+                {% if can_see_feedback %}
+                    <div class="card mb-2">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>
+                                    {% if entry.is_public %}
+                                        {% if entry.author %}{{ entry.author.get_display_name }}{% else %}{% translate "Anonymous" %}{% endif %}
+                                    {% else %}
+                                        <span class="text-muted"><i class="fa fa-user-secret"></i> {% translate "Anonymous" %}</span>
+                                    {% endif %}
+                                </strong>
+                                <span class="text-muted ml-2 small">{{ entry.created|date:"SHORT_DATETIME_FORMAT" }}</span>
                             </div>
-                        {% endif %}
-                        {{ entry.review|rich_text }}
+                            <div>
+                                {% if current_tab == 'pending' or current_tab == 'hidden' %}
+                                    <form method="post" action="{% url 'orga:submissions.feedback.action' organizer=request.event.organizer.slug event=request.event.slug pk=entry.pk %}?next={{ request.get_full_path|urlencode }}" class="d-inline">
+                                        {% csrf_token %}
+                                        <button type="submit" name="action" value="approve" class="btn btn-sm btn-success">
+                                            <i class="fa fa-check"></i> {% translate "Approve" %}
+                                        </button>
+                                    </form>
+                                {% endif %}
+                                {% if current_tab == 'published' or current_tab == 'pending' %}
+                                    <form method="post" action="{% url 'orga:submissions.feedback.action' organizer=request.event.organizer.slug event=request.event.slug pk=entry.pk %}?next={{ request.get_full_path|urlencode }}" class="d-inline">
+                                        {% csrf_token %}
+                                        <button type="submit" name="action" value="hide" class="btn btn-sm btn-warning">
+                                            <i class="fa fa-eye-slash"></i> {% translate "Hide" %}
+                                        </button>
+                                    </form>
+                                {% endif %}
+                                <form method="post" action="{% url 'orga:submissions.feedback.action' organizer=request.event.organizer.slug event=request.event.slug pk=entry.pk %}?next={{ request.get_full_path|urlencode }}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" name="action" value="delete" class="btn btn-sm btn-danger" onclick="return confirm('{% translate "Are you sure you want to delete this feedback?" %}');">
+                                        <i class="fa fa-trash"></i> {% translate "Delete" %}
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                        <div class="card-body pb-0">
+                            {% if entry.rating %}
+                                <div class="feedback-rating mb-2" aria-label="{% translate 'Rating' %}: {{ entry.rating }} / 5" title="{% translate 'Rating' %}: {{ entry.rating }} / 5">
+                                    {% for i in "12345"|make_list %}
+                                        <span class="{% if forloop.counter <= entry.rating %}text-warning{% else %}text-muted{% endif %}">★</span>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            {{ entry.review|rich_text }}
+                        </div>
                     </div>
-                </div>
-            {% endif %}
+                {% endif %}
+            {% endfor %}
+            <br>
+            <br>
+        {% empty %}
+            <div class="alert alert-info">
+                {% translate "There has been no feedback for sessions in this tab yet." %}
+            </div>
         {% endfor %}
-        <br>
-        <br>
-    {% empty %}
-        {% translate "There has been no feedback for sessions in this event yet." %}
-    {% endfor %}
+    </div>
 
     {% include "orga/includes/pagination.html" %}
 

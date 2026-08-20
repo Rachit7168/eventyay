@@ -293,14 +293,74 @@ class ReviewSettingsForm(
 
 class FeedbackSettingsForm(ReadOnlyFlag, JsonSubfieldMixin, forms.Form):
     use_feedback = forms.BooleanField(
-        label=_('Enable anonymous feedback'),
-        help_text=_('Attendees will be able to send in feedback after a session is over.'),
+        label=_('Enable feedback for sessions'),
+        help_text=_('Allow attendees to submit feedback on session pages.'),
+        required=False,
+    )
+    feedback_close_after_days = forms.IntegerField(
+        label=_('Automatically close comments after'),
+        help_text=_('Close the comment form after the selected number of days from the end of the session.'),
+        min_value=0,
+        required=False,
+    )
+    feedback_who_can_comment = forms.ChoiceField(
+        label=_('Who can comment'),
+        help_text=_('Choose who is allowed to leave public comments.'),
+        choices=[
+            ('attendees', _('Only attendees can comment')),
+            ('registered', _('Any registered user can comment')),
+        ],
+        required=False,
+        widget=forms.RadioSelect,
+        initial='attendees'
+    )
+    feedback_enable_time = forms.ChoiceField(
+        label=_('Comments enabled time'),
+        choices=[
+            ('published', _('Comments are enabled after talk is published')),
+            ('finished', _('Comments are enabled after session is finished')),
+        ],
+        required=False,
+        widget=forms.RadioSelect,
+        initial='finished'
+    )
+    feedback_show_public = forms.BooleanField(
+        label=_('Show public feedback on session pages'),
+        help_text=_('Display published comments publicly.'),
+        required=False,
+    )
+    feedback_require_review = forms.BooleanField(
+        label=_('Require public feedback to be reviewed'),
+        help_text=_('New public feedback will be added to a review queue before it becomes visible.'),
+        required=False,
+    )
+    feedback_allow_anonymous = forms.BooleanField(
+        label=_('Allow logged-in users to send anonymous feedback to speakers'),
+        help_text=_('Anonymous feedback will not be shown publicly.'),
+        required=False,
+    )
+    feedback_allow_hide = forms.BooleanField(
+        label=_('Allow organisers to hide feedback'),
+        help_text=_('Hide inappropriate feedback without deleting it.'),
+        required=False,
+    )
+    feedback_allow_delete = forms.BooleanField(
+        label=_('Allow organisers to delete feedback'),
+        help_text=_('Permanently delete feedback comments.'),
         required=False,
     )
 
     class Meta:
         json_fields = {
             'use_feedback': 'feature_flags',
+            'feedback_close_after_days': 'feature_flags',
+            'feedback_who_can_comment': 'feature_flags',
+            'feedback_enable_time': 'feature_flags',
+            'feedback_show_public': 'feature_flags',
+            'feedback_require_review': 'feature_flags',
+            'feedback_allow_anonymous': 'feature_flags',
+            'feedback_allow_hide': 'feature_flags',
+            'feedback_allow_delete': 'feature_flags',
         }
 
 

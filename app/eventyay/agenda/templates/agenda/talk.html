@@ -38,10 +38,41 @@
         <p>{{ submission_description|event_localize }}</p>
     </noscript>
     {% if submission.does_accept_feedback and request.event|get_feature_flag:"use_feedback" and not is_html_export %}
-        <div class="mt-4 mb-4 text-center pb-4">
-            <a href="{{ submission.urls.feedback }}" class="btn btn-success btn-lg">
-                <i class="fa fa-comments"></i> {{ phrases.agenda.feedback }}
-            </a>
+        <div class="mt-5 pt-4 border-top">
+            <h3 class="mb-4">{{ phrases.agenda.feedback }}</h3>
+            
+            {% if public_feedback %}
+                <div class="mb-5">
+                {% for fb in public_feedback %}
+                    <div class="card mb-3 shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center mb-2">
+                                <strong>{% if fb.author %}{{ fb.author.get_display_name }}{% else %}{{ phrases.agenda.anonymous|default:"Anonymous" }}{% endif %}</strong>
+                                <small class="text-muted ml-2">{{ fb.created_at|date:"SHORT_DATE_FORMAT" }} {{ fb.created_at|time:"TIME_FORMAT" }}</small>
+                            </div>
+                            <p class="mb-0">{{ fb.review }}</p>
+                        </div>
+                    </div>
+                {% endfor %}
+                </div>
+            {% endif %}
+
+            {% if feedback_form %}
+                <div class="card bg-light shadow-sm">
+                    <div class="card-body">
+                        <h4 class="card-title mb-3">Leave a Comment</h4>
+                        <form method="post" action="">
+                            {% csrf_token %}
+                            {{ feedback_form.as_p }}
+                            <button type="submit" class="btn btn-success"><i class="fa fa-comment"></i> Post Comment</button>
+                        </form>
+                    </div>
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    You must <a href="{% url 'base:login' %}?next={{ request.path|urlencode }}">log in</a> to leave a comment.
+                </div>
+            {% endif %}
         </div>
     {% endif %}
 </div>
