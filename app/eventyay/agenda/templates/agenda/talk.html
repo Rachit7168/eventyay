@@ -40,7 +40,7 @@
         <p>{{ submission_description|event_localize }}</p>
     </noscript>
     {% if submission.does_accept_feedback and request.event|get_feature_flag:"use_feedback" and not is_html_export %}
-        <div class="mt-5 pt-4 border-top feedback-section">
+        <div class="mt-5 pt-4 border-top feedback-section px-3 px-md-4">
             <h3 class="mb-4">
                 {% if public_feedback %}
                     {{ public_feedback|length }} {% translate "Comments" %}
@@ -71,7 +71,7 @@
                                 {{ feedback_form.review.errors }}
                             </div>
                             
-                            <div class="d-flex justify-content-between align-items-center flex-wrap comment-action-container d-none">
+                            <div class="justify-content-between align-items-center flex-wrap comment-action-container d-none">
                                 <div class="d-flex align-items-center mt-2">
                                     <div class="youtube-rating-stars mr-4">
                                         {% for radio in feedback_form.rating %}
@@ -264,11 +264,13 @@
             if (mainCommentInput && mainActionContainer) {
                 mainCommentInput.addEventListener('focus', function() {
                     mainActionContainer.classList.remove('d-none');
+                    mainActionContainer.classList.add('d-flex');
                 });
                 if (mainCancelBtn) {
                     mainCancelBtn.addEventListener('click', function() {
                         mainCommentInput.value = '';
                         mainActionContainer.classList.add('d-none');
+                        mainActionContainer.classList.remove('d-flex');
                     });
                 }
             }
