@@ -4,6 +4,7 @@
 {% load vite %}
 {% load html_signal %}
 {% load static %}
+{% load rich_text %}
 
 {% load presale_locale %}
 {% block title %}{{ submission.title|event_localize }} ::{% endblock title %}
@@ -50,7 +51,7 @@
                                 <strong>{% if fb.author %}{{ fb.author.get_display_name }}{% else %}{{ phrases.agenda.anonymous|default:"Anonymous" }}{% endif %}</strong>
                                 <small class="text-muted ml-2">{{ fb.created_at|date:"SHORT_DATE_FORMAT" }} {{ fb.created_at|time:"TIME_FORMAT" }}</small>
                             </div>
-                            <p class="mb-0">{{ fb.review }}</p>
+                            <div class="mb-0">{{ fb.review|rich_text }}</div>
                         </div>
                     </div>
                 {% endfor %}
@@ -63,8 +64,32 @@
                         <h4 class="card-title mb-3">Leave a Comment</h4>
                         <form method="post" action="">
                             {% csrf_token %}
-                            {{ feedback_form.as_p }}
-                            <button type="submit" class="btn btn-success"><i class="fa fa-comment"></i> Post Comment</button>
+                            {% if feedback_form.speaker %}
+                                {{ feedback_form.speaker.as_field_group }}
+                            {% endif %}
+                            
+                            {{ feedback_form.review.as_field_group }}
+                            
+                            <div class="form-group mb-4 star-rating">
+                                <div class="rating-container">
+                                    <label class="rating-label">
+                                        {{ phrases.agenda.feedback_rating|default:"Rating" }}
+                                    </label>
+                                    <div class="rating-stars">
+                                        {% for radio in feedback_form.rating %}
+                                            {{ radio.tag }}
+                                            <label for="{{ radio.id_for_label }}" title="{{ radio.choice_label }} stars">
+                                                ★
+                                            </label>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                {{ feedback_form.rating.errors }}
+                            </div>
+
+                            {{ feedback_form.is_public.as_field_group }}
+
+                            <button type="submit" class="btn btn-success mt-3"><i class="fa fa-comment"></i> Post Comment</button>
                         </form>
                     </div>
                 </div>
