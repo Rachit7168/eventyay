@@ -317,7 +317,7 @@ class FeedbackSettingsForm(ReadOnlyFlag, JsonSubfieldMixin, forms.Form):
     feedback_enable_time = forms.ChoiceField(
         label=_('Comments enabled time'),
         choices=[
-            ('published', _('Comments are enabled after talk is published')),
+            ('published', _('Comments are enabled after session is published')),
             ('finished', _('Comments are enabled after session is finished')),
         ],
         required=True,
