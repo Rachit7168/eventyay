@@ -23,6 +23,11 @@ from i18nfield.utils import I18nJSONEncoder
 
 from eventyay.agenda.export_resources import public_resource_attachments, public_resource_links
 from eventyay.agenda.signals import register_recording_provider
+from eventyay.agenda.feedback_access import (
+    TicketCheckResult,
+    user_can_give_feedback,
+    user_has_event_ticket,
+)
 from eventyay.agenda.views.utils import (
     WipAgendaPreviewPageMixin,
     build_enriched_schedule_json,
@@ -34,8 +39,6 @@ from eventyay.agenda.views.utils import (
 from eventyay.base.models import (
     Event,
     Feedback,
-    Order,
-    OrderPosition,
     Submission,
     SubmissionFavourite,
     SubmissionStates,
@@ -59,12 +62,6 @@ from eventyay.talk_rules.agenda import agenda_schedule_for_user, filter_agenda_s
 
 
 logger = logging.getLogger(__name__)
-
-
-class TicketCheckResult(StrEnum):
-    HAS_TICKET = 'has_ticket'
-    MISCONFIGURED = 'missing_configuration'
-    NO_TICKET = 'no_ticket'
 
 
 class VideoJoinError(StrEnum):
@@ -306,23 +303,35 @@ class TalkView(TalkMixin, TemplateView):
                 upvote_count=Count('reactions', filter=Q(reactions__is_upvote=True)),
                 downvote_count=Count('reactions', filter=Q(reactions__is_upvote=False))
             )
-            if self.request.user.is_authenticated:
+            if self.request.user.is_authenticated and user_can_give_feedback(
+                self.request.user, self.submission
+            ):
                 from eventyay.submission.forms import FeedbackForm
                 ctx['feedback_form'] = FeedbackForm(talk=self.submission)
             else:
                 ctx['feedback_form'] = None
+            ctx['can_give_feedback'] = (
+                self.request.user.is_authenticated
+                and user_can_give_feedback(self.request.user, self.submission)
+            )
+            ctx['feedback_period_open'] = self.submission.does_accept_feedback
                 
         return ctx
 
     def post(self, request, *args, **kwargs):
-        if not self.request.user.is_authenticated:
+        if not request.user.is_authenticated:
             return HttpResponse(status=HTTPStatus.FORBIDDEN)
-            
+        if not user_can_give_feedback(request.user, self.submission):
+            messages.error(request, _('You cannot leave feedback on this session.'))
+            return HttpResponseRedirect(self.submission.urls.public)
+
         from eventyay.submission.forms import FeedbackForm
         form = FeedbackForm(talk=self.submission, data=request.POST)
         if form.is_valid():
             feedback = form.save(commit=False)
             feedback.author = request.user
+            if feedback.is_public and self.request.event.get_feature_flag('feedback_require_review'):
+                feedback.status = 'pending'
             feedback.save()
             messages.success(self.request, _('Your feedback has been submitted.'))
             return HttpResponseRedirect(self.submission.urls.public)
@@ -696,7 +705,7 @@ class OnlineVideoJoin(EventPermissionRequired, View):
         # If the logged-in user does not have "orga.view_schedule" permission, we check
         # if he/she owns a ticket.
         if not request.user.has_perm('agenda.view_schedule', event):
-            res = check_user_owning_ticket(request.user, event)
+            res = user_has_event_ticket(request.user, event)
             if res == TicketCheckResult.NO_TICKET:
                 return HttpResponse(status=HTTPStatus.FORBIDDEN, content=VideoJoinError.NOT_ALLOWED)
             if res == TicketCheckResult.MISCONFIGURED:
@@ -748,41 +757,6 @@ def extract_event_info_from_url(url: str) -> tuple[str, _T, _T]:
         return None, unquote(organizer), unquote(event)
     return None, None, None
 
-
-def check_user_owning_ticket(user: User, event: Event) -> TicketCheckResult:
-    """
-    Check if the user owns a valid ticket for this event using the local database, matching presale logic.
-    """
-    allowed_statuses = [Order.STATUS_PAID]
-    if event.settings.venueless_allow_pending:
-        allowed_statuses.append(Order.STATUS_PENDING)
-    with scope(organizer=event.organizer):
-        with scope(event=event):
-            if event.settings.venueless_all_products:
-                has_ticket = OrderPosition.objects.filter(
-                    order__event=event,
-                    order__email__iexact=user.email,
-                    order__status__in=allowed_statuses,
-                    product__admission=True,
-                    canceled=False,
-                    addon_to__isnull=True,
-                ).exists()
-            else:
-                allowed_products = event.settings.venueless_products or []
-                if not allowed_products:
-                    return TicketCheckResult.NO_TICKET
-                has_ticket = OrderPosition.objects.filter(
-                    order__event=event,
-                    order__email__iexact=user.email,
-                    order__status__in=allowed_statuses,
-                    product_id__in=allowed_products,
-                    canceled=False,
-                    addon_to__isnull=True,
-                ).exists()
-
-    if has_ticket:
-        return TicketCheckResult.HAS_TICKET
-    return TicketCheckResult.NO_TICKET
 
 class TalkFeedbackReactView(TalkMixin, View):
     permission_required = 'base.view_public_submission'

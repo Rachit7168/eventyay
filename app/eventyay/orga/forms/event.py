@@ -339,16 +339,17 @@ class FeedbackSettingsForm(ReadOnlyFlag, JsonSubfieldMixin, forms.Form):
         help_text=_('Anonymous feedback will not be shown publicly.'),
         required=False,
     )
-    feedback_allow_hide = forms.BooleanField(
-        label=_('Allow organisers to hide feedback'),
-        help_text=_('Hide inappropriate feedback without deleting it.'),
-        required=False,
-    )
-    feedback_allow_delete = forms.BooleanField(
-        label=_('Allow organisers to delete feedback'),
-        help_text=_('Permanently delete feedback comments.'),
-        required=False,
-    )
+
+
+    def clean_feedback_who_can_comment(self):
+        return self.cleaned_data.get('feedback_who_can_comment') or 'attendees'
+
+    def clean_feedback_enable_time(self):
+        return self.cleaned_data.get('feedback_enable_time') or 'finished'
+
+    def clean_feedback_close_after_days(self):
+        value = self.cleaned_data.get('feedback_close_after_days')
+        return 0 if value in (None, '') else value
 
     class Meta:
         json_fields = {
@@ -359,8 +360,6 @@ class FeedbackSettingsForm(ReadOnlyFlag, JsonSubfieldMixin, forms.Form):
             'feedback_show_public': 'feature_flags',
             'feedback_require_review': 'feature_flags',
             'feedback_allow_anonymous': 'feature_flags',
-            'feedback_allow_hide': 'feature_flags',
-            'feedback_allow_delete': 'feature_flags',
         }
 
 

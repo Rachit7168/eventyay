@@ -49,7 +49,7 @@ class FeedbackForm(ReadOnlyFlag, forms.ModelForm):
         widgets = {
             'review': RichTextWidget(attrs={'class': 'tiptap-editor'}),
             'rating': forms.RadioSelect(
-                choices=[(i, str(i)) for i in range(5, 0, -1)],
+                choices=[(i, str(i)) for i in range(1, 6)],
                 attrs={'class': 'star-rating-input'},
             ),
         }
