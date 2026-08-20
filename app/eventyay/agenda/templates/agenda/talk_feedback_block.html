@@ -121,7 +121,7 @@
                                     <form method="post" action="">
                                         {% csrf_token %}
                                         <input type="hidden" name="parent" value="{{ fb.id }}">
-                                        <input type="hidden" name="is_public" value="True">
+                                        <input type="hidden" name="is_public" value="{% if feedback_anonymous_mode == 'always' %}False{% else %}True{% endif %}">
                                         <div class="form-group">
                                             {{ feedback_form.review }}
                                         </div>
@@ -165,7 +165,11 @@
                                 {{ feedback_form.rating.errors }}
                             </div>
 
-                            {{ feedback_form.is_public.as_field_group }}
+                            {% if feedback_anonymous_mode == 'optional' %}
+                                {{ feedback_form.is_public.as_field_group }}
+                            {% else %}
+                                {{ feedback_form.is_public }}
+                            {% endif %}
 
                             <button type="submit" class="btn btn-success mt-3"><i class="fa fa-comment"></i> Post Comment</button>
                         </form>

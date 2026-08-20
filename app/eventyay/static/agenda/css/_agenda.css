@@ -677,6 +677,10 @@ dialog.agenda-wip-preview-leave-dialog::backdrop {
 }
 
 /* Youtube-style feedback form */
+.feedback-section {
+  margin-inline: 16px;
+}
+
 .youtube-comment-form textarea {
   border: none;
   border-bottom: 1px solid #ccc;

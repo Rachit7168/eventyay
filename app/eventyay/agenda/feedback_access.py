@@ -106,3 +106,29 @@ def user_can_give_feedback(user, submission) -> bool:
         return True
 
     return user_has_event_ticket(user, event) == TicketCheckResult.HAS_TICKET
+
+
+def get_feedback_anonymous_mode(event) -> str:
+    """Return how anonymous feedback is handled for this event.
+
+    Modes:
+    - ``public``: all feedback is public; users cannot post anonymously
+    - ``optional``: users can choose public or anonymous feedback
+    - ``always``: all feedback is anonymous
+    """
+    mode = event.get_feature_flag('feedback_anonymous_mode')
+    if mode in ('public', 'optional', 'always'):
+        return mode
+    if event.get_feature_flag('feedback_allow_anonymous'):
+        return 'optional'
+    return 'public'
+
+
+def feedback_is_public_for_submission(event, is_public=None) -> bool:
+    """Resolve whether a new feedback submission should be public."""
+    mode = get_feedback_anonymous_mode(event)
+    if mode == 'always':
+        return False
+    if mode == 'public':
+        return True
+    return bool(is_public)

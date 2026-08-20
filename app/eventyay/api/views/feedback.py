@@ -3,6 +3,11 @@ from drf_spectacular.utils import extend_schema_view
 from rest_framework import mixins, viewsets
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
+from eventyay.agenda.feedback_access import (
+    feedback_is_public_for_submission,
+    get_feedback_anonymous_mode,
+    user_can_give_feedback,
+)
 from eventyay.api.mixins import PretalxViewSetMixin
 from eventyay.api.serializers.feedback import FeedbackSerializer
 from eventyay.base.models import Feedback
@@ -51,28 +56,33 @@ class FeedbackViewSet(
         return qs.order_by('-created')
 
     def perform_create(self, serializer):
-        settings = self.event.settings
-        if not settings.use_feedback:
-            raise PermissionDenied("Feedback is not enabled for this event.")
-            
+        if not self.event.get_feature_flag('use_feedback'):
+            raise PermissionDenied('Feedback is not enabled for this event.')
+
         user = self.request.user
         if not user.is_authenticated:
-            raise PermissionDenied("You must be logged in to comment.")
+            raise PermissionDenied('You must be logged in to comment.')
 
-        # Who can comment
-        if settings.feedback_who_can_comment == 'attendees':
-            # Check if user has a ticket or is registered (assume attendees means ticket holder for now, or just registered user if we don't have tickets)
-            # Actually for simplicity, we'll just check if they are authenticated for 'registered'
-            # For 'attendees' it can be more complex, we might just skip the strict check for now or implement if needed.
-            pass
+        talk = serializer.validated_data.get('talk')
+        if not talk:
+            raise ValidationError({'talk': 'This field is required.'})
 
-        is_public = serializer.validated_data.get('is_public', True)
-        if not is_public and not settings.feedback_allow_anonymous:
-            raise PermissionDenied("Anonymous feedback is not allowed.")
-            
-        status = 'pending' if settings.feedback_require_review else 'published'
-        
+        if not user_can_give_feedback(user, talk):
+            raise PermissionDenied('You are not allowed to comment on this session.')
+
+        is_public = feedback_is_public_for_submission(
+            self.event,
+            serializer.validated_data.get('is_public', True),
+        )
+        if not is_public and get_feedback_anonymous_mode(self.event) == 'public':
+            raise PermissionDenied('Anonymous feedback is not allowed.')
+
+        status = 'published'
+        if is_public and self.event.get_feature_flag('feedback_require_review'):
+            status = 'pending'
+
         serializer.save(
             author=user,
-            status=status
+            is_public=is_public,
+            status=status,
         )

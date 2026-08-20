@@ -334,16 +334,30 @@ class FeedbackSettingsForm(ReadOnlyFlag, JsonSubfieldMixin, forms.Form):
         help_text=_('New public feedback will be added to a review queue before it becomes visible.'),
         required=False,
     )
-    feedback_allow_anonymous = forms.BooleanField(
-        label=_('Allow logged-in users to send anonymous feedback to speakers'),
-        help_text=_('Anonymous feedback will not be shown publicly.'),
-        required=False,
+    feedback_anonymous_mode = forms.ChoiceField(
+        label=_('Anonymous feedback'),
+        help_text=_('Choose whether users can post feedback anonymously.'),
+        choices=[
+            ('public', _('All feedback is public')),
+            ('optional', _('Users can choose to post anonymously')),
+            ('always', _('All feedback is anonymous')),
+        ],
+        required=True,
+        widget=forms.RadioSelect,
+        initial='public',
     )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance:
+            flags = self.instance.feature_flags or {}
+            if 'feedback_anonymous_mode' not in flags and flags.get('feedback_allow_anonymous'):
+                self.fields['feedback_anonymous_mode'].initial = 'optional'
 
     def clean(self):
         cleaned_data = super().clean()
         if not cleaned_data.get('use_feedback'):
-            for field in ['feedback_who_can_comment', 'feedback_enable_time']:
+            for field in ['feedback_who_can_comment', 'feedback_enable_time', 'feedback_anonymous_mode']:
                 if field in self.errors:
                     del self.errors[field]
                 cleaned_data[field] = self.fields[field].initial
@@ -359,6 +373,18 @@ class FeedbackSettingsForm(ReadOnlyFlag, JsonSubfieldMixin, forms.Form):
         value = self.cleaned_data.get('feedback_close_after_days')
         return 0 if value in (None, '') else value
 
+    def clean_feedback_anonymous_mode(self):
+        return self.cleaned_data.get('feedback_anonymous_mode') or 'public'
+
+    def save(self, *args, **kwargs):
+        instance = super().save(*args, **kwargs)
+        flags = instance.feature_flags or {}
+        mode = flags.get('feedback_anonymous_mode', 'public')
+        flags['feedback_allow_anonymous'] = mode in ('optional', 'always')
+        instance.feature_flags = flags
+        instance.save(update_fields=['feature_flags'])
+        return instance
+
     class Meta:
         json_fields = {
             'use_feedback': 'feature_flags',
@@ -367,7 +393,7 @@ class FeedbackSettingsForm(ReadOnlyFlag, JsonSubfieldMixin, forms.Form):
             'feedback_enable_time': 'feature_flags',
             'feedback_show_public': 'feature_flags',
             'feedback_require_review': 'feature_flags',
-            'feedback_allow_anonymous': 'feature_flags',
+            'feedback_anonymous_mode': 'feature_flags',
         }
 
 

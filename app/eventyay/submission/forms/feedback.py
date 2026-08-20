@@ -4,6 +4,7 @@ from django.utils.translation import gettext_lazy as _
 from eventyay.common.forms.mixins import ReadOnlyFlag
 from eventyay.common.forms.renderers import InlineFormRenderer
 from eventyay.common.forms.widgets import RichTextWidget
+from eventyay.agenda.feedback_access import get_feedback_anonymous_mode
 from eventyay.base.models import Feedback
 
 
@@ -19,9 +20,20 @@ class FeedbackForm(ReadOnlyFlag, forms.ModelForm):
         self.fields['speaker'].empty_label = _('All speakers')
         if len(speakers) == 1:
             self.fields['speaker'].widget = forms.HiddenInput()
-            
-        self.fields['is_public'].label = _('Visible to public')
-        self.fields['is_public'].help_text = _('If unchecked, this feedback will only be visible to the speakers and organizers.')
+
+        anonymous_mode = get_feedback_anonymous_mode(talk.event)
+        if anonymous_mode == 'optional':
+            self.fields['is_public'].label = _('Visible to public')
+            self.fields['is_public'].help_text = _(
+                'If unchecked, this feedback will only be visible to the speakers and organizers.'
+            )
+            self.fields['is_public'].initial = True
+        elif anonymous_mode == 'always':
+            self.fields['is_public'].initial = False
+            self.fields['is_public'].widget = forms.HiddenInput()
+        else:
+            self.fields['is_public'].initial = True
+            self.fields['is_public'].widget = forms.HiddenInput()
 
     def save(self, *args, **kwargs):
         feedback = super().save(commit=False)

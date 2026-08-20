@@ -25,6 +25,8 @@ from eventyay.agenda.export_resources import public_resource_attachments, public
 from eventyay.agenda.signals import register_recording_provider
 from eventyay.agenda.feedback_access import (
     TicketCheckResult,
+    feedback_is_public_for_submission,
+    get_feedback_anonymous_mode,
     user_can_give_feedback,
     user_has_event_ticket,
 )
@@ -324,6 +326,7 @@ class TalkView(TalkMixin, TemplateView):
                 ctx['banned_user_ids'] = []
                 
             ctx['feedback_period_open'] = self.submission.does_accept_feedback
+            ctx['feedback_anonymous_mode'] = get_feedback_anonymous_mode(self.request.event)
                  
                 
         return ctx
@@ -340,6 +343,10 @@ class TalkView(TalkMixin, TemplateView):
         if form.is_valid():
             feedback = form.save(commit=False)
             feedback.author = request.user
+            feedback.is_public = feedback_is_public_for_submission(
+                self.request.event,
+                form.cleaned_data.get('is_public'),
+            )
             if feedback.is_public and self.request.event.get_feature_flag('feedback_require_review'):
                 feedback.status = 'pending'
             feedback.save()

@@ -40,7 +40,7 @@
         <p>{{ submission_description|event_localize }}</p>
     </noscript>
     {% if submission.does_accept_feedback and request.event|get_feature_flag:"use_feedback" and not is_html_export %}
-        <div class="mt-5 pt-4 border-top feedback-section px-3 px-md-4">
+        <div class="mt-5 pt-4 border-top feedback-section">
             <h3 class="mb-4">
                 {% if public_feedback %}
                     {{ public_feedback|length }} {% translate "Comments" %}
@@ -80,12 +80,16 @@
                                             </label>
                                         {% endfor %}
                                     </div>
+                                    {% if feedback_anonymous_mode == 'optional' %}
                                     <div class="form-check m-0">
                                         {{ feedback_form.is_public }}
                                         <label class="form-check-label text-muted comment-visibility-label" for="{{ feedback_form.is_public.id_for_label }}">
                                             {% translate "Visible to public" %}
                                         </label>
                                     </div>
+                                    {% else %}
+                                        {{ feedback_form.is_public }}
+                                    {% endif %}
                                 </div>
                                 <div class="action-buttons mt-2">
                                     <button type="reset" class="btn btn-sm btn-light rounded-pill px-3">{% translate "Cancel" %}</button>
@@ -184,7 +188,7 @@
                                             <form method="post" action="">
                                                 {% csrf_token %}
                                                 <input type="hidden" name="parent" value="{{ fb.id }}">
-                                                <input type="hidden" name="is_public" value="True">
+                                                <input type="hidden" name="is_public" value="{% if feedback_anonymous_mode == 'always' %}False{% else %}True{% endif %}">
                                                 <div class="form-group mb-2">
                                                     <textarea name="{{ feedback_form.review.name }}" class="form-control youtube-comment-input" rows="1" placeholder="{% translate 'Add a reply...' %}" required></textarea>
                                                 </div>
