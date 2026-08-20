@@ -3022,3 +3022,45 @@ button.btn-speaker-not-arrived {
     display: inline;
   }
 }
+
+.feedback-confirm-dialog {
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
+  padding: 24px;
+  width: 450px;
+  max-width: 95vw;
+  background: #fff;
+  overflow: hidden;
+  color: #333;
+  z-index: 9999;
+}
+
+.feedback-confirm-dialog-title {
+  margin-top: 0;
+  margin-bottom: 16px;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.feedback-confirm-dialog-message {
+  margin-top: 0;
+  margin-bottom: 24px;
+  font-size: 15px;
+  line-height: 1.5;
+  color: #555;
+}
+
+.feedback-confirm-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.feedback-confirm-dialog-btn-cancel {
+  margin-right: 12px;
+  padding: 8px 16px;
+}
+
+.feedback-confirm-dialog-btn-confirm {
+  padding: 8px 16px;
+}

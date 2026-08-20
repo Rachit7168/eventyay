@@ -36,18 +36,15 @@
             {{ form.feedback_allow_anonymous.as_field_group }}
         </fieldset>
 
-
         {% include "orga/includes/submit_row.html" %}
     </form>
 
-    <dialog id="feedback-disable-dialog" class="modal-card" aria-labelledby="feedback-disable-title">
-        <div class="modal-card-content">
-            <h3 id="feedback-disable-title" style="margin-top: 0;">{% translate "Disable Feedback" %}</h3>
-            <p style="margin-bottom: 20px;">{% translate "Disabling will also hide all the comments. Are you sure you want to proceed?" %}</p>
-            <div class="text-right">
-                <button type="button" class="btn btn-default" id="btn-cancel-disable">{% translate "Cancel" %}</button>
-                <button type="button" class="btn btn-danger" id="btn-confirm-disable">{% translate "Proceed" %}</button>
-            </div>
+    <dialog id="feedback-disable-dialog" class="feedback-confirm-dialog" aria-labelledby="feedback-disable-title">
+        <h4 id="feedback-disable-title" class="feedback-confirm-dialog-title">{% translate "Disable Feedback" %}</h4>
+        <p class="feedback-confirm-dialog-message">{% translate "Disabling will also hide all the comments. Are you sure you want to proceed?" %}</p>
+        <div class="feedback-confirm-dialog-actions text-right">
+            <button type="button" class="btn btn-default feedback-confirm-dialog-btn-cancel" id="btn-cancel-disable">{% translate "Cancel" %}</button>
+            <button type="button" class="btn btn-primary feedback-confirm-dialog-btn-confirm" id="btn-confirm-disable">{% translate "Proceed" %}</button>
         </div>
     </dialog>
 
