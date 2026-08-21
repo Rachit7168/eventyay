@@ -55,17 +55,19 @@
                     <div class="order-overview-filter-grid">
                         {% if request.event.has_subevents %}
                             <div class="order-overview-filter-field">
-                                {% bootstrap_field filter_form.subevent layout='' %}
+                                {% bootstrap_field filter_form.subevent layout='' show_label=False %}
                             </div>
                         {% endif %}
                         <div class="order-overview-filter-field">
-                            {% bootstrap_field filter_form.date_axis layout='' %}
+                            {% bootstrap_field filter_form.date_axis layout='' show_label=False %}
                         </div>
-                        <div class="order-overview-filter-field">
-                            {% bootstrap_field filter_form.date_from layout='' %}
-                        </div>
-                        <div class="order-overview-filter-field">
-                            {% bootstrap_field filter_form.date_until layout='' %}
+                        <div class="order-overview-date-range">
+                            <div class="order-overview-filter-field date-from">
+                                {% bootstrap_field filter_form.date_from layout='' show_label=False %}
+                            </div>
+                            <div class="order-overview-filter-field date-until">
+                                {% bootstrap_field filter_form.date_until layout='' show_label=False %}
+                            </div>
                         </div>
                         <div class="order-overview-filter-actions">
                             <button class="btn btn-primary" type="submit">
@@ -170,7 +172,7 @@
             </div>
             <div class="panel-body">
                 <div class="table-responsive">
-                    <table class="table table-condensed table-hover table-product-overview order-overview-table">
+                    <table class="table table-condensed table-hover table-product-overview order-overview-table table-flip">
                         <thead>
                             <tr>
                                 <th>{% trans "Product" %}</th>
@@ -192,36 +194,36 @@
                         <tbody>
                             {% for group, items in items_by_classification %}
                                 <tr class="classification">
-                                    <th>
+                                    <th data-label="{% trans 'Category' %}">
                                         <span class="fa fa-chevron-down order-overview-group-icon" aria-hidden="true"></span>
                                         {{ group }}
                                     </th>
-                                    <th>
+                                    <th data-label="{% trans 'Canceled' %}">
                                         <a href="{{ listurl }}?status=c">
                                             {{ group.num.canceled|togglesum:request.event.currency }}
                                         </a>
                                     </th>
-                                    <th>
+                                    <th data-label="{% trans 'Expired' %}">
                                         <a href="{{ listurl }}?status=e">
                                             {{ group.num.expired|togglesum:request.event.currency }}
                                         </a>
                                     </th>
-                                    <th>
+                                    <th data-label="{% trans 'Approval pending' %}">
                                         <a href="{{ listurl }}?status=pa">
                                             {{ group.num.unapproved|togglesum:request.event.currency }}
                                         </a>
                                     </th>
-                                    <th>
+                                    <th data-label="{% trans 'Pending' %}">
                                         <a href="{{ listurl }}?status=na">
                                             {{ group.num.pending|togglesum:request.event.currency }}
                                         </a>
                                     </th>
-                                    <th>
+                                    <th data-label="{% trans 'Paid' %}">
                                         <a href="{{ listurl }}?status=p">
                                             {{ group.num.paid|togglesum:request.event.currency }}
                                         </a>
                                     </th>
-                                    <th>
+                                    <th data-label="{% trans 'Total' %}">
                                         <a href="{{ listurl }}?status=np">
                                             {{ group.num.total|togglesum:request.event.currency }}
                                         </a>
@@ -239,33 +241,33 @@
                         </tbody>
                         <tfoot>
                             <tr class="total">
-                                <th>{% trans "Total" %}</th>
-                                <th>
+                                <th data-label="{% trans 'Total' %}">{% trans "Total" %}</th>
+                                <th data-label="{% trans 'Canceled' %}">
                                     <a href="{{ listurl }}?status=c">
                                         {{ total.num.canceled|togglesum:request.event.currency }}
                                     </a>
                                 </th>
-                                <th>
+                                <th data-label="{% trans 'Expired' %}">
                                     <a href="{{ listurl }}?status=e">
                                         {{ total.num.expired|togglesum:request.event.currency }}
                                     </a>
                                 </th>
-                                <th>
+                                <th data-label="{% trans 'Approval pending' %}">
                                     <a href="{{ listurl }}?status=pa">
                                         {{ total.num.unapproved|togglesum:request.event.currency }}
                                     </a>
                                 </th>
-                                <th>
+                                <th data-label="{% trans 'Pending' %}">
                                     <a href="{{ listurl }}?status=na">
                                         {{ total.num.pending|togglesum:request.event.currency }}
                                     </a>
                                 </th>
-                                <th>
+                                <th data-label="{% trans 'Paid' %}">
                                     <a href="{{ listurl }}?status=p">
                                         {{ total.num.paid|togglesum:request.event.currency }}
                                     </a>
                                 </th>
-                                <th>
+                                <th data-label="{% trans 'Total' %}">
                                     <a href="{{ listurl }}?status=np">
                                         {{ total.num.total|togglesum:request.event.currency }}
                                     </a>
