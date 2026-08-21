@@ -1,0 +1,34 @@
+{% load order_overview %}
+<tr class="{{ row_class }}">
+    <td>{{ label }}</td>
+    <td>
+        <a href="{{ listurl }}?item={% if var %}{{ item.id }}-{{ var.id }}{% else %}{{ item.id }}{% endif %}&amp;status=c&amp;provider={{ item.provider }}">
+            {{ num.canceled|togglesum:request.event.currency }}
+        </a>
+    </td>
+    <td>
+        <a href="{{ listurl }}?item={% if var %}{{ item.id }}-{{ var.id }}{% else %}{{ item.id }}{% endif %}&amp;status=e&amp;provider={{ item.provider }}">
+            {{ num.expired|togglesum:request.event.currency }}
+        </a>
+    </td>
+    <td>
+        <a href="{{ listurl }}?item={% if var %}{{ item.id }}-{{ var.id }}{% else %}{{ item.id }}{% endif %}&amp;status=pa&amp;provider={{ item.provider }}">
+            {{ num.unapproved|togglesum:request.event.currency }}
+        </a>
+    </td>
+    <td>
+        <a href="{{ listurl }}?item={% if var %}{{ item.id }}-{{ var.id }}{% else %}{{ item.id }}{% endif %}&amp;status=na&amp;provider={{ item.provider }}">
+            {{ num.pending|togglesum:request.event.currency }}
+        </a>
+    </td>
+    <td>
+        <a href="{{ listurl }}?item={% if var %}{{ item.id }}-{{ var.id }}{% else %}{{ item.id }}{% endif %}&amp;status=p&amp;provider={{ item.provider }}">
+            {{ num.paid|togglesum:request.event.currency }}
+        </a>
+    </td>
+    <td>
+        <a href="{{ listurl }}?item={% if var %}{{ item.id }}-{{ var.id }}{% else %}{{ item.id }}{% endif %}&amp;status=np&amp;provider={{ item.provider }}">
+            {{ num.total|togglesum:request.event.currency }}
+        </a>
+    </td>
+</tr>

@@ -1,0 +1,275 @@
+/* Order overview dashboard layout */
+
+.order-overview {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.order-overview-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.order-overview-mode-toggle {
+  display: inline-flex;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px #ced4da;
+}
+
+.order-overview-mode-toggle > .btn {
+  border: none;
+  border-radius: 0;
+  margin: 0;
+  padding: 8px 14px;
+  background: #fff;
+  color: #337ab7;
+  box-shadow: none;
+}
+
+.order-overview-mode-toggle > .btn + .btn {
+  border-left: 1px solid #ced4da;
+}
+
+.order-overview-mode-toggle > .btn.active,
+.order-overview-mode-toggle > .btn.active:hover,
+.order-overview-mode-toggle > .btn.active:focus {
+  background: #337ab7;
+  color: #fff;
+}
+
+.order-overview-export {
+  margin-left: 8px;
+}
+
+.order-overview-filter-card .panel-body {
+  padding-top: 16px;
+}
+
+.order-overview-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px 16px;
+  margin-bottom: 12px;
+}
+
+.order-overview-filter-field .form-group {
+  margin-bottom: 0;
+}
+
+.order-overview-filter-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.order-overview-filter-help {
+  margin: 0;
+  color: #666;
+  font-size: 13px;
+}
+
+.order-overview-filter-help .fa {
+  color: #337ab7;
+  margin-right: 4px;
+}
+
+.order-overview-summary {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.order-overview-summary-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 72px;
+  padding: 12px 14px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: #fff;
+  color: inherit;
+  text-decoration: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.order-overview-summary-card:hover,
+.order-overview-summary-card:focus {
+  text-decoration: none;
+  color: inherit;
+  border-color: #bbb;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.order-overview-summary-icon {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+
+.order-overview-summary-content {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.order-overview-summary-label {
+  font-size: 12px;
+  color: #666;
+  line-height: 1.3;
+}
+
+.order-overview-summary-value {
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.order-overview-summary-card-total .order-overview-summary-icon {
+  background: rgba(51, 122, 183, 0.12);
+  color: #337ab7;
+}
+
+.order-overview-summary-card-paid .order-overview-summary-icon {
+  background: rgba(92, 184, 92, 0.15);
+  color: #5cb85c;
+}
+
+.order-overview-summary-card-pending .order-overview-summary-icon {
+  background: rgba(240, 173, 78, 0.18);
+  color: #f0ad4e;
+}
+
+.order-overview-summary-card-canceled .order-overview-summary-icon {
+  background: rgba(217, 83, 79, 0.15);
+  color: #d9534f;
+}
+
+.order-overview-summary-card-expired .order-overview-summary-icon {
+  background: rgba(153, 102, 204, 0.15);
+  color: #9966cc;
+}
+
+.order-overview-summary-card-approval .order-overview-summary-icon {
+  background: rgba(255, 193, 7, 0.2);
+  color: #d39e00;
+}
+
+.order-overview-summary-card .sum-gross,
+.order-overview-summary-card .sum-net {
+  display: none;
+}
+
+.order-overview[data-report-mode=".sum-gross"] .count,
+.order-overview[data-report-mode=".sum-gross"] .sum-net,
+.order-overview[data-report-mode=".sum-net"] .count,
+.order-overview[data-report-mode=".sum-net"] .sum-gross {
+  display: none;
+}
+
+.order-overview[data-report-mode=".sum-gross"] .sum-gross,
+.order-overview[data-report-mode=".sum-net"] .sum-net {
+  display: inline;
+}
+
+.order-overview[data-report-mode=".sum-gross"] .table-product-overview .sum-gross,
+.order-overview[data-report-mode=".sum-net"] .table-product-overview .sum-net {
+  display: inline;
+}
+
+.order-overview-table-card .panel-body {
+  padding-top: 0;
+}
+
+.order-overview-table-card .table-responsive {
+  margin-bottom: 0;
+}
+
+.order-overview-table .classification th {
+  background: #f8f8f8;
+  font-size: 14px;
+}
+
+.order-overview-table .classification th:first-child {
+  font-weight: 600;
+}
+
+.order-overview-group-icon {
+  margin-right: 6px;
+  color: #888;
+  font-size: 12px;
+}
+
+.order-overview-table .item.classified td:first-child {
+  padding-left: 28px;
+}
+
+.order-overview-table .variation.classified td:first-child {
+  padding-left: 44px;
+}
+
+.order-overview-purchased-header {
+  border-bottom: 1px solid #ddd;
+}
+
+.order-overview-footnote {
+  margin: 12px 0 0;
+  color: #666;
+  font-size: 13px;
+}
+
+.order-overview-warning {
+  margin: 0;
+}
+
+@media (max-width: 1199px) {
+  .order-overview-summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 767px) {
+  .order-overview-toolbar {
+    justify-content: stretch;
+  }
+
+  .order-overview-mode-toggle {
+    width: 100%;
+  }
+
+  .order-overview-mode-toggle > .btn {
+    flex: 1 1 0;
+    min-width: 0;
+    white-space: normal;
+    font-size: 12px;
+    padding: 8px 6px;
+  }
+
+  .order-overview-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .order-overview-summary-value {
+    font-size: 18px;
+  }
+
+  .order-overview-filter-actions .btn {
+    flex: 1 1 auto;
+  }
+}
+
+@media (max-width: 479px) {
+  .order-overview-summary {
+    grid-template-columns: 1fr;
+  }
+}
