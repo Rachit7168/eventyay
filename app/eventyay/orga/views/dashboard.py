@@ -35,7 +35,7 @@ def legacy_orga_event_redirect(request, event):
 
 from eventyay.base.models import Submission, SubmissionStates
 from eventyay.base.models.event import Event
-from eventyay.base.models.log import LogEntry
+from eventyay.base.models.log import ActivityLog, LogEntry
 from eventyay.base.models.organizer import Organizer
 from eventyay.base.settings import is_event_series_creation_enabled, is_meetup_creation_enabled
 from eventyay.common.text.phrases import phrases
@@ -156,7 +156,7 @@ class EventDashboardView(EventPermissionRequired, SubmissionStatsMixin, Template
 
     @context
     def history(self):
-        return LogEntry.objects.filter(event=self.request.event).select_related('user', 'event')[:10]
+        return ActivityLog.objects.filter(event=self.request.event).select_related('person', 'event')[:10]
 
     def _get_action_items(self, event):
         """Build action-required cards for items needing organiser attention."""
