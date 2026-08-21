@@ -425,7 +425,7 @@ class EventDashboardView(EventPermissionRequired, SubmissionStatsMixin, Template
 class SaveInternalNoteView(EventPermissionRequired, View):
     """AJAX endpoint to save the dashboard internal note."""
 
-    permission_required = 'base.change_settings.event'
+    permission_required = 'base.talk_orga_access_event'
 
     def post(self, request, *args, **kwargs):
         note = request.POST.get('note', '')
