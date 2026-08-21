@@ -30,6 +30,18 @@ function initOrderOverviewReport(root = document) {
             };
             heading.textContent = labels[target] || labels['.count'];
         }
+
+        const tooltipIcon = toggleRoot.querySelector('#report-table-tooltip');
+        if (tooltipIcon) {
+            const tooltips = {
+                '.count': tooltipIcon.dataset.tooltipSales,
+                '.sum-gross': tooltipIcon.dataset.tooltipGross,
+                '.sum-net': tooltipIcon.dataset.tooltipNet,
+            };
+            const newTooltip = tooltips[target] || tooltips['.count'];
+            tooltipIcon.setAttribute('data-original-title', newTooltip);
+            tooltipIcon.setAttribute('title', newTooltip);
+        }
     };
 
     buttons.forEach((button) => {
@@ -41,6 +53,44 @@ function initOrderOverviewReport(root = document) {
     const activeButton = toggleRoot.querySelector('[data-report-mode].active') || buttons[0];
     if (activeButton) {
         setMode(activeButton.dataset.reportMode);
+    }
+
+    // Toggle classification rows
+    if (table) {
+        const classifications = table.querySelectorAll('tr.classification');
+        classifications.forEach(row => {
+            // Make it look clickable
+            row.style.cursor = 'pointer';
+            
+            row.addEventListener('click', (e) => {
+                // Ignore clicks on links inside the row
+                if (e.target.tagName.toLowerCase() === 'a') return;
+
+                const icon = row.querySelector('.order-overview-group-icon');
+                let isCollapsing = false;
+                
+                // Determine state from the first row below this classification
+                let checkRow = row.nextElementSibling;
+                if (checkRow && !checkRow.classList.contains('classification') && !checkRow.classList.contains('total')) {
+                    isCollapsing = checkRow.style.display !== 'none';
+                }
+
+                if (icon) {
+                    icon.style.transform = isCollapsing ? 'rotate(-90deg)' : 'rotate(0deg)';
+                }
+                
+                let nextRow = row.nextElementSibling;
+                while (nextRow && !nextRow.classList.contains('classification') && !nextRow.classList.contains('total')) {
+                    // Use jQuery for smooth fade toggle if available
+                    if (window.jQuery) {
+                        window.jQuery(nextRow).fadeToggle(150);
+                    } else {
+                        nextRow.style.display = isCollapsing ? 'none' : '';
+                    }
+                    nextRow = nextRow.nextElementSibling;
+                }
+            });
+        });
     }
 }
 
