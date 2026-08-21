@@ -37,6 +37,14 @@ def _agenda_featured_allowed_without_talks_published(url, request, event):
     if 'agenda' not in url.namespaces:
         return False
 
+    is_featured_export = (
+        (url.url_name in ('export', 'export-tokenized') or url.url_name.startswith('export.'))
+        and request.GET.get('featured') == 'true'
+    )
+    if is_featured_export:
+        from eventyay.talk_rules.submission import can_use_featured_exports
+        return can_use_featured_exports(request.user, event)
+
     user = getattr(request, 'user', None)
     if user is None:
         return False

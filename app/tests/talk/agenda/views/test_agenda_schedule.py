@@ -468,3 +468,13 @@ def test_anon_cannot_export_featured_unpublished_schedule(client, event):
         url = reverse('agenda:export', kwargs={'event': event.slug}) + '?featured=true'
     response = client.get(url, follow=True)
     assert response.status_code == 404
+
+
+@pytest.mark.django_db
+def test_orga_can_export_featured_unpublished_schedule(orga_client, event):
+    with scope(event=event):
+        event.feature_flags['show_schedule'] = False
+        event.save()
+        url = reverse('agenda:export', kwargs={'event': event.slug}) + '?featured=true'
+    response = orga_client.get(url, follow=True)
+    assert response.status_code == 200
