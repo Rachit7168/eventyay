@@ -128,47 +128,58 @@
 
 /* --- 3. Action cards --- */
 .action-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
 .action-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
   background: #f8fafc;
   border-radius: 8px;
-  padding: 1rem;
-  border: 1px solid #f1f5f9;
-  position: relative;
-  overflow: hidden;
+  padding: 0.75rem 1rem;
+  border: 1px solid #e2e8f0;
+  border-left: 4px solid #cbd5e1;
+  transition: transform 0.2s, box-shadow 0.2s;
 }
 
-.action-card::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 4px;
-  height: 100%;
-  background: #cbd5e1;
+.action-card:hover {
+  transform: translateX(4px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
 
-.action-card--warning::before { background: #f59e0b; }
-.action-card--error::before, .action-card--danger::before { background: #ef4444; }
-.action-card--info::before { background: #3b82f6; }
+.action-card--warning { border-left-color: #f59e0b; background: #fffbeb; border-color: #fde68a; }
+.action-card--error, .action-card--danger { border-left-color: #ef4444; background: #fef2f2; border-color: #fecaca; }
+.action-card--info { border-left-color: #3b82f6; background: #eff6ff; border-color: #bfdbfe; }
 
 .action-card__header {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
+  gap: 0.75rem;
+  margin: 0;
+  flex-shrink: 0;
+  min-width: 220px;
 }
 
 .action-card__count {
-  font-size: 1.5rem;
-  font-weight: 800;
-  line-height: 1;
-  color: #0f172a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: #cbd5e1;
+  color: #ffffff;
+  border-radius: 50%;
+  font-size: 0.95rem;
+  font-weight: 700;
 }
+
+.action-card--warning .action-card__count { background: #f59e0b; }
+.action-card--error .action-card__count, .action-card--danger .action-card__count { background: #ef4444; }
+.action-card--info .action-card__count { background: #3b82f6; }
 
 .action-card__title {
   font-size: 0.95rem;
@@ -178,23 +189,51 @@
 }
 
 .action-card__description {
-  font-size: 0.85rem;
+  margin: 0;
+  font-size: 0.9rem;
   color: #475569;
-  margin-bottom: 0.75rem;
-  line-height: 1.4;
+  flex-grow: 1;
 }
 
 .action-card__btn {
-  font-size: 0.8rem;
-  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-left: auto;
   border-radius: 6px;
-  padding: 0.35rem 0.85rem;
+  padding: 0.4rem 1rem;
+  font-weight: 600;
+  font-size: 0.85rem;
   background: #ffffff;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #cbd5e1;
   color: #334155;
-  display: inline-block;
+  text-decoration: none;
+  transition: all 0.2s;
 }
-.action-card__btn:hover { background: #f1f5f9; }
+
+.action-card__btn:hover { background: #f1f5f9; text-decoration: none; }
+
+.action-card--warning .action-card__btn { border-color: #f59e0b; color: #b45309; }
+.action-card--warning .action-card__btn:hover { background: #f59e0b; color: #ffffff; }
+
+.action-card--error .action-card__btn, .action-card--danger .action-card__btn { border-color: #ef4444; color: #b91c1c; }
+.action-card--error .action-card__btn:hover, .action-card--danger .action-card__btn:hover { background: #ef4444; color: #ffffff; }
+
+.action-card--info .action-card__btn { border-color: #3b82f6; color: #1d4ed8; }
+.action-card--info .action-card__btn:hover { background: #3b82f6; color: #ffffff; }
+
+@media (max-width: 767px) {
+  .action-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .action-card__header {
+    min-width: 0;
+  }
+  .action-card__btn {
+    margin-left: 0;
+    margin-top: 0.5rem;
+  }
+}
 
 /* --- 4. KPI grid --- */
 .kpi-grid {
