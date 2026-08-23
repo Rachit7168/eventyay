@@ -144,17 +144,11 @@ class I18nRichTextEditorWidget(I18nTextarea):
     shared editor bundle can mount one editor per language tab.
     """
 
-    def __init__(self, locales, field, attrs=None, **kwargs):
+    def __init__(self, locales, field, attrs=None):
         attrs = attrs.copy() if attrs is not None else {}
         attrs.setdefault('data-tiptap-profile', 'richtext')
         super().__init__(locales=locales, field=field, attrs=attrs)
-
-    def format_output(self, rendered_widgets, id_):
-        wrapped = [
-            f'<div class="tiptap-wrapper" data-tiptap-wrapper="true">{widget}</div>'
-            for widget in rendered_widgets
-        ]
-        return super().format_output(wrapped, id_)
+        self.widget = RichTextWidget(attrs=attrs)
 
 
 class I18nEmailEditorWidget(I18nTextarea):
@@ -164,7 +158,7 @@ class I18nEmailEditorWidget(I18nTextarea):
     shared editor bundle can mount one editor per language tab.
     """
 
-    def __init__(self, locales, field, attrs=None, placeholders=None, preview_url='', **kwargs):
+    def __init__(self, locales, field, attrs=None, placeholders=None, preview_url=''):
         attrs = attrs.copy() if attrs is not None else {}
         attrs.setdefault('data-tiptap-profile', 'email')
         if placeholders:
@@ -172,13 +166,7 @@ class I18nEmailEditorWidget(I18nTextarea):
         if preview_url:
             attrs['data-tiptap-preview-url'] = preview_url
         super().__init__(locales=locales, field=field, attrs=attrs)
-
-    def format_output(self, rendered_widgets, id_):
-        wrapped = [
-            f'<div class="tiptap-wrapper" data-tiptap-wrapper="true" data-email-editor="true">{widget}</div>'
-            for widget in rendered_widgets
-        ]
-        return super().format_output(wrapped, id_)
+        self.widget = EmailEditorWidget(attrs=attrs, placeholders=placeholders, preview_url=preview_url)
 
 
 class EmailEditorWidget(Textarea):
