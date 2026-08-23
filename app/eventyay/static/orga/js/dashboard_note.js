@@ -23,7 +23,11 @@ document.addEventListener("DOMContentLoaded", () => {
         formData.append("note", textarea.value)
 
         saveBtn.disabled = true
-        if (statusEl) statusEl.textContent = ""
+        if (statusEl) {
+            statusEl.textContent = ""
+            statusEl.classList.remove("text-danger")
+            statusEl.classList.add("text-muted")
+        }
 
         fetch(saveUrl, {
             method: "POST",

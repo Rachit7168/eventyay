@@ -61,7 +61,7 @@
     <h2>{% translate "Talk workflow" %}</h2>
     <div class="workflow-timeline" id="workflow-timeline">
       {% for step in workflow_steps %}
-        <a {% if step.url %}href="{{ step.url }}"{% endif %} class="workflow-step workflow-step--{{ step.phase }}{% if step.url %} workflow-step--clickable{% endif %}">
+        <{% if step.url %}a href="{{ step.url }}"{% else %}div{% endif %} class="workflow-step workflow-step--{{ step.phase }}{% if step.url %} workflow-step--clickable{% endif %}">
           <div class="workflow-step__indicator">
             <span class="workflow-step__dot">
               <i class="fa fa-{{ step.icon }}"></i>
@@ -77,7 +77,7 @@
               <div class="workflow-step__summary">{{ step.summary }}</div>
             {% endif %}
           </div>
-        </a>
+        </{% if step.url %}a{% else %}div{% endif %}>
       {% endfor %}
     </div>
   </section>

@@ -1,8 +1,6 @@
 import pytest
-from django.urls import reverse
 from django_scopes import scope
 
-from eventyay.base.models import SubmissionStates
 from eventyay.event.stages import get_workflow_steps
 
 
