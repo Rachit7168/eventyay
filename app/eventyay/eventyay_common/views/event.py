@@ -1073,6 +1073,7 @@ class EventLive(TemplateView):
                 messages.error(self.request, _('Please set up ticketing before changing ticket modes.'))
                 return redirect(self.request.path)
             with transaction.atomic():
+                previous_testmode = event.testmode
                 previous_private = event.private_testmode
                 if mode == 'private_test':
                     event.tickets_published = False
@@ -1111,6 +1112,7 @@ class EventLive(TemplateView):
                                     'created by plug-ins) do not allow it.'
                                 ),
                             )
+                            return redirect(self.request.path)
 
                     event.tickets_published = True
                     event.settings.private_testmode_tickets = False
@@ -1120,6 +1122,12 @@ class EventLive(TemplateView):
                     event.cartposition_set.all().delete()
                     messages.success(self.request, _('Tickets are now publicly sold.'))
                 event.save()
+                if previous_testmode != event.testmode:
+                    self.request.event.log_action(
+                        'eventyay.event.testmode.activated' if event.testmode else 'eventyay.event.testmode.deactivated',
+                        user=self.request.user,
+                        data={},
+                    )
                 if previous_private != event.private_testmode:
                     self.request.event.log_action(
                         'eventyay.event.private_testmode.activated' if event.private_testmode else 'eventyay.event.private_testmode.deactivated',
@@ -1156,6 +1164,9 @@ class EventLive(TemplateView):
         elif request.POST.get('toggle_video_visibility') is not None:
             current_setting = event.settings.get('venueless_show_public_link', False)
             new_setting = not current_setting
+            if new_setting and not event.live:
+                messages.error(self.request, _('Publish the event before enabling public video link.'))
+                return redirect(self.request.path)
             event.settings.set('venueless_show_public_link', new_setting)
             if new_setting:
                 messages.success(self.request, _('Video link is now visible on public pages.'))
