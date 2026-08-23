@@ -221,31 +221,34 @@ a.kpi-card:hover {
   text-decoration: none;
 }
 
-.kpi-card__label {
-  width: 100%;
-  order: 1;
-  text-align: left;
-  font-size: 0.85rem;
-  color: #475569;
-  margin-bottom: 0.5rem;
-  font-weight: 700;
-}
-
 .kpi-card__icon {
-  order: 2;
-  font-size: 1.4rem;
-  color: #94a3b8;
+  order: 1;
+  font-size: 1.5rem;
+  color: #3b82f6; /* Added vibrant blue color to icons */
   margin-right: 0.75rem;
   margin-bottom: 0;
 }
 
 .kpi-card__value {
-  order: 3;
+  order: 2;
   font-size: 1.75rem;
   font-weight: 800;
   line-height: 1;
   color: #0f172a;
 }
+
+.kpi-card__label {
+  width: 100%;
+  order: 3;
+  text-align: left;
+  font-size: 0.85rem;
+  color: #475569;
+  margin-top: 0.25rem;
+  margin-bottom: 0;
+  font-weight: 700;
+}
+
+/* Optional: Different colors for different columns if desired using nth-child, but keeping it blue for consistency */
 
 @media (max-width: 991px) { .kpi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 767px) { .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
@@ -284,21 +287,23 @@ a.kpi-card:hover {
 .readiness-card--danger::before { background: #ef4444; }
 .readiness-card--info::before { background: #3b82f6; }
 
-.readiness-card__label {
-  order: 1;
-  font-size: 0.85rem;
-  color: #475569;
-  font-weight: 700;
-  margin-bottom: 0.5rem;
-}
-
 .readiness-card__value {
-  order: 2;
+  order: 1;
   font-size: 1.5rem;
   font-weight: 800;
   line-height: 1;
   color: #0f172a;
 }
+
+.readiness-card__label {
+  order: 2;
+  font-size: 0.85rem;
+  color: #475569;
+  font-weight: 700;
+  margin-top: 0.25rem;
+  margin-bottom: 0;
+}
+
 
 a.readiness-card__label {
   text-decoration: underline;
