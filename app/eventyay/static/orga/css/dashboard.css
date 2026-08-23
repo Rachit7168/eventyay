@@ -106,6 +106,17 @@
 }
 .workflow-step--done .workflow-step__connector { background: #10b981; }
 
+/* Color connector based on next step */
+.workflow-step:has(+ .workflow-step--done) .workflow-step__connector {
+  background: #10b981;
+}
+.workflow-step:has(+ .workflow-step--active) .workflow-step__connector {
+  background: #3b82f6;
+}
+.workflow-step--active .workflow-step__connector {
+  /* if next is pending, we can optionally color it half way or keep it grey. Keeping it grey is standard */
+}
+
 .workflow-step--active .workflow-step__dot {
   background: #ffffff;
   border-color: #3b82f6;
