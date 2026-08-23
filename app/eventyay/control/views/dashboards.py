@@ -581,8 +581,8 @@ def event_index(request, organizer, event):
         for q in quotas:
             status, left = qa.results[q] if q in qa.results else q.availability(allow_cache=True)
             
-            ordered = opqs.filter(order__event=request.event, item__quotas=q, order__status__in=(Order.STATUS_PAID, Order.STATUS_PENDING)).count()
-            paid = opqs.filter(order__event=request.event, item__quotas=q, order__status=Order.STATUS_PAID).count()
+            ordered = opqs.filter(Q(product__quotas=q) | Q(variation__quotas=q), order__event=request.event, order__status__in=(Order.STATUS_PAID, Order.STATUS_PENDING)).count()
+            paid = opqs.filter(Q(product__quotas=q) | Q(variation__quotas=q), order__event=request.event, order__status=Order.STATUS_PAID).count()
             pending = ordered - paid
             
             sales_capacity_data.append({
