@@ -3,10 +3,15 @@
 
 {% if submission_timeline_data or submission_type_data or submission_track_data or submission_state_data or submission_language_data %}
 <section class="talks-dashboard-section" id="proposal-statistics">
-  <h2>{% translate "Proposal analytics" %}</h2>
-  <div id="global-data" class="d-none" data-url="{{ request.event.orga_urls.submissions }}?" data-mapping="{{ id_mapping }}" data-annotations="{{ timeline_annotations }}"></div>
+  <div class="d-flex align-items-center analytics-toggle" data-toggle="collapse" data-target="#proposal-analytics-collapse" style="cursor: pointer;">
+    <i class="fa fa-chevron-down text-muted mr-2"></i>
+    <h2 class="mb-0 border-bottom-0 pb-0">{% translate "Proposal analytics" %}</h2>
+  </div>
+  
+  <div class="collapse show mt-4" id="proposal-analytics-collapse">
+    <div id="global-data" class="d-none" data-url="{{ request.event.orga_urls.submissions }}?" data-mapping="{{ id_mapping }}" data-annotations="{{ timeline_annotations }}"></div>
 
-  {% if submission_timeline_data %}
+    {% if submission_timeline_data %}
     <div class="card stats-timeline mb-4">
       <div class="card-header">{% translate "Proposals by submission date" %}</div>
       <div id="submission-timeline-data" class="d-none" data-timeline="{{ submission_timeline_data }}" data-label="{% translate "Proposals" %}"></div>
@@ -54,6 +59,7 @@
         </div>
       </div>
     {% endif %}
+  </div>
   </div>
 </section>
 {% endif %}
