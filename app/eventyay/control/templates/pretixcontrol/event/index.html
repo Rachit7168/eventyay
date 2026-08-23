@@ -133,74 +133,178 @@
     <br>
     
     
+    
+<style>
+/* Modern KPI Widgets */
+.kpi-widget {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 20px;
+    height: 100%;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+}
+.kpi-widget:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    border-color: #cbd5e1;
+    transform: translateY(-2px);
+}
+.kpi-widget-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+.kpi-widget-icon {
+    font-size: 20px;
+    margin-right: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+}
+.kpi-widget-icon.icon-primary { background: #eff6ff; color: #3b82f6; }
+.kpi-widget-icon.icon-info { background: #ecfeff; color: #0ea5e9; }
+.kpi-widget-icon.icon-success { background: #f0fdf4; color: #22c55e; }
+.kpi-widget-icon.icon-warning { background: #fffbeb; color: #f59e0b; }
+.kpi-widget-icon.icon-danger { background: #fef2f2; color: #ef4444; }
+
+.kpi-widget-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1;
+}
+.kpi-widget-value a {
+    color: #0f172a;
+    text-decoration: none;
+}
+.kpi-widget-value a:hover {
+    color: #3b82f6;
+}
+.kpi-widget-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #64748b;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.kpi-widget-footer {
+    font-size: 13px;
+    font-weight: 500;
+    margin-top: auto;
+    padding-top: 12px;
+    border-top: 1px solid #f1f5f9;
+}
+.kpi-widget-footer a {
+    color: #3b82f6;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+}
+.kpi-widget-footer a i {
+    margin-left: 4px;
+    font-size: 11px;
+}
+.kpi-widget-footer a:hover {
+    color: #2563eb;
+    text-decoration: underline;
+}
+.mb-4 { margin-bottom: 24px !important; }
+.mb-3 { margin-bottom: 16px !important; }
+</style>
+
+
     {# 3. At a glance KPI cards #}
     {% if can_view_orders %}
     <legend>{% trans "At a glance" %}</legend>
     <div class="row kpi-cards mb-4">
         <div class="col-md-4 col-sm-6 col-xs-12 mb-3">
-            <div class="panel panel-default kpi-panel h-100">
-                <div class="panel-body">
-                    <div class="kpi-icon text-primary"><span class="fa fa-globe"></span></div>
-                    <div class="kpi-details">
-                        <span class="kpi-title text-muted">{% trans "Ticket shop status" %}</span>
-                        <div class="kpi-value {{ kpi_shop_status.class }}">{{ kpi_shop_status.text }}</div>
-                        <a href="{% url 'control:event.live' event=request.event.slug organizer=request.event.organizer.slug %}" class="kpi-subtext">{% trans "Change settings" %} <span class="fa fa-angle-right"></span></a>
-                    </div>
+            <div class="kpi-widget">
+                <div class="kpi-widget-header">
+                    <span class="kpi-widget-icon icon-primary"><i class="fa fa-globe"></i></span>
+                    <span class="kpi-widget-value">{{ kpi_shop_status.text }}</span>
+                </div>
+                <div class="kpi-widget-title">{% trans "Ticket shop status" %}</div>
+                <div class="kpi-widget-footer">
+                    <a href="{% url 'control:event.live' event=request.event.slug organizer=request.event.organizer.slug %}">
+                        {% trans "Change settings" %} <i class="fa fa-chevron-right"></i>
+                    </a>
                 </div>
             </div>
         </div>
         <div class="col-md-4 col-sm-6 col-xs-12 mb-3">
-            <div class="panel panel-default kpi-panel h-100">
-                <div class="panel-body">
-                    <div class="kpi-icon text-info"><span class="fa fa-users"></span></div>
-                    <div class="kpi-details">
-                        <span class="kpi-title text-muted">{% trans "Ordered attendees" %}</span>
-                        <div class="kpi-value"><a href="{% url 'control:event.orders' event=request.event.slug organizer=request.event.organizer.slug %}">{{ kpi_ordered_attendees }}</a></div>
-                    </div>
+            <div class="kpi-widget">
+                <div class="kpi-widget-header">
+                    <span class="kpi-widget-icon icon-info"><i class="fa fa-users"></i></span>
+                    <span class="kpi-widget-value"><a href="{% url 'control:event.orders' event=request.event.slug organizer=request.event.organizer.slug %}">{{ kpi_ordered_attendees }}</a></span>
+                </div>
+                <div class="kpi-widget-title">{% trans "Ordered attendees" %}</div>
+                <div class="kpi-widget-footer">
+                    <a href="{% url 'control:event.orders' event=request.event.slug organizer=request.event.organizer.slug %}">
+                        {% trans "View attendees" %} <i class="fa fa-chevron-right"></i>
+                    </a>
                 </div>
             </div>
         </div>
         <div class="col-md-4 col-sm-6 col-xs-12 mb-3">
-            <div class="panel panel-default kpi-panel h-100">
-                <div class="panel-body">
-                    <div class="kpi-icon text-success"><span class="fa fa-check-circle"></span></div>
-                    <div class="kpi-details">
-                        <span class="kpi-title text-muted">{% trans "Paid attendees" %}</span>
-                        <div class="kpi-value"><a href="{% url 'control:event.orders.overview' event=request.event.slug organizer=request.event.organizer.slug %}">{{ kpi_paid_attendees }}</a></div>
-                    </div>
+            <div class="kpi-widget">
+                <div class="kpi-widget-header">
+                    <span class="kpi-widget-icon icon-success"><i class="fa fa-check-circle"></i></span>
+                    <span class="kpi-widget-value"><a href="{% url 'control:event.orders.overview' event=request.event.slug organizer=request.event.organizer.slug %}">{{ kpi_paid_attendees }}</a></span>
+                </div>
+                <div class="kpi-widget-title">{% trans "Paid attendees" %}</div>
+                <div class="kpi-widget-footer">
+                    <a href="{% url 'control:event.orders.overview' event=request.event.slug organizer=request.event.organizer.slug %}">
+                        {% trans "View overview" %} <i class="fa fa-chevron-right"></i>
+                    </a>
                 </div>
             </div>
         </div>
         <div class="col-md-4 col-sm-6 col-xs-12 mb-3">
-            <div class="panel panel-default kpi-panel h-100">
-                <div class="panel-body">
-                    <div class="kpi-icon text-warning"><span class="fa fa-money"></span></div>
-                    <div class="kpi-details">
-                        <span class="kpi-title text-muted">{% trans "Total revenue" %}</span>
-                        <div class="kpi-value"><a href="{% url 'control:event.orders.overview' event=request.event.slug organizer=request.event.organizer.slug %}">{{ kpi_total_revenue|money:request.event.currency }}</a></div>
-                    </div>
+            <div class="kpi-widget">
+                <div class="kpi-widget-header">
+                    <span class="kpi-widget-icon icon-warning"><i class="fa fa-money"></i></span>
+                    <span class="kpi-widget-value"><a href="{% url 'control:event.orders.overview' event=request.event.slug organizer=request.event.organizer.slug %}">{{ kpi_total_revenue|money:request.event.currency }}</a></span>
+                </div>
+                <div class="kpi-widget-title">{% trans "Total revenue" %}</div>
+                <div class="kpi-widget-footer">
+                    <a href="{% url 'control:event.orders.overview' event=request.event.slug organizer=request.event.organizer.slug %}">
+                        {% trans "Revenue details" %} <i class="fa fa-chevron-right"></i>
+                    </a>
                 </div>
             </div>
         </div>
         <div class="col-md-4 col-sm-6 col-xs-12 mb-3">
-            <div class="panel panel-default kpi-panel h-100">
-                <div class="panel-body">
-                    <div class="kpi-icon text-danger"><span class="fa fa-clock-o"></span></div>
-                    <div class="kpi-details">
-                        <span class="kpi-title text-muted">{% trans "Waiting list" %}</span>
-                        <div class="kpi-value"><a href="{% url 'control:event.orders.waitinglist' event=request.event.slug organizer=request.event.organizer.slug %}">{{ kpi_waitinglist_count }}</a></div>
-                    </div>
+            <div class="kpi-widget">
+                <div class="kpi-widget-header">
+                    <span class="kpi-widget-icon icon-danger"><i class="fa fa-clock-o"></i></span>
+                    <span class="kpi-widget-value"><a href="{% url 'control:event.orders.waitinglist' event=request.event.slug organizer=request.event.organizer.slug %}">{{ kpi_waitinglist_count }}</a></span>
+                </div>
+                <div class="kpi-widget-title">{% trans "Waiting list" %}</div>
+                <div class="kpi-widget-footer">
+                    <a href="{% url 'control:event.orders.waitinglist' event=request.event.slug organizer=request.event.organizer.slug %}">
+                        {% trans "Manage waiting list" %} <i class="fa fa-chevron-right"></i>
+                    </a>
                 </div>
             </div>
         </div>
         <div class="col-md-4 col-sm-6 col-xs-12 mb-3">
-            <div class="panel panel-default kpi-panel h-100">
-                <div class="panel-body">
-                    <div class="kpi-icon text-primary"><span class="fa fa-check-square-o"></span></div>
-                    <div class="kpi-details">
-                        <span class="kpi-title text-muted">{% trans "Checked in" %}</span>
-                        <div class="kpi-value">{{ kpi_checkin_total_inside }} / {{ kpi_checkin_total_positions }}</div>
-                    </div>
+            <div class="kpi-widget">
+                <div class="kpi-widget-header">
+                    <span class="kpi-widget-icon icon-primary"><i class="fa fa-check-square-o"></i></span>
+                    <span class="kpi-widget-value">{{ kpi_checkin_total_inside }} <small class="text-muted" style="font-size: 16px;">/ {{ kpi_checkin_total_positions }}</small></span>
+                </div>
+                <div class="kpi-widget-title">{% trans "Checked in" %}</div>
+                <div class="kpi-widget-footer">
+                    <a href="{% url 'control:event.orders.checkins' event=request.event.slug organizer=request.event.organizer.slug %}">
+                        {% trans "Check-in list" %} <i class="fa fa-chevron-right"></i>
+                    </a>
                 </div>
             </div>
         </div>
