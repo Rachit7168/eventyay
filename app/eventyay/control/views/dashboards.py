@@ -552,16 +552,16 @@ def event_index(request, organizer, event):
         total_positions = 0
         checkin_overview = []
         for cl in checkin_lists:
-            inside = cl.inside_count
+            checked_in = cl.checkin_count
             total = cl.position_count
-            total_inside += inside
+            total_inside += checked_in
             total_positions += total
             checkin_overview.append({
                 'id': cl.pk,
                 'name': cl.name,
-                'inside_count': inside,
+                'inside_count': checked_in,
                 'position_count': total,
-                'percentage': (inside / total * 100) if total > 0 else 0
+                'percentage': (checked_in / total * 100) if total > 0 else 0
             })
         ctx['checkin_overview'] = checkin_overview
         ctx['kpi_checkin_total_inside'] = total_inside
@@ -573,14 +573,7 @@ def event_index(request, organizer, event):
             'control:event.orders.checkinlists',
             kwargs={'event': request.event.slug, 'organizer': request.event.organizer.slug},
         )
-        checkin_kpi_options = [{
-            'id': 'all',
-            'name': str(_('All lists')),
-            'inside_count': total_inside,
-            'position_count': total_positions,
-            'percentage': float(ctx['kpi_checkin_percentage']),
-            'url': checkin_lists_index_url,
-        }]
+        checkin_kpi_options = []
         for item in checkin_overview:
             checkin_kpi_options.append({
                 'id': str(item['id']),
@@ -598,6 +591,17 @@ def event_index(request, organizer, event):
                 ),
             })
         ctx['checkin_kpi_options'] = checkin_kpi_options
+        if checkin_kpi_options:
+            initial = checkin_kpi_options[0]
+            ctx['kpi_checkin_display_inside'] = initial['inside_count']
+            ctx['kpi_checkin_display_total'] = initial['position_count']
+            ctx['kpi_checkin_display_percentage'] = initial['percentage']
+            ctx['kpi_checkin_display_url'] = initial['url']
+        else:
+            ctx['kpi_checkin_display_inside'] = 0
+            ctx['kpi_checkin_display_total'] = 0
+            ctx['kpi_checkin_display_percentage'] = 0
+            ctx['kpi_checkin_display_url'] = checkin_lists_index_url
         if ctx['kpi_ordered_attendees'] > 0:
             ctx['kpi_conversion_rate'] = round(
                 ctx['kpi_paid_attendees'] / ctx['kpi_ordered_attendees'] * 100,
@@ -611,23 +615,59 @@ def event_index(request, organizer, event):
         
         # Sales and capacity table
         sales_capacity_data = []
-        quotas = request.event.quotas.filter(subevent=subevent)
-        qa = QuotaAvailability()
+        quotas = (
+            request.event.quotas.filter(subevent=subevent)
+            .prefetch_related(
+                Prefetch(
+                    'products',
+                    queryset=Product.objects.annotate(
+                        has_variations=Exists(ProductVariation.objects.filter(product=OuterRef('pk')))
+                    ),
+                    to_attr='cached_products',
+                ),
+                'variations',
+                'variations__product',
+            )
+        )
+        qa = QuotaAvailability(full_results=True)
         if quotas:
             qa.queue(*quotas)
-            qa.compute(allow_cache=True)
-        
+            qa.compute()
+
+        product_url_kwargs = {
+            'event': request.event.slug,
+            'organizer': request.event.organizer.slug,
+        }
         for q in quotas:
             status, left = qa.results[q] if q in qa.results else q.availability(allow_cache=True)
-            
-            ordered = opqs.filter(Q(product__quotas=q) | Q(variation__quotas=q), order__event=request.event, order__status__in=(Order.STATUS_PAID, Order.STATUS_PENDING)).count()
-            paid = opqs.filter(Q(product__quotas=q) | Q(variation__quotas=q), order__event=request.event, order__status=Order.STATUS_PAID).count()
-            pending = ordered - paid
+
+            paid = qa.count_paid_orders[q]
+            pending = qa.count_pending_orders[q]
+            ordered = paid + pending
             if q.size:
                 fill_percent = min(100, round(ordered / q.size * 100, 1))
             else:
                 fill_percent = None
-            
+
+            linked_products = []
+            for product in q.cached_products:
+                if not product.has_variations:
+                    linked_products.append({
+                        'label': str(product),
+                        'url': reverse(
+                            'control:event.product',
+                            kwargs={**product_url_kwargs, 'product': product.pk},
+                        ),
+                    })
+            for variation in q.variations.all():
+                linked_products.append({
+                    'label': f'{variation.product} – {variation}',
+                    'url': reverse(
+                        'control:event.product',
+                        kwargs={**product_url_kwargs, 'product': variation.product_id},
+                    ) + '#tab-0-3-open',
+                })
+
             sales_capacity_data.append({
                 'name': q.name,
                 'ordered': ordered,
@@ -637,7 +677,8 @@ def event_index(request, organizer, event):
                 'capacity': q.size,
                 'fill_percent': fill_percent,
                 'status': status, # This is Quota.AVAILABILITY_*
-                'url': reverse('control:event.products.quotas.show', kwargs={'event': request.event.slug, 'organizer': request.event.organizer.slug, 'quota': q.id})
+                'url': reverse('control:event.products.quotas.show', kwargs={'event': request.event.slug, 'organizer': request.event.organizer.slug, 'quota': q.id}),
+                'products': linked_products,
             })
         ctx['sales_capacity_data'] = sales_capacity_data
 
