@@ -114,6 +114,26 @@
         </{% if card.url %}a{% else %}div{% endif %}>
       {% endfor %}
     </div>
+    
+    <h3 class="mt-4 mb-3" style="font-size: 1.1rem; color: #475569; font-weight: 600;">{% translate "Session readiness" %}</h3>
+    <div class="readiness-grid mb-4">
+      {% for metric in session_readiness %}
+        <{% if metric.url %}a href="{{ metric.url }}"{% else %}div{% endif %} class="readiness-card{% if metric.color %} readiness-card--{{ metric.color }}{% endif %}">
+          <span class="readiness-card__value">{{ metric.value }}</span>
+          <span class="readiness-card__label">{{ metric.label }}</span>
+        </{% if metric.url %}a{% else %}div{% endif %}>
+      {% endfor %}
+    </div>
+
+    <h3 class="mt-4 mb-3" style="font-size: 1.1rem; color: #475569; font-weight: 600;">{% translate "Speaker readiness" %}</h3>
+    <div class="readiness-grid">
+      {% for metric in speaker_readiness %}
+        <{% if metric.url %}a href="{{ metric.url }}"{% else %}div{% endif %} class="readiness-card{% if metric.color %} readiness-card--{{ metric.color }}{% endif %}">
+          <span class="readiness-card__value">{{ metric.value }}</span>
+          <span class="readiness-card__label">{{ metric.label }}</span>
+        </{% if metric.url %}a{% else %}div{% endif %}>
+      {% endfor %}
+    </div>
   </section>
 
   {# === 5. Proposal analytics === #}
