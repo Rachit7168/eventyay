@@ -106,7 +106,7 @@
     <div class="kpi-grid">
       {% for card in kpi_cards %}
         <{% if card.url %}a href="{{ card.url }}"{% else %}div{% endif %} class="kpi-card">
-          <div class="kpi-card__icon">
+          <div class="kpi-card__icon kpi-card__icon--{{ card.color }}">
             <i class="fa fa-{{ card.icon }}"></i>
           </div>
           <div class="kpi-card__value">{{ card.value }}</div>
