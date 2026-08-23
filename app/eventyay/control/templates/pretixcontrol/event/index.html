@@ -302,7 +302,7 @@
                 </div>
                 <div class="kpi-widget-title">{% trans "Checked in" %}</div>
                 <div class="kpi-widget-footer">
-                    <a href="{% url 'control:event.orders.checkins' event=request.event.slug organizer=request.event.organizer.slug %}">
+                    <a href="{% url 'control:event.orders.checkinlists' event=request.event.slug organizer=request.event.organizer.slug %}">
                         {% trans "Check-in list" %} <i class="fa fa-chevron-right"></i>
                     </a>
                 </div>
