@@ -217,6 +217,56 @@
 }
 .mb-4 { margin-bottom: 24px !important; }
 .mb-3 { margin-bottom: 16px !important; }
+
+.dashboard-panel {
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 12px !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.02) !important;
+    background: #ffffff;
+    overflow: hidden;
+    margin-bottom: 24px;
+}
+.dashboard-panel > .panel-heading {
+    background-color: #f8fafc !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    padding: 15px 20px;
+}
+.dashboard-panel > .panel-heading > .panel-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #334155;
+    margin: 0;
+}
+.dashboard-panel .card-body {
+    padding: 20px;
+}
+.dashboard-panel .card-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #64748b;
+    margin-top: 0;
+    margin-bottom: 15px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.dashboard-panel .table {
+    margin-bottom: 0;
+}
+.dashboard-panel .table>thead>tr>th {
+    border-bottom: 1px solid #e2e8f0;
+    background: #f8fafc;
+    color: #475569;
+    font-weight: 600;
+    padding: 12px 20px;
+}
+.dashboard-panel .table>tbody>tr>td {
+    padding: 12px 20px;
+    vertical-align: middle;
+}
+legend.dashboard-legend {
+    display: none;
+}
+
 </style>
 
 
@@ -313,8 +363,8 @@
 
     {# 4. Sales and capacity table #}
     {% if can_view_orders and sales_capacity_data %}
-    <legend>{% trans "Sales and capacity" %}</legend>
-    <div class="panel panel-default">
+    <div class="panel panel-default dashboard-panel">
+        <div class="panel-heading"><h3 class="panel-title">{% trans "Sales and capacity" %}</h3></div>
         <div class="table-responsive">
             <table class="table table-hover table-striped">
                 <thead>
@@ -358,8 +408,8 @@
 
     {# 5. Check-in overview table #}
     {% if checkin_overview %}
-    <legend>{% trans "Check-in overview" %}</legend>
-    <div class="panel panel-default">
+    <div class="panel panel-default dashboard-panel">
+        <div class="panel-heading"><h3 class="panel-title">{% trans "Check-in overview" %}</h3></div>
         <div class="table-responsive">
             <table class="table table-hover table-striped">
                 <thead>
@@ -390,6 +440,7 @@
                     </tr>
                     {% endfor %}
                 </tbody>
+                {% if checkin_overview|length > 1 %}
                 <tfoot>
                     <tr>
                         <th>{% trans "Total" %}</th>
@@ -406,6 +457,7 @@
                         </th>
                     </tr>
                 </tfoot>
+                {% endif %}
             </table>
         </div>
     </div>
@@ -413,10 +465,10 @@
 
     {# 6. Analytics section #}
     {% if can_view_orders and stats_has_orders %}
-    <legend>{% trans "Analytics" %}</legend>
+    <h3 style="font-size: 18px; font-weight: 600; color: #1e293b; margin-top: 30px; margin-bottom: 20px;">{% trans "Analytics" %}</h3>
     <div class="row">
         <div class="col-md-6 mb-3">
-            <div class="card h-100">
+            <div class="dashboard-panel h-100">
                 <div class="card-body">
                     <h4 class="card-title text-muted">{% trans "Orders over time" %}</h4>
                     <div id="obd_chart" class="chart chart-panel-body"></div>
@@ -425,7 +477,7 @@
             </div>
         </div>
         <div class="col-md-6 mb-3">
-            <div class="card h-100">
+            <div class="dashboard-panel h-100">
                 <div class="card-body">
                     <h4 class="card-title text-muted">{% trans "Revenue over time" %}</h4>
                     <div id="rev_chart" class="chart chart-panel-body"></div>
@@ -441,7 +493,7 @@
             </div>
         </div>
         <div class="col-md-12 mb-3 mt-3">
-            <div class="card">
+            <div class="dashboard-panel">
                 <div class="card-body">
                     <h4 class="card-title text-muted">{% trans "Orders by product" %}</h4>
                     <div id="obp_chart" class="chart chart-panel-body"></div>
@@ -458,8 +510,8 @@
     {% endif %}
 
     {# 7. Internal note #}
-    <legend>{% trans "Internal note" %}</legend>
-    <div class="card mb-4">
+    <div class="panel panel-default dashboard-panel mt-4">
+        <div class="panel-heading"><h3 class="panel-title">{% trans "Internal note" %}</h3></div>
         <div class="card-body">
             <form class="form" method="post"
                   action="{% url "control:event.comment" event=request.event.slug organizer=request.event.organizer.slug %}">
@@ -479,8 +531,8 @@
     </div>
 
     {# 8. Recent activity #}
-    <legend>{% trans "Recent activity" %}</legend>
-    <div class="panel panel-default">
+    <div class="panel panel-default dashboard-panel">
+        <div class="panel-heading"><h3 class="panel-title">{% trans "Recent activity" %}</h3></div>
         <div class="table-responsive">
             <table class="table table-hover table-striped">
                 <thead>
