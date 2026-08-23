@@ -230,7 +230,7 @@ const drawPieChart = (data, scope, type) => {
         series: data.series,
         labels: data.labels,
         chart: {
-            height: 320,
+            height: 300,
             width: "100%",
             redrawOnParentResize: true,
             type: "donut",
@@ -247,11 +247,21 @@ const drawPieChart = (data, scope, type) => {
                 },
             },
         },
+        grid: {
+            padding: {
+                bottom: 10,
+            },
+        },
         dataLabels: {
             enabled: false,
         },
         legend: {
             position: "bottom",
+            offsetY: 4,
+            itemMargin: {
+                horizontal: 6,
+                vertical: 2,
+            },
             formatter: function (val, opts) {
                 if (val.length > 20) val = val.slice(0, 20) + "…"
                 return val + " - " + opts.w.globals.series[opts.seriesIndex]
@@ -272,7 +282,8 @@ const drawPieChart = (data, scope, type) => {
         ],
         plotOptions: {
             pie: {
-                customScale: 0.85,
+                offsetY: 0,
+                customScale: 0.8,
                 donut: {
                     labels: {
                         show: true,

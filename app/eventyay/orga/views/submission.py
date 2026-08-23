@@ -1232,28 +1232,52 @@ class SubmissionStatsMixin:
     @context
     @cached_property
     def proposal_chart_col(self):
-        count = sum(bool(x) for x in [
-            self.submission_type_data,
-            self.submission_track_data,
-            self.submission_state_data,
-            self.submission_language_data,
-        ])
-        if count == 4 or count == 2:
+        count = self.proposal_chart_count
+        if count == 4:
+            return "col-12 col-sm-6 col-lg-3"
+        if count == 2:
             return "col-12 col-md-6"
         return "col-12 col-md-4"
 
     @context
     @cached_property
+    def proposal_chart_count(self):
+        return sum(bool(x) for x in [
+            self.submission_type_data,
+            self.submission_track_data,
+            self.submission_state_data,
+            self.submission_language_data,
+        ])
+
+    @context
+    @cached_property
+    def proposal_charts_four_across(self):
+        return self.proposal_chart_count == 4
+
+    @context
+    @cached_property
     def talk_chart_col(self):
-        count = sum(bool(x) for x in [
+        count = self.talk_chart_count
+        if count == 4:
+            return "col-12 col-sm-6 col-lg-3"
+        if count == 2:
+            return "col-12 col-md-6"
+        return "col-12 col-md-4"
+
+    @context
+    @cached_property
+    def talk_chart_count(self):
+        return sum(bool(x) for x in [
             self.talk_type_data,
             self.talk_track_data,
             self.talk_state_data,
             self.talk_language_data,
         ])
-        if count == 4 or count == 2:
-            return "col-12 col-md-6"
-        return "col-12 col-md-4"
+
+    @context
+    @cached_property
+    def talk_charts_four_across(self):
+        return self.talk_chart_count == 4
 
 
 class AllFeedbacksList(EventPermissionRequired, PaginationMixin, ListView):
