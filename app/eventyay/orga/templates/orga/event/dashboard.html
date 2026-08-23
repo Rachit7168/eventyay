@@ -44,12 +44,17 @@
     </div>
   {% endif %}
 
-  {# === 1. Page header === #}
-  {% with date_range=request.event.get_date_range_display %}
-  {% with header_extra="<small class='event-date text-muted'> · "|add:date_range|add:"</small>" %}
-    {% include "common/includes/header_nav.html" with header_title=request.event.name|event_localize header_title_extra=header_extra %}
-  {% endwith %}
-  {% endwith %}
+  <nav id="event-nav" class="header-nav">
+    <div class="navigation">
+        <div class="navigation-title">
+            <h2 class="mb-0">{% translate "Talks dashboard" %}</h2>
+            <div class="text-muted mt-1" style="font-size: 1rem; font-weight: 500;">
+              {{ request.event.name|event_localize }} &middot; {{ request.event.get_date_range_display }}
+            </div>
+        </div>
+        {% include "orga/event/component_link.html" %}
+    </div>
+  </nav>
 
   {# === 2. Talk workflow timeline === #}
   <section class="talks-dashboard-section" id="workflow-section">
@@ -110,7 +115,12 @@
             <i class="fa fa-{{ card.icon }}"></i>
           </div>
           <div class="kpi-card__value">{{ card.value }}</div>
-          <div class="kpi-card__label">{{ card.label }}</div>
+          <div class="kpi-card__label">
+            {{ card.label }}
+            {% if card.help_text %}
+              <i class="fa fa-question-circle text-muted ml-1" data-toggle="tooltip" data-placement="top" title="{{ card.help_text }}"></i>
+            {% endif %}
+          </div>
         </{% if card.url %}a{% else %}div{% endif %}>
       {% endfor %}
     </div>
@@ -120,7 +130,12 @@
       {% for metric in session_readiness %}
         <{% if metric.url %}a href="{{ metric.url }}"{% else %}div{% endif %} class="readiness-card{% if metric.color %} readiness-card--{{ metric.color }}{% endif %}">
           <span class="readiness-card__value">{{ metric.value }}</span>
-          <span class="readiness-card__label">{{ metric.label }}</span>
+          <span class="readiness-card__label">
+            {{ metric.label }}
+            {% if metric.help_text %}
+              <i class="fa fa-question-circle text-muted ml-1" data-toggle="tooltip" data-placement="top" title="{{ metric.help_text }}"></i>
+            {% endif %}
+          </span>
         </{% if metric.url %}a{% else %}div{% endif %}>
       {% endfor %}
     </div>
@@ -130,7 +145,12 @@
       {% for metric in speaker_readiness %}
         <{% if metric.url %}a href="{{ metric.url }}"{% else %}div{% endif %} class="readiness-card{% if metric.color %} readiness-card--{{ metric.color }}{% endif %}">
           <span class="readiness-card__value">{{ metric.value }}</span>
-          <span class="readiness-card__label">{{ metric.label }}</span>
+          <span class="readiness-card__label">
+            {{ metric.label }}
+            {% if metric.help_text %}
+              <i class="fa fa-question-circle text-muted ml-1" data-toggle="tooltip" data-placement="top" title="{{ metric.help_text }}"></i>
+            {% endif %}
+          </span>
         </{% if metric.url %}a{% else %}div{% endif %}>
       {% endfor %}
     </div>
