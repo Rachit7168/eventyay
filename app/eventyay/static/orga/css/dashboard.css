@@ -1,24 +1,21 @@
 /* ============================================================
-   Talks Dashboard — Redesigned Layout
+   Talks Dashboard — Redesigned Premium Layout
    ============================================================ */
 
 /* --- Section wrapper --- */
 .talks-dashboard-section {
-  margin-bottom: 2.5rem;
-  background: #ffffff;
-  border-radius: 12px;
-  padding: 1.5rem;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
-  border: 1px solid rgba(0, 0, 0, 0.05);
+  margin-bottom: 3rem;
+  /* Removed the nested white box/border to let the cards breathe */
 }
 
 .talks-dashboard-section h2 {
-  font-size: 1.35rem;
-  font-weight: 600;
-  margin-bottom: 1.5rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 2px solid rgba(0, 0, 0, 0.04);
-  color: var(--color-primary-text-dark, #2c3e50);
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0;
+  border-bottom: none;
+  color: #1e293b;
+  letter-spacing: -0.01em;
 }
 
 /* --- 2. Workflow timeline --- */
@@ -27,7 +24,7 @@
   justify-content: space-between;
   gap: 0;
   overflow-x: auto;
-  padding: 1.5rem 0;
+  padding: 1rem 0 2rem 0;
 }
 
 .workflow-step {
@@ -35,7 +32,7 @@
   flex-direction: column;
   align-items: center;
   flex: 1 1 0;
-  min-width: 110px;
+  min-width: 120px;
   position: relative;
   text-align: center;
   cursor: default;
@@ -47,182 +44,210 @@
   align-items: center;
   justify-content: center;
   width: 100%;
-  margin-bottom: 0.75rem;
+  margin-bottom: 1rem;
 }
 
 .workflow-step__dot {
-  width: 44px;
-  height: 44px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  font-size: 14px;
   z-index: 2;
-  border: 3px solid var(--color-grey-light, #e2e8f0);
-  background: var(--color-bg, #fff);
-  color: var(--color-grey, #94a3b8);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  background: #ffffff;
+  border: 2px solid #cbd5e1;
+  color: #94a3b8;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
 }
 
 .workflow-step:hover .workflow-step__dot {
-  transform: scale(1.15);
-  box-shadow: 0 6px 14px rgba(0,0,0,0.12);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0,0,0,0.08);
 }
 
 .workflow-step__connector {
   position: absolute;
   top: 50%;
-  left: calc(50% + 22px);
-  right: calc(-50% + 22px);
-  height: 3px;
-  background: var(--color-grey-light, #e2e8f0);
+  left: calc(50% + 18px);
+  right: calc(-50% + 18px);
+  height: 2px;
+  background: #e2e8f0;
   transform: translateY(-50%);
   z-index: 1;
   transition: background 0.3s ease;
 }
 
 .workflow-step__content {
-  padding: 0 0.25rem;
+  padding: 0 0.5rem;
   transition: transform 0.3s ease;
 }
 
 .workflow-step:hover .workflow-step__content {
-  transform: translateY(2px);
+  transform: translateY(-1px);
 }
 
 .workflow-step__label {
-  font-weight: 600;
-  font-size: 0.85rem;
-  margin-bottom: 0.2rem;
+  font-weight: 700;
+  font-size: 0.9rem;
+  margin-bottom: 0.25rem;
   color: #334155;
 }
 
 .workflow-step__status {
-  font-size: 0.75rem;
-  color: var(--color-grey, #64748b);
+  font-size: 0.8rem;
+  color: #64748b;
   font-weight: 500;
 }
 
 .workflow-step__summary {
-  font-size: 0.7rem;
-  color: var(--color-grey, #94a3b8);
-  margin-top: 0.2rem;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-top: 0.25rem;
 }
 
 /* Phases */
 .workflow-step--done .workflow-step__dot {
-  background: linear-gradient(135deg, #22c55e, #16a34a);
-  border-color: transparent;
-  color: #fff;
+  background: #10b981;
+  border-color: #10b981;
+  color: #ffffff;
 }
-
 .workflow-step--done .workflow-step__connector {
-  background: linear-gradient(90deg, #22c55e, #16a34a);
+  background: #10b981;
 }
 
 .workflow-step--active .workflow-step__dot {
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
-  border-color: transparent;
-  color: #fff;
-  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
+  background: #ffffff;
+  border-color: #3b82f6;
+  color: #3b82f6;
+  border-width: 3px;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
 }
 
-.workflow-step--active:hover .workflow-step__dot {
-  box-shadow: 0 0 0 6px rgba(59, 130, 246, 0.3);
+.workflow-step--active .workflow-step__label {
+  color: #2563eb;
 }
 
 .workflow-step--pending .workflow-step__dot {
-  background: var(--color-bg, #f8fafc);
-  border-color: var(--color-grey-light, #e2e8f0);
-  color: var(--color-grey, #cbd5e1);
+  background: #f8fafc;
+  border-color: #e2e8f0;
+  color: #cbd5e1;
 }
 
 .workflow-step--issue .workflow-step__dot {
-  background: linear-gradient(135deg, #ef4444, #dc2626);
-  border-color: transparent;
-  color: #fff;
+  background: #ef4444;
+  border-color: #ef4444;
+  color: #ffffff;
 }
 
 /* --- 3. Action cards --- */
 .action-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
 }
 
 .action-card {
   background: #ffffff;
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 1.5rem;
-  border: 1px solid rgba(0,0,0,0.06);
-  border-left: 5px solid var(--color-grey-light, #cbd5e1);
-  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border: 1px solid #e2e8f0;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  position: relative;
+  overflow: hidden;
+}
+
+.action-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: #cbd5e1;
 }
 
 .action-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+  transform: translateY(-3px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
 }
 
-.action-card--warning {
-  border-left-color: var(--color-warning, #f59e0b);
-}
-
-.action-card--error,
-.action-card--danger {
-  border-left-color: var(--color-danger, #ef4444);
-}
-
-.action-card--info {
-  border-left-color: var(--color-info, #3b82f6);
-}
+.action-card--warning::before { background: #f59e0b; }
+.action-card--error::before, .action-card--danger::before { background: #ef4444; }
+.action-card--info::before { background: #3b82f6; }
 
 .action-card__header {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 1rem;
   margin-bottom: 0.75rem;
 }
 
 .action-card__count {
-  font-size: 2rem;
-  font-weight: 700;
+  font-size: 2.25rem;
+  font-weight: 800;
   line-height: 1;
-  color: var(--color-primary, #1e293b);
+  color: #0f172a;
 }
 
 .action-card__title {
-  font-size: 1.05rem;
-  font-weight: 600;
+  font-size: 1.1rem;
+  font-weight: 700;
   margin: 0;
-  color: #334155;
+  color: #1e293b;
 }
 
 .action-card__description {
-  font-size: 0.9rem;
-  color: var(--color-grey, #64748b);
-  margin-bottom: 1rem;
+  font-size: 0.95rem;
+  color: #475569;
+  margin-bottom: 1.25rem;
+  line-height: 1.5;
 }
 
 .action-card__btn {
-  font-size: 0.85rem;
-  font-weight: 500;
-  border-radius: 6px;
-  padding: 0.4rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 0.5rem 1.25rem;
   transition: all 0.2s;
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid transparent;
 }
 .action-card__btn:hover {
-  transform: translateY(-1px);
+  background: #e2e8f0;
+  color: #0f172a;
+}
+.action-card--info .action-card__btn {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+.action-card--info .action-card__btn:hover {
+  background: #dbeafe;
+}
+.action-card--warning .action-card__btn {
+  background: #fffbeb;
+  color: #b45309;
+}
+.action-card--warning .action-card__btn:hover {
+  background: #fef3c7;
+}
+.action-card--danger .action-card__btn {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+.action-card--danger .action-card__btn:hover {
+  background: #fee2e2;
 }
 
 /* --- 4. KPI grid --- */
 .kpi-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 1rem;
+  gap: 1.5rem;
 }
 
 .kpi-card {
@@ -231,155 +256,146 @@
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 1.5rem 1rem;
-  min-height: 140px;
+  padding: 1.75rem 1rem;
   background: #ffffff;
-  border: 1px solid rgba(0,0,0,0.06);
-  border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-  color: var(--color-primary, #1e293b);
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
   text-decoration: none;
-  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 a.kpi-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 10px 20px rgba(0,0,0,0.08);
-  border-color: var(--color-info, #3b82f6);
-  color: var(--color-info, #3b82f6);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+  border-color: #bfdbfe;
   text-decoration: none;
 }
 
 .kpi-card__icon {
-  font-size: 1.5rem;
-  margin-bottom: 0.5rem;
+  font-size: 1.75rem;
+  margin-bottom: 0.75rem;
   color: #94a3b8;
-  transition: color 0.3s;
+  transition: color 0.3s ease, transform 0.3s ease;
 }
 
 a.kpi-card:hover .kpi-card__icon {
-  color: var(--color-info, #3b82f6);
+  color: #3b82f6;
+  transform: scale(1.1);
 }
 
 .kpi-card__value {
-  font-size: 2.2rem;
-  font-weight: 700;
-  line-height: 1.1;
-  background: linear-gradient(135deg, #1e293b, #334155);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  font-size: 2.5rem;
+  font-weight: 800;
+  line-height: 1;
+  color: #0f172a;
 }
 
 .kpi-card__label {
-  font-size: 0.85rem;
-  color: var(--color-grey, #64748b);
-  margin-top: 0.4rem;
-  font-weight: 500;
+  font-size: 0.95rem;
+  color: #64748b;
+  margin-top: 0.5rem;
+  font-weight: 600;
 }
 
 @media (max-width: 991px) {
-  .kpi-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
+  .kpi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
-
 @media (max-width: 767px) {
-  .kpi-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+  .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-
 @media (max-width: 480px) {
-  .kpi-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
+  .kpi-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* --- 7 & 8. Readiness grids --- */
 .readiness-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1.25rem;
 }
 
 .readiness-card {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 1rem 1.25rem;
+  gap: 1.25rem;
+  padding: 1.25rem 1.5rem;
   background: #ffffff;
-  border-radius: 8px;
-  border: 1px solid rgba(0,0,0,0.05);
-  border-left: 4px solid var(--color-grey-light, #cbd5e1);
-  box-shadow: 0 2px 6px rgba(0,0,0,0.02);
-  transition: all 0.25s ease;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.readiness-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: #cbd5e1;
 }
 
 .readiness-card:hover {
-  background: #f8fafc;
-  transform: translateX(4px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
 }
 
-.readiness-card--warning {
-  border-left-color: var(--color-warning, #f59e0b);
-}
-
-.readiness-card--danger {
-  border-left-color: var(--color-danger, #ef4444);
-}
-
-.readiness-card--info {
-  border-left-color: var(--color-info, #3b82f6);
-}
+.readiness-card--warning::before { background: #f59e0b; }
+.readiness-card--danger::before { background: #ef4444; }
+.readiness-card--info::before { background: #3b82f6; }
 
 .readiness-card__value {
-  font-size: 1.6rem;
-  font-weight: 700;
+  font-size: 1.75rem;
+  font-weight: 800;
   min-width: 2.5rem;
   text-align: center;
-  color: #1e293b;
+  color: #0f172a;
 }
 
 .readiness-card__label {
-  font-size: 0.9rem;
-  color: var(--color-primary, #334155);
-  font-weight: 500;
+  font-size: 0.95rem;
+  color: #334155;
+  font-weight: 600;
 }
 
 a.readiness-card__label {
-  text-decoration: underline;
-  text-decoration-color: rgba(59, 130, 246, 0.4);
-  text-underline-offset: 2px;
-  transition: all 0.2s;
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  padding-bottom: 1px;
+  transition: all 0.2s ease;
 }
 
 a.readiness-card__label:hover {
-  color: var(--color-info, #2563eb);
-  text-decoration-color: rgba(59, 130, 246, 1);
+  color: #1d4ed8;
+  border-bottom-color: #93c5fd;
 }
 
 /* --- 10. Internal note card --- */
 .internal-note-card {
   background: #ffffff;
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 1.5rem;
-  border: 1px solid rgba(0,0,0,0.06);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
 
 .internal-note-card textarea {
   resize: vertical;
-  min-height: 100px;
-  border: 1px solid var(--color-grey-light, #cbd5e1);
+  min-height: 120px;
+  border: 1px solid #cbd5e1;
   border-radius: 8px;
-  padding: 0.75rem;
-  font-size: 0.95rem;
+  padding: 1rem;
+  font-size: 1rem;
+  color: #334155;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .internal-note-card textarea:focus {
-  border-color: var(--color-info, #3b82f6);
+  border-color: #3b82f6;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
   outline: none;
 }
@@ -391,9 +407,9 @@ a.readiness-card__label:hover {
   margin-top: 1rem;
 }
 .internal-note-card__footer button {
-  border-radius: 6px;
-  font-weight: 500;
-  padding: 0.5rem 1.25rem;
+  border-radius: 8px;
+  font-weight: 600;
+  padding: 0.5rem 1.5rem;
 }
 
 /* --- Legacy tiles (kept for compat) --- */
@@ -411,7 +427,8 @@ a.readiness-card__label:hover {
 @media (max-width: 767px) {
   .workflow-timeline {
     flex-direction: column;
-    gap: 1rem;
+    gap: 1.5rem;
+    padding: 1rem;
   }
 
   .workflow-step {
@@ -424,12 +441,12 @@ a.readiness-card__label:hover {
     width: auto;
     flex-direction: column;
     margin-bottom: 0;
-    margin-right: 1rem;
+    margin-right: 1.25rem;
   }
 
   .workflow-step__connector {
     position: static;
-    width: 3px;
+    width: 2px;
     height: 30px;
     transform: none;
   }
