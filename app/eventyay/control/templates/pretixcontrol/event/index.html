@@ -8,103 +8,120 @@
 {% load money %}
 {% load getitem %}
 
-{% block title %}{{ request.event.name }}{% endblock %}
+{% block title %}{{ request.event.name }} - {% trans "Tickets dashboard" %}{% endblock %}
 {% block content %}
+    {# 1. Page header #}
     {% if is_meetup_event %}
         {% trans "Meetup" as date_text %}
         {% with header_extra="<small class='event-date text-muted'>"|add:date_text|add:"</small>" %}
-            {% include "common/includes/header_nav.html" with header_title=request.event.name header_title_extra=header_extra header_component_link="pretixcontrol/event/component_link.html" %}
+            {% include "common/includes/header_nav.html" with header_title="Tickets dashboard" header_title_extra=header_extra header_component_link="pretixcontrol/event/component_link.html" %}
         {% endwith %}
     {% elif request.event.has_subevents %}
         {% trans "Event series" as date_text %}
         {% with header_extra="<small class='event-date text-muted'>"|add:date_text|add:"</small>" %}
-            {% include "common/includes/header_nav.html" with header_title=request.event.name header_title_extra=header_extra header_component_link="pretixcontrol/event/component_link.html" %}
+            {% include "common/includes/header_nav.html" with header_title="Tickets dashboard" header_title_extra=header_extra header_component_link="pretixcontrol/event/component_link.html" %}
         {% endwith %}
     {% else %}
         {% with date_text=request.event.get_date_range_display %}
         {% with header_extra="<small class='event-date text-muted'>"|add:date_text|add:"</small>" %}
-            {% include "common/includes/header_nav.html" with header_title=request.event.name header_title_extra=header_extra header_component_link="pretixcontrol/event/component_link.html" %}
+            {% include "common/includes/header_nav.html" with header_title="Tickets dashboard" header_title_extra=header_extra header_component_link="pretixcontrol/event/component_link.html" %}
         {% endwith %}
         {% endwith %}
     {% endif %}
-    {% if has_overpaid_orders %}
-        <div class="alert alert-warning">
-            {% blocktrans trimmed %}
-                This event contains <strong>overpaid orders</strong>, for example due to duplicate payment attempts.
-                You should review the cases and consider refunding the overpaid amount to the user.
-            {% endblocktrans %}
-            <a href="{% url "control:event.orders" event=request.event.slug organizer=request.event.organizer.slug %}?status=overpaid"
-                    class="btn btn-primary">{% trans "Show overpaid orders" %}</a>
-        </div>
-    {% endif %}
-    {% if has_pending_refunds %}
-        <div class="alert alert-warning">
-            {% blocktrans trimmed %}
-                This event contains <strong>pending refunds</strong> that you should take care of.
-            {% endblocktrans %}
-            <a href="{% url "control:event.orders.refunds" event=request.event.slug organizer=request.event.organizer.slug %}"
-                    class="btn btn-primary">{% trans "Show pending refunds" %}</a>
-        </div>
-    {% endif %}
-    {% if has_cancellation_requests %}
-        <div class="alert alert-warning">
-            {% blocktrans trimmed %}
-                This event contains <strong>requested cancellations</strong> that you should take care of.
-            {% endblocktrans %}
-            <a href="{% url "control:event.orders" event=request.event.slug organizer=request.event.organizer.slug %}?status=rc"
-                    class="btn btn-primary">{% trans "Show orders requesting cancellation" %}</a>
-        </div>
-    {% endif %}
-    {% if has_pending_approvals %}
-        <div class="alert alert-warning">
-            {% blocktrans trimmed %}
-                This event contains <strong>pending approvals</strong> that you should take care of.
-            {% endblocktrans %}
-            <a href="{% url "control:event.orders" event=request.event.slug organizer=request.event.organizer.slug %}?status=pa"
-                    class="btn btn-primary">{% trans "Show orders pending approval" %}</a>
-        </div>
-    {% endif %}
-    {% if has_pending_orders_with_full_payment %}
-        <div class="alert alert-warning">
-            {% blocktrans trimmed %}
-                This event contains <strong>fully paid orders</strong> that are not marked as paid, probably
-                because no quota was left at the time their payment arrived. You should review the cases and consider
-                either refunding the customer or creating more space.
-            {% endblocktrans %}
-            <a href="{% url "control:event.orders" event=request.event.slug organizer=request.event.organizer.slug %}?status=pendingpaid"
-                    class="btn btn-primary">{% trans "Show affected orders" %}</a>
-        </div>
-    {% endif %}
-    {% eventsignal request.event "eventyay.control.signals.event_dashboard_top" request=request %}
-    {% if actions|length > 0 %}
-        <div class="panel panel-danger">
-            <div class="panel-heading">
-                <h3 class="panel-title">
-                    {% trans "Your attention is required to resolve the following issues" %}
-                </h3>
+
+    {# 2. Action required section #}
+    {% if has_overpaid_orders or has_pending_refunds or has_cancellation_requests or has_pending_approvals or has_pending_orders_with_full_payment or actions|length > 0 %}
+    <legend>{% trans "Action required" %}</legend>
+    <div class="action-required-section mb-4">
+        {% if has_overpaid_orders %}
+            <div class="alert alert-danger">
+                <strong>{% trans "Overpaid orders detected" %}</strong><br>
+                {% blocktrans trimmed %}
+                    Some orders have overpaid amounts due to duplicate payment attempts.
+                {% endblocktrans %}
+                <br>
+                <a href="{% url "control:event.orders" event=request.event.slug organizer=request.event.organizer.slug %}?status=overpaid"
+                        class="btn btn-danger btn-sm mt-2">{% trans "Show overpaid orders" %}</a>
             </div>
-            <ul class="list-group">
-                {% for action in actions %}
-                    <li class="list-group-item logentry">
-                        <p>
-                            <a href="{% url "control:event.requiredaction.discard" event=request.event.slug organizer=request.event.organizer.slug id=action.id %}"
-                               class="btn btn-default btn-xs pull-right flip">
-                                {% trans "Hide message" %}
-                            </a>
-                            <small><span
-                                    class="fa fa-clock-o"></span> {{ action.datetime|date:"SHORT_DATETIME_FORMAT" }}
-                            </small>
-                        </p>
-                        {{ action.display|safe }}
-                    </li>
-                {% endfor %}
-            </ul>
-            <div class="panel-footer">
-                <a href="{% url "control:event.requiredactions" event=request.event.slug organizer=request.event.organizer.slug %}">
-                    {% trans "Show more" %}
-                </a>
+        {% endif %}
+        
+        {% if has_pending_refunds %}
+            <div class="alert alert-warning">
+                <strong>{% trans "Pending refunds" %}</strong><br>
+                {% blocktrans trimmed %}
+                    There are pending refunds that you should take care of.
+                {% endblocktrans %}
+                <br>
+                <a href="{% url "control:event.orders.refunds" event=request.event.slug organizer=request.event.organizer.slug %}"
+                        class="btn btn-warning btn-sm mt-2">{% trans "Show pending refunds" %}</a>
             </div>
-        </div>
+        {% endif %}
+
+        {% if has_cancellation_requests %}
+            <div class="alert alert-warning">
+                <strong>{% trans "Requested cancellations" %}</strong><br>
+                {% blocktrans trimmed %}
+                    There are requested cancellations that you should take care of.
+                {% endblocktrans %}
+                <br>
+                <a href="{% url "control:event.orders" event=request.event.slug organizer=request.event.organizer.slug %}?status=rc"
+                        class="btn btn-warning btn-sm mt-2">{% trans "Show orders requesting cancellation" %}</a>
+            </div>
+        {% endif %}
+
+        {% if has_pending_approvals %}
+            <div class="alert alert-warning">
+                <strong>{% trans "Pending approvals" %}</strong><br>
+                {% blocktrans trimmed %}
+                    There are orders awaiting your approval.
+                {% endblocktrans %}
+                <br>
+                <a href="{% url "control:event.orders" event=request.event.slug organizer=request.event.organizer.slug %}?status=pa"
+                        class="btn btn-warning btn-sm mt-2">{% trans "Show orders pending approval" %}</a>
+            </div>
+        {% endif %}
+
+        {% if has_pending_orders_with_full_payment %}
+            <div class="alert alert-warning">
+                <strong>{% trans "Fully paid but not marked" %}</strong><br>
+                {% blocktrans trimmed %}
+                    Some fully paid orders are not marked as paid, probably because no quota was left at the time their payment arrived.
+                {% endblocktrans %}
+                <br>
+                <a href="{% url "control:event.orders" event=request.event.slug organizer=request.event.organizer.slug %}?status=pendingpaid"
+                        class="btn btn-warning btn-sm mt-2">{% trans "Show affected orders" %}</a>
+            </div>
+        {% endif %}
+
+        {% if actions|length > 0 %}
+            <div class="panel panel-danger">
+                <div class="panel-heading">
+                    <h3 class="panel-title">
+                        {% trans "Your attention is required to resolve the following issues" %}
+                    </h3>
+                </div>
+                <ul class="list-group">
+                    {% for action in actions %}
+                        <li class="list-group-item logentry">
+                            <p>
+                                <a href="{% url "control:event.requiredaction.discard" event=request.event.slug organizer=request.event.organizer.slug id=action.id %}"
+                                   class="btn btn-default btn-xs pull-right flip">
+                                    {% trans "Hide message" %}
+                                </a>
+                                <small><span class="fa fa-clock-o"></span> {{ action.datetime|date:"SHORT_DATETIME_FORMAT" }}</small>
+                            </p>
+                            {{ action.display|safe }}
+                        </li>
+                    {% endfor %}
+                </ul>
+                <div class="panel-footer">
+                    <a href="{% url "control:event.requiredactions" event=request.event.slug organizer=request.event.organizer.slug %}">
+                        {% trans "Show more" %}
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
     {% endif %}
 
     {% if request.event.has_subevents %}
@@ -112,206 +129,229 @@
             {% include "pretixcontrol/event/fragment_subevent_choice_simple.html" %}
         </form>
     {% endif %}
-    <br>
-    <div class="dashboard custom">
-        {% if not request.event.has_subevents or subevent %}
-            {% include "pretixcontrol/event/fragment_timeline.html" %}
-        {% endif %}
-        {% include "pretixcontrol/event/fragment_info_box.html" %}
-    </div>
-    <div class="dashboard">
-        {% for w in widgets %}
-            <div class="widget-container widget-{{ w.display_size|default:"small" }} {% if w.lazy %}widget-lazy-loading{% endif %}" data-lazy-id="{{ w.lazy }}">
-                {% if w.url %}{# backwards compatibility #}
-                    <a href="{{ w.url }}" class="widget">
-                        {% if w.lazy %}
-                            <span class="fa fa-cog fa-4x"></span>
-                        {% else %}
-                            {{ w.content|safe }}
-                        {% endif %}
-                    </a>
-                {% elif w.link %}
-                    <a href="{{ w.link }}" class="widget">
-                        {% if w.lazy %}
-                            <span class="fa fa-cog fa-4x´"></span>
-                        {% else %}
-                            {{ w.content|safe }}
-                        {% endif %}
-                    </a>
-                {% else %}
-                    <div class="widget">
-                        {% if w.lazy %}
-                            <span class="fa fa-cog fa-4x"></span>
-                        {% else %}
-                            {{ w.content|safe }}
-                        {% endif %}
-                    </div>
-                {% endif %}
-            </div>
-        {% endfor %}
-    </div>
 
+    <br>
+    
+    {# 3. At a glance KPI cards #}
     {% if can_view_orders %}
-        {% if stats_has_orders %}
-            <div class="panel panel-default">
-                <div class="panel-heading">
-                    <h3 class="panel-title">{% trans "Orders by day" %}</h3>
-                </div>
-                <div class="panel-body">
-                    <div id="obd_chart" class="chart"></div>
-                    <p class="help-block">
-                        <small>
-                            {% blocktrans trimmed %}
-                                Orders paid in multiple payments are shown with the date of their last payment.
-                            {% endblocktrans %}
-                        </small>
-                    </p>
+    <legend>{% trans "At a glance" %}</legend>
+    <div class="row kpi-cards mb-4">
+        <div class="col-md-4 col-sm-6 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <h4 class="card-title text-muted">{% trans "Ticket shop status" %}</h4>
+                    <div class="h2 mt-3">
+                        <span class="{{ kpi_shop_status.class }}"><span class="fa {{ kpi_shop_status.icon }}"></span> {{ kpi_shop_status.text }}</span>
+                    </div>
+                    <div class="mt-2">
+                        <a href="{% url 'control:event.live' kwargs=request.event.slug organizer=request.event.organizer.slug %}" class="small">{% trans "Change" %}</a>
+                    </div>
                 </div>
             </div>
-            <div class="panel panel-default">
-                <div class="panel-heading">
-                    <h3 class="panel-title">{% trans "Revenue over time" %}</h3>
+        </div>
+        <div class="col-md-4 col-sm-6 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <h4 class="card-title text-muted">{% trans "Ordered attendees" %}</h4>
+                    <div class="h2 mt-3">
+                        <a href="{% url 'control:event.orders' event=request.event.slug organizer=request.event.organizer.slug %}">{{ kpi_ordered_attendees }}</a>
+                    </div>
                 </div>
-                <div class="panel-body">
-                    <div id="rev_chart" class="chart"></div>
+            </div>
+        </div>
+        <div class="col-md-4 col-sm-6 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <h4 class="card-title text-muted">{% trans "Paid attendees" %}</h4>
+                    <div class="h2 mt-3">
+                        <a href="{% url 'control:event.orders.overview' event=request.event.slug organizer=request.event.organizer.slug %}">{{ kpi_paid_attendees }}</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 col-sm-6 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <h4 class="card-title text-muted">{% trans "Total revenue" %}</h4>
+                    <div class="h2 mt-3">
+                        <a href="{% url 'control:event.orders.overview' event=request.event.slug organizer=request.event.organizer.slug %}">{{ kpi_total_revenue|money:request.event.currency }}</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 col-sm-6 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <h4 class="card-title text-muted">{% trans "Waiting list" %}</h4>
+                    <div class="h2 mt-3">
+                        <a href="{% url 'control:event.orders.waitinglist' event=request.event.slug organizer=request.event.organizer.slug %}">{{ kpi_waitinglist_count }}</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 col-sm-6 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <h4 class="card-title text-muted">{% trans "Checked in" %}</h4>
+                    <div class="h2 mt-3">
+                        {{ kpi_checkin_total_inside }} / {{ kpi_checkin_total_positions }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {# 4. Sales and capacity table #}
+    {% if can_view_orders and sales_capacity_data %}
+    <legend>{% trans "Sales and capacity" %}</legend>
+    <div class="panel panel-default">
+        <div class="table-responsive">
+            <table class="table table-hover table-striped">
+                <thead>
+                    <tr>
+                        <th>{% trans "Product / Quota" %}</th>
+                        <th>{% trans "Ordered" %}</th>
+                        <th>{% trans "Paid" %}</th>
+                        <th>{% trans "Pending" %}</th>
+                        <th>{% trans "Remaining" %}</th>
+                        <th>{% trans "Capacity" %}</th>
+                        <th>{% trans "Status" %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for quota in sales_capacity_data %}
+                    <tr>
+                        <td><a href="{{ quota.url }}">{{ quota.name }}</a></td>
+                        <td>{{ quota.ordered }}</td>
+                        <td>{{ quota.paid }}</td>
+                        <td>{{ quota.pending }}</td>
+                        <td>{% if quota.capacity == None %}&infin;{% else %}{{ quota.remaining }}{% endif %}</td>
+                        <td>{% if quota.capacity == None %}&infin;{% else %}{{ quota.capacity }}{% endif %}</td>
+                        <td>
+                            {% if quota.status == 100 %}
+                                <span class="label label-success">{% trans "On sale" %}</span>
+                            {% elif quota.status == 20 %}
+                                <span class="label label-warning">{% trans "Limited" %}</span>
+                            {% elif quota.status == 10 %}
+                                <span class="label label-danger">{% trans "Sold out" %}</span>
+                            {% else %}
+                                <span class="label label-default">{% trans "Unavailable" %}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    {# 5. Check-in overview table #}
+    {% if checkin_overview %}
+    <legend>{% trans "Check-in overview" %}</legend>
+    <div class="panel panel-default">
+        <div class="table-responsive">
+            <table class="table table-hover table-striped">
+                <thead>
+                    <tr>
+                        <th>{% trans "Check-in list" %}</th>
+                        <th>{% trans "Checked in" %}</th>
+                        <th>{% trans "Total" %}</th>
+                        <th>{% trans "Percentage" %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for checkin in checkin_overview %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'control:event.orders.checkinlists.show' event=request.event.slug organizer=request.event.organizer.slug list=checkin.id %}">
+                                {{ checkin.name }}
+                            </a>
+                        </td>
+                        <td>{{ checkin.inside_count }}</td>
+                        <td>{{ checkin.position_count }}</td>
+                        <td>
+                            <div class="progress" style="margin-bottom: 0;">
+                                <div class="progress-bar progress-bar-success" role="progressbar" aria-valuenow="{{ checkin.percentage|floatformat:1 }}" aria-valuemin="0" aria-valuemax="100" style="width: {{ checkin.percentage|floatformat:1 }}%;">
+                                    {{ checkin.percentage|floatformat:1 }}%
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th>{% trans "Total" %}</th>
+                        <th>{{ kpi_checkin_total_inside }}</th>
+                        <th>{{ kpi_checkin_total_positions }}</th>
+                        <th>
+                            {% if kpi_checkin_total_positions > 0 %}
+                                <div class="progress" style="margin-bottom: 0;">
+                                    <div class="progress-bar progress-bar-success" role="progressbar" aria-valuenow="{% widthratio kpi_checkin_total_inside kpi_checkin_total_positions 100 %}" aria-valuemin="0" aria-valuemax="100" style="width: {% widthratio kpi_checkin_total_inside kpi_checkin_total_positions 100 %}%;">
+                                        {% widthratio kpi_checkin_total_inside kpi_checkin_total_positions 100 %}%
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    {# 6. Analytics section #}
+    {% if can_view_orders and stats_has_orders %}
+    <legend>{% trans "Analytics" %}</legend>
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h4 class="card-title text-muted">{% trans "Orders over time" %}</h4>
+                    <div id="obd_chart" class="chart chart-panel-body"></div>
+                    <p class="help-block small">{% trans "Orders paid in multiple payments are shown with the date of their last payment." %}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h4 class="card-title text-muted">{% trans "Revenue over time" %}</h4>
+                    <div id="rev_chart" class="chart chart-panel-body"></div>
                     {% if request.GET.subevent %}
-                        <div class="alert alert-info">
+                        <div class="alert alert-info small mt-2">
                             {% blocktrans trimmed context "subevent" %}
-                                If you select a single date, payment method fees will not be listed here as it might not be clear which
-                                date they belong to.
+                                If you select a single date, payment method fees will not be listed here as it might not be clear which date they belong to.
                             {% endblocktrans %}
                         </div>
                     {% endif %}
-                    <p class="help-block">
-                        <small>
-                            {% blocktrans trimmed %}
-                                Only fully paid orders are counted.
-                                Orders paid in multiple payments are shown with the date of their last payment.
-                            {% endblocktrans %}
-                        </small>
-                    </p>
+                    <p class="help-block small">{% trans "Only fully paid orders are counted. Orders paid in multiple payments are shown with the date of their last payment." %}</p>
                 </div>
             </div>
-            <div class="panel panel-default">
-                <div class="panel-heading">
-                    <h3 class="panel-title">{% trans "Orders by product" %}</h3>
-                </div>
-                <div class="panel-body">
-                    <div id="obp_chart" class="chart"></div>
+        </div>
+        <div class="col-md-12 mb-3 mt-3">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title text-muted">{% trans "Orders by product" %}</h4>
+                    <div id="obp_chart" class="chart chart-panel-body"></div>
                 </div>
             </div>
-            {% if stats_seats and stats_seats.products %}
-                <div class="panel panel-default">
-                    <div class="panel-heading">
-                        <h3 class="panel-title">{% trans "Seating Overview" %}</h3>
-                    </div>
-                    <div class="panel-body">
-                        <div class="dashboard">
-                            <div class="widget-container widget-small">
-                                <div class="numwidget">
-                                    <span class="num">{{ stats_seats.purchased_seats }}</span>
-                                    <span class="text">{% trans "Sold Seats" %}</span>
-                                </div>
-                            </div>
-                            <div class="widget-container widget-small">
-                                <div class="numwidget">
-                                    <span class="num">{{ stats_seats.blocked_seats }}</span>
-                                    <span class="text">{% trans "Blocked Seats" %}</span>
-                                </div>
-                            </div>
-                            <div class="widget-container widget-small">
-                                <div class="numwidget">
-                                    <span class="num">{{ stats_seats.free_seats }}</span>
-                                    <span class="text">{% trans "Free Seats" %}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="panel panel-default">
-                    <div class="panel-heading">
-                        <h3 class="panel-title">{% trans "Seating Sales Potentials" %}</h3>
-                    </div>
-                    <div class="panel-body">
-                        <table class="table table-condensed table-hover table-product-overview">
-                            <thead>
-                                <tr>
-                                    <th>{% trans "Product" %}</th>
-                                    <th></th>
-                                    <th colspan="2" class="text-center">{% trans "Unsold Seats" %}</th>
-                                    <th colspan="2" class="text-center">{% trans "Potential Profits" %}</th>
-                                </tr>
-                                <tr>
-                                    <th></th>
-                                    <th>{% trans "Minimum Price" %}</th>
-                                    <th>{% trans "Blocked" %}</th>
-                                    <th>{% trans "Available" %}</th>
-                                    <th>{% trans "Blocked" %}</th>
-                                    <th>{% trans "Available" %}</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr class="category">
-                                    <th>{% trans "On Sale" %}</th>
-                                    <th></th>
-                                    <th></th>
-                                    <th></th>
-                                    <th></th>
-                                    <th></th>
-                                </tr>
-                                {% for item, props in stats_seats.products.items %}
-                                    {% if item is not None %}
-                                        <tr class="item categorized">
-                                            <td>{{ item }}</td>
-                                            <td>{{ props.price|money:request.event.currency }}</td>
-                                            <td>{{ props.blocked.seats }}</td>
-                                            <td>{{ props.free.seats }}</td>
-                                            <td>{{ props.blocked.potential|money:request.event.currency }}</td>
-                                            <td>{{ props.free.potential|money:request.event.currency }}</td>
-                                        </tr>
-                                    {% endif %}
-                                {% endfor %}
-                                <tr class="category">
-                                    <th>{% trans "Not on Sale" %}</th>
-                                    <th></th>
-                                    <th></th>
-                                    <th></th>
-                                    <th></th>
-                                    <th></th>
-                                </tr>
-                                {% if None in stats_seats.products %}
-                                    {% with stats_seats.products|getitem:None as unattributed %}
-                                        <tr class="item categorized">
-                                            <td>{% trans "Seats not attributed to any specific product" %}</td>
-                                            <td></td>
-                                            <td>{{ unattributed.blocked.seats }}</td>
-                                            <td>{{ unattributed.free.seats }}</td>
-                                            <td></td>
-                                            <td></td>
-                                        </tr>
-                                    {% endwith %}
-                                {% endif %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            {% endif %}
-            <script type="application/json" id="obd-data">{{ stats_obd_data|escapejson }}</script>
-            <script type="application/json" id="rev-data">{{ stats_rev_data|escapejson }}</script>
-            <script type="application/json" id="obp-data">{{ stats_obp_data|escapejson }}</script>
-            <script type="application/text" id="currency">{{ request.event.currency }}</script>
-            <script type="application/javascript" src="{% static 'pretixplugins/statistics/statistics.js' %}" defer></script>
-        {% endif %}
+        </div>
+    </div>
+    
+    <script type="application/json" id="obd-data">{{ stats_obd_data|escapejson }}</script>
+    <script type="application/json" id="rev-data">{{ stats_rev_data|escapejson }}</script>
+    <script type="application/json" id="obp-data">{{ stats_obp_data|escapejson }}</script>
+    <script type="application/text" id="currency">{{ request.event.currency }}</script>
+    <script type="application/javascript" src="{% static 'pretixplugins/statistics/statistics.js' %}" defer></script>
     {% endif %}
 
-    <p>&nbsp;</p>
-    <div class="panel panel-default items">
-        <div class="panel-heading">
-            <h3 class="panel-title">
-                {% trans "Internal comment" %}
-            </h3>
-        </div>
-        <div class="panel-body">
+    {# 7. Internal note #}
+    <legend>{% trans "Internal note" %}</legend>
+    <div class="card mb-4">
+        <div class="card-body">
             <form class="form" method="post"
                   action="{% url "control:event.comment" event=request.event.slug organizer=request.event.organizer.slug %}">
                 {% csrf_token %}
@@ -319,81 +359,78 @@
                     {% bootstrap_field comment_form.comment layout="horizontal" show_help=True show_label=False horizontal_field_class="col-md-12" %}
                 </div>
                 {% if not comment_form.readonly %}
-                    <p class="text-right flip">
-                        <br>
-                        <button class="btn btn-default">
-                            {% trans "Update comment" %}
+                    <p class="text-right flip mt-2">
+                        <button class="btn btn-primary">
+                            {% trans "Save note" %}
                         </button>
                     </p>
                 {% endif %}
             </form>
         </div>
     </div>
+
+    {# 8. Recent activity #}
+    <legend>{% trans "Recent activity" %}</legend>
     <div class="panel panel-default">
-        <div class="panel-heading">
-            <h3 class="panel-title">
-                {% trans "Event logs" %}
-            </h3>
-        </div>
-        <ul class="list-group">
-            {% for log in logs %}
-                <li class="list-group-item logentry">
-                    <div class="row">
-                        <div class="col-lg-2 col-sm-6 col-xs-12">
+        <div class="table-responsive">
+            <table class="table table-hover table-striped">
+                <thead>
+                    <tr>
+                        <th>{% trans "Date & time" %}</th>
+                        <th>{% trans "User" %}</th>
+                        <th>{% trans "Reference" %}</th>
+                        <th>{% trans "Message" %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    <tr>
+                        <td>
                             <span class="fa fa-clock-o"></span> {{ log.datetime|date:"SHORT_DATETIME_FORMAT" }}
                             {% if log.shredded %}
-                                <span class="fa fa-eraser fa-danger fa-fw"
-                                      data-toggle="tooltip"
-                                      title="{% trans "Personal data was cleared from this log entry." %}">
-                                </span>
+                                <span class="fa fa-eraser fa-danger fa-fw" data-toggle="tooltip" title="{% trans 'Personal data was cleared from this log entry.' %}"></span>
                             {% endif %}
-                        </div>
-                        <div class="col-lg-2 col-sm-6 col-xs-12">
+                        </td>
+                        <td>
                             {% if log.user %}
                                 {% if log.user.is_staff %}
-                                    <span class="fa fa-id-card fa-danger fa-fw"
-                                          data-toggle="tooltip"
-                                          title="{% trans "This change was performed by a system administrator." %}">
-                                </span>
+                                    <span class="fa fa-id-card fa-danger fa-fw" data-toggle="tooltip" title="{% trans 'This change was performed by a system administrator.' %}"></span>
                                 {% else %}
                                     <span class="fa fa-user fa-fw"></span>
                                 {% endif %}
                                 {{ log.user.get_full_name }}
                                 {% if log.oauth_application %}
-                                    <br><span class="fa fa-plug fa-fw"></span>
-                                    {{ log.oauth_application.name }}
+                                    <br><span class="fa fa-plug fa-fw"></span> {{ log.oauth_application.name }}
                                 {% endif %}
                             {% elif log.device %}
-                                <span class="fa fa-mobile fa-fw"></span>
-                                {{ log.device.name }}
+                                <span class="fa fa-mobile fa-fw"></span> {{ log.device.name }}
                             {% elif log.api_token %}
-                                <span class="fa fa-key fa-fw"></span>
-                                {{ log.api_token.name }}
+                                <span class="fa fa-key fa-fw"></span> {{ log.api_token.name }}
                             {% endif %}
-                        </div>
-                        <div class="col-lg-2 col-sm-12 col-xs-12">
+                        </td>
+                        <td>
                             {% if log.display_object %}
                                 <span class="fa fa-flag"></span> {{ log.display_object|safe }}
                             {% endif %}
-                        </div>
-                        <div class="col-lg-6 col-sm-12 col-xs-12">
+                        </td>
+                        <td>
                             {{ log.display }}
                             {% if staff_session %}
                                 <a href="" class="btn btn-default btn-xs" data-expandlogs data-id="{{ log.pk }}">
-                                    <span class="fa-eye fa fa-fw"></span>
-                                    {% trans "Inspect" %}
+                                    <span class="fa-eye fa fa-fw"></span> {% trans "Inspect" %}
                                 </a>
                             {% endif %}
-                        </div>
-                    </div>
-                </li>
-            {% endfor %}
-        </ul>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
         <div class="panel-footer">
-            <a href="{% url "control:event.log" event=request.event.slug organizer=request.event.organizer.slug %}">
+            <a href="{% url 'control:event.log' event=request.event.slug organizer=request.event.organizer.slug %}" class="btn btn-default btn-sm">
                 {% trans "Show more logs" %}
             </a>
         </div>
     </div>
-
+    
 {% endblock %}

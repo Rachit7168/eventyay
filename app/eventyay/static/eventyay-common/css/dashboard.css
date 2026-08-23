@@ -246,3 +246,60 @@
     justify-content: space-between;
     align-items: center;
 }
+
+/* KPI cards for the ticketing dashboard */
+.kpi-cards .card {
+    max-width: 100%;
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.kpi-cards .card .h2 {
+    font-size: 2.5rem;
+    font-weight: 300;
+}
+
+.kpi-cards .card a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.kpi-cards .card a:hover {
+    color: #007bff;
+}
+
+.kpi-cards .card .small {
+    font-size: 0.8rem;
+}
+
+/* Action required section */
+.action-required-section .alert {
+    margin-bottom: 10px;
+    border-radius: 8px;
+}
+
+/* Sales and Capacity Table */
+.table-responsive {
+    border: none;
+    box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.05);
+    background-color: white;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+/* Check-in Progress Bars */
+.table .progress {
+    height: 20px;
+    border-radius: 4px;
+    background-color: #f5f5f5;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,.1);
+}
+.table .progress-bar {
+    line-height: 20px;
+    color: #fff;
+    text-align: center;
+    background-color: #5cb85c;
+}

@@ -518,7 +518,87 @@ def event_index(request, organizer, event):
     for a in ctx['actions']:
         a.display = a.display(request)
 
+
+    # Calculate At-a-glance KPIs and Sales table
+    if can_view_orders:
+        if subevent:
+            opqs = OrderPosition.objects.filter(subevent=subevent)
+            wles_qs = WaitingListEntry.objects.filter(event=request.event, subevent=subevent, voucher__isnull=True)
+            checkin_lists = request.event.checkin_lists.filter(subevent=subevent)
+        else:
+            opqs = OrderPosition.objects
+            wles_qs = WaitingListEntry.objects.filter(event=request.event, voucher__isnull=True)
+            checkin_lists = request.event.checkin_lists.all()
+            
+        ctx['kpi_ordered_attendees'] = opqs.filter(
+            order__event=request.event,
+            product__admission=True,
+            order__status__in=(Order.STATUS_PAID, Order.STATUS_PENDING),
+        ).count()
+        ctx['kpi_paid_attendees'] = opqs.filter(
+            order__event=request.event,
+            product__admission=True,
+            order__status=Order.STATUS_PAID,
+        ).count()
+        
+        if subevent:
+            ctx['kpi_total_revenue'] = opqs.filter(order__event=request.event, order__status=Order.STATUS_PAID).aggregate(sum=Sum('price'))['sum'] or Decimal('0.00')
+        else:
+            ctx['kpi_total_revenue'] = Order.objects.filter(event=request.event, status=Order.STATUS_PAID).aggregate(sum=Sum('total'))['sum'] or Decimal('0.00')
+            
+        ctx['kpi_waitinglist_count'] = wles_qs.count()
+        
+        total_inside = 0
+        total_positions = 0
+        checkin_overview = []
+        for cl in checkin_lists:
+            inside = cl.inside_count
+            total = cl.position_count
+            total_inside += inside
+            total_positions += total
+            checkin_overview.append({
+                'id': cl.pk,
+                'name': cl.name,
+                'inside_count': inside,
+                'position_count': total,
+                'percentage': (inside / total * 100) if total > 0 else 0
+            })
+        ctx['checkin_overview'] = checkin_overview
+        ctx['kpi_checkin_total_inside'] = total_inside
+        ctx['kpi_checkin_total_positions'] = total_positions
+        
+        # Ticket shop status
+        ctx['kpi_shop_status'] = request.event.ticket_component_presale_status
+        
+        # Sales and capacity table
+        sales_capacity_data = []
+        quotas = request.event.quotas.filter(subevent=subevent)
+        qa = QuotaAvailability()
+        if quotas:
+            qa.queue(*quotas)
+            qa.compute(allow_cache=True)
+        
+        for q in quotas:
+            status, left = qa.results[q] if q in qa.results else q.availability(allow_cache=True)
+            
+            ordered = opqs.filter(order__event=request.event, item__quotas=q, order__status__in=(Order.STATUS_PAID, Order.STATUS_PENDING)).count()
+            paid = opqs.filter(order__event=request.event, item__quotas=q, order__status=Order.STATUS_PAID).count()
+            pending = ordered - paid
+            
+            sales_capacity_data.append({
+                'name': q.name,
+                'ordered': ordered,
+                'paid': paid,
+                'pending': pending,
+                'remaining': left,
+                'capacity': q.size,
+                'status': status, # This is Quota.AVAILABILITY_*
+                'url': reverse('control:event.products.quotas.show', kwargs={'event': request.event.slug, 'organizer': request.event.organizer.slug, 'quota': q.id})
+            })
+        ctx['sales_capacity_data'] = sales_capacity_data
+
     ctx['timeline'] = [
+
         {
             'date': t.datetime.astimezone(ZoneInfo(request.event.timezone)).date(),
             'entry': t,
