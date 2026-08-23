@@ -144,56 +144,51 @@ def get_stages(event):
 def get_workflow_steps(event):
     """Build a 7-step labeled workflow for the redesigned talks dashboard.
 
-    Each step: {label, status, summary, phase}
+    Each step: {label, status, summary, phase, icon, url}
     phase is one of: 'done', 'active', 'pending', 'issue'
     """
-    stages = get_stages(event)
+    from django.utils.timezone import now
+    from django.utils.translation import gettext_lazy as _
+    from django.utils.translation import ngettext_lazy
+    from eventyay.base.models import SubmissionStates
 
-    # Compute counts used across steps
-    submitted_count = event.submissions.filter(
-        state=SubmissionStates.SUBMITTED,
-    ).count()
-    accepted_count = event.submissions.filter(
-        state=SubmissionStates.ACCEPTED,
-    ).count()
-    confirmed_count = event.submissions.filter(
-        state=SubmissionStates.CONFIRMED,
-    ).count()
-    rejected_count = event.submissions.filter(
-        state=SubmissionStates.REJECTED,
-    ).count()
+    submitted_count = event.submissions.filter(state=SubmissionStates.SUBMITTED).count()
+    accepted_count = event.submissions.filter(state=SubmissionStates.ACCEPTED).count()
+    confirmed_count = event.submissions.filter(state=SubmissionStates.CONFIRMED).count()
+    rejected_count = event.submissions.filter(state=SubmissionStates.REJECTED).count()
     talk_count = event.talks.count()
-
-    # Unscheduled = confirmed but not in the current schedule
     unscheduled_count = confirmed_count - talk_count if confirmed_count > talk_count else 0
-
-    # Map original 6 stages to 7 workflow steps
-    cfp_phase = stages['CFP_OPEN']['phase']
-    review_phase = stages['REVIEW']['phase']
-    schedule_phase = stages['SCHEDULE']['phase']
-    event_phase = stages['EVENT']['phase']
-
-    def _phase_for(original_phase):
-        if original_phase == 'done':
-            return 'done'
-        if original_phase == 'current':
-            return 'active'
-        return 'pending'
+    total_processed = accepted_count + confirmed_count + rejected_count
 
     # 1. Call for proposals
-    cfp_status = _('Open') if cfp_phase == 'current' else (
-        _('Closed') if cfp_phase == 'done' else _('Pending')
-    )
+    is_cfp_open = event.cfp.is_open if hasattr(event, 'cfp') else False
+    if is_cfp_open:
+        cfp_phase = 'active'
+        cfp_status = _('Open')
+    elif submitted_count + total_processed > 0:
+        cfp_phase = 'done'
+        cfp_status = _('Closed')
+    else:
+        cfp_phase = 'pending'
+        cfp_status = _('Pending')
+
     cfp_summary = ''
     if hasattr(event, 'cfp') and event.cfp.deadline:
         cfp_summary = str(event.cfp.deadline.strftime('%b %d, %Y'))
 
     # 2. Review
-    review_status = _('In progress') if review_phase == 'current' else (
-        _('Completed') if review_phase == 'done' else _('Pending')
-    )
+    if submitted_count > 0:
+        review_phase = 'active'
+        review_status = _('In progress')
+    elif total_processed > 0:
+        review_phase = 'done'
+        review_status = _('Completed')
+    else:
+        review_phase = 'pending'
+        review_status = _('Pending')
+
     review_summary = ''
-    if review_phase == 'done' and rejected_count:
+    if rejected_count:
         review_summary = ngettext_lazy(
             '%(count)d rejected',
             '%(count)d rejected',
@@ -201,12 +196,13 @@ def get_workflow_steps(event):
         ) % {'count': rejected_count}
 
     # 3. Acceptance
-    acceptance_phase = review_phase  # mirrors review
-    if accepted_count and review_phase == 'done':
+    if accepted_count > 0 or confirmed_count > 0:
         acceptance_phase = 'done'
-    acceptance_status = _('Completed') if acceptance_phase == 'done' else (
-        _('In progress') if review_phase == 'current' else _('Pending')
-    )
+        acceptance_status = _('Completed')
+    else:
+        acceptance_phase = 'pending'
+        acceptance_status = _('Pending')
+
     acceptance_summary = ''
     if accepted_count:
         acceptance_summary = ngettext_lazy(
@@ -216,30 +212,35 @@ def get_workflow_steps(event):
         ) % {'count': accepted_count}
 
     # 4. Confirmation
-    unconfirmed = accepted_count
-    confirmation_phase = 'pending'
-    if confirmed_count and not unconfirmed:
-        confirmation_phase = 'done'
-    elif confirmed_count:
+    if accepted_count > 0:
         confirmation_phase = 'active'
-    confirmation_status = _('Completed') if confirmation_phase == 'done' else (
-        _('In progress') if confirmation_phase == 'active' else _('Pending')
-    )
+        confirmation_status = _('In progress')
+    elif confirmed_count > 0:
+        confirmation_phase = 'done'
+        confirmation_status = _('Completed')
+    else:
+        confirmation_phase = 'pending'
+        confirmation_status = _('Pending')
+
     confirmation_summary = ''
-    if unconfirmed:
+    if accepted_count:
         confirmation_summary = ngettext_lazy(
             '%(count)d unconfirmed',
             '%(count)d unconfirmed',
-            unconfirmed,
-        ) % {'count': unconfirmed}
+            accepted_count,
+        ) % {'count': accepted_count}
 
     # 5. Scheduling
-    scheduling_phase = _phase_for(schedule_phase)
-    if unscheduled_count and scheduling_phase in ('active', 'done'):
+    if talk_count > 0 and unscheduled_count == 0:
+        scheduling_phase = 'done'
+        scheduling_status = _('Completed')
+    elif unscheduled_count > 0 or talk_count > 0:
         scheduling_phase = 'active'
-    scheduling_status = _('Completed') if scheduling_phase == 'done' else (
-        _('In progress') if scheduling_phase == 'active' else _('Pending')
-    )
+        scheduling_status = _('In progress')
+    else:
+        scheduling_phase = 'pending'
+        scheduling_status = _('Pending')
+
     scheduling_summary = ''
     if unscheduled_count:
         scheduling_summary = ngettext_lazy(
@@ -249,24 +250,33 @@ def get_workflow_steps(event):
         ) % {'count': unscheduled_count}
 
     # 6. Published
-    published_phase = 'done' if event.current_schedule else 'pending'
-    published_status = _('Published') if published_phase == 'done' else _('Pending')
-    published_summary = ''
     if event.current_schedule:
+        published_phase = 'done'
+        published_status = _('Published')
         published_summary = str(event.current_schedule.version)
+    else:
+        published_phase = 'pending'
+        published_status = _('Pending')
+        published_summary = ''
 
     # 7. Live
-    live_phase = _phase_for(event_phase)
-    live_status = _('Live') if live_phase == 'active' else (
-        _('Ended') if live_phase == 'done' else _('Pending')
-    )
+    current_time = now()
+    if event.date_to and current_time > event.date_to:
+        live_phase = 'done'
+        live_status = _('Ended')
+    elif event.date_from and event.date_to and event.date_from <= current_time <= event.date_to:
+        live_phase = 'active'
+        live_status = _('Live')
+    else:
+        live_phase = 'pending'
+        live_status = _('Pending')
 
     return [
         {
             'label': _('Call for proposals'),
             'status': cfp_status,
             'summary': cfp_summary,
-            'phase': _phase_for(cfp_phase),
+            'phase': cfp_phase,
             'icon': 'bullhorn',
             'url': event.cfp.urls.text if hasattr(event, 'cfp') else '',
         },
@@ -274,7 +284,7 @@ def get_workflow_steps(event):
             'label': _('Review'),
             'status': review_status,
             'summary': review_summary,
-            'phase': _phase_for(review_phase),
+            'phase': review_phase,
             'icon': 'eye',
             'url': event.orga_urls.reviews,
         },
@@ -282,7 +292,7 @@ def get_workflow_steps(event):
             'label': _('Acceptance'),
             'status': acceptance_status,
             'summary': acceptance_summary,
-            'phase': 'done' if acceptance_phase == 'done' else _phase_for(review_phase),
+            'phase': acceptance_phase,
             'icon': 'check',
             'url': event.orga_urls.submissions,
         },
