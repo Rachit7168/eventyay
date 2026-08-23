@@ -440,13 +440,39 @@ a.workflow-step {
   text-decoration: none !important;
 }
 
+/* Base hover animation */
 a.workflow-step--clickable:hover .workflow-step__dot {
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-  border-color: #3b82f6;
-  color: #3b82f6;
 }
 
-a.workflow-step--clickable:hover .workflow-step__label {
+/* Hover for DONE (Green) */
+a.workflow-step--clickable.workflow-step--done:hover .workflow-step__dot {
+  box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
+  background: #059669;
+  border-color: #059669;
+  color: #ffffff;
+}
+a.workflow-step--clickable.workflow-step--done:hover .workflow-step__label {
+  color: #059669;
+}
+
+/* Hover for ACTIVE (Blue) */
+a.workflow-step--clickable.workflow-step--active:hover .workflow-step__dot {
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: #ffffff;
+}
+a.workflow-step--clickable.workflow-step--active:hover .workflow-step__label {
   color: #2563eb;
+}
+
+/* Hover for PENDING (Grey) */
+a.workflow-step--clickable.workflow-step--pending:hover .workflow-step__dot {
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  border-color: #64748b;
+  color: #64748b;
+}
+a.workflow-step--clickable.workflow-step--pending:hover .workflow-step__label {
+  color: #475569;
 }
