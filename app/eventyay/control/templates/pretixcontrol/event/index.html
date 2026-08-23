@@ -144,7 +144,7 @@
                         <span class="{{ kpi_shop_status.class }}"><span class="fa {{ kpi_shop_status.icon }}"></span> {{ kpi_shop_status.text }}</span>
                     </div>
                     <div class="mt-2">
-                        <a href="{% url 'control:event.live' kwargs=request.event.slug organizer=request.event.organizer.slug %}" class="small">{% trans "Change" %}</a>
+                        <a href="{% url 'control:event.live' event=request.event.slug organizer=request.event.organizer.slug %}" class="small">{% trans "Change" %}</a>
                     </div>
                 </div>
             </div>
