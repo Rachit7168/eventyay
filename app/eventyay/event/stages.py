@@ -268,6 +268,7 @@ def get_workflow_steps(event):
             'summary': cfp_summary,
             'phase': _phase_for(cfp_phase),
             'icon': 'bullhorn',
+            'url': event.cfp.urls.text if hasattr(event, 'cfp') else '',
         },
         {
             'label': _('Review'),
@@ -275,6 +276,7 @@ def get_workflow_steps(event):
             'summary': review_summary,
             'phase': _phase_for(review_phase),
             'icon': 'eye',
+            'url': event.orga_urls.reviews,
         },
         {
             'label': _('Acceptance'),
@@ -282,6 +284,7 @@ def get_workflow_steps(event):
             'summary': acceptance_summary,
             'phase': 'done' if acceptance_phase == 'done' else _phase_for(review_phase),
             'icon': 'check',
+            'url': event.orga_urls.submissions,
         },
         {
             'label': _('Confirmation'),
@@ -289,6 +292,7 @@ def get_workflow_steps(event):
             'summary': confirmation_summary,
             'phase': confirmation_phase,
             'icon': 'thumbs-up',
+            'url': event.orga_urls.speakers,
         },
         {
             'label': _('Scheduling'),
@@ -296,6 +300,7 @@ def get_workflow_steps(event):
             'summary': scheduling_summary,
             'phase': scheduling_phase,
             'icon': 'calendar-o',
+            'url': event.orga_urls.schedule,
         },
         {
             'label': _('Published'),
@@ -303,6 +308,7 @@ def get_workflow_steps(event):
             'summary': published_summary,
             'phase': published_phase,
             'icon': 'globe',
+            'url': event.urls.schedule,
         },
         {
             'label': _('Live'),
@@ -310,5 +316,6 @@ def get_workflow_steps(event):
             'summary': '',
             'phase': live_phase,
             'icon': 'play',
+            'url': event.urls.schedule,
         },
     ]

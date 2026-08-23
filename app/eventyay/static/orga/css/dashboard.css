@@ -381,3 +381,18 @@ a.readiness-card__label:hover {
   }
   .workflow-step__content { padding: 0; }
 }
+
+a.workflow-step {
+  text-decoration: none !important;
+}
+
+a.workflow-step--clickable:hover .workflow-step__dot {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+
+a.workflow-step--clickable:hover .workflow-step__label {
+  color: #2563eb;
+}
