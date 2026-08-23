@@ -307,63 +307,67 @@ a.kpi-card:hover {
 /* --- 7 & 8. Readiness grids --- */
 .readiness-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 1rem;
 }
 
 .readiness-card {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  padding: 1rem;
-  background: #f8fafc;
-  border-radius: 8px;
-  border: 1px solid #f1f5f9;
-  position: relative;
-  overflow: hidden;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0.75rem 1rem;
+  background: #ffffff;
+  border-radius: 50px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+  transition: transform 0.2s, box-shadow 0.2s;
+  text-decoration: none;
 }
 
-.readiness-card::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 4px;
-  height: 100%;
-  background: #cbd5e1;
+.readiness-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
 }
-
-.readiness-card--warning::before { background: #f59e0b; }
-.readiness-card--danger::before { background: #ef4444; }
-.readiness-card--info::before { background: #3b82f6; }
 
 .readiness-card__value {
-  order: 1;
-  font-size: 1.5rem;
-  font-weight: 800;
-  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: #f1f5f9;
   color: #0f172a;
+  border-radius: 50%;
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin-right: 0.75rem;
+  flex-shrink: 0;
 }
 
 .readiness-card__label {
-  order: 2;
+  flex-grow: 1;
   font-size: 0.85rem;
   color: #475569;
-  font-weight: 700;
-  margin-top: 0.25rem;
-  margin-bottom: 0;
+  font-weight: 600;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
+/* Colors for specific statuses */
+.readiness-card--warning { border-color: #fde68a; background: #fffbeb; }
+.readiness-card--warning .readiness-card__value { background: #f59e0b; color: #ffffff; }
 
-a.readiness-card__label {
-  text-decoration: underline;
-  text-decoration-color: rgba(148, 163, 184, 0.5);
-  text-underline-offset: 2px;
-}
-a.readiness-card__label:hover {
-  color: #1d4ed8;
-  text-decoration-color: #3b82f6;
-}
+.readiness-card--danger { border-color: #fecaca; background: #fef2f2; }
+.readiness-card--danger .readiness-card__value { background: #ef4444; color: #ffffff; }
+
+.readiness-card--info { border-color: #bfdbfe; background: #eff6ff; }
+.readiness-card--info .readiness-card__value { background: #3b82f6; color: #ffffff; }
+
+a.readiness-card { text-decoration: none; }
+a.readiness-card:hover .readiness-card__label { color: #1d4ed8; }
 
 /* --- 10. Internal note card --- */
 .internal-note-card {

@@ -127,40 +127,6 @@
     {% include "orga/submission/includes/_session_statistics.html" %}
   {% endif %}
 
-  {# === 7. Session readiness === #}
-  <section class="talks-dashboard-section" id="session-readiness-section">
-    <h2>{% translate "Session readiness" %}</h2>
-    <div class="readiness-grid">
-      {% for metric in session_readiness %}
-        <div class="readiness-card{% if metric.color %} readiness-card--{{ metric.color }}{% endif %}">
-          <span class="readiness-card__value">{{ metric.value }}</span>
-          {% if metric.url %}
-            <a href="{{ metric.url }}" class="readiness-card__label">{{ metric.label }}</a>
-          {% else %}
-            <span class="readiness-card__label">{{ metric.label }}</span>
-          {% endif %}
-        </div>
-      {% endfor %}
-    </div>
-  </section>
-
-  {# === 8. Speaker readiness === #}
-  <section class="talks-dashboard-section" id="speaker-readiness-section">
-    <h2>{% translate "Speaker readiness" %}</h2>
-    <div class="readiness-grid">
-      {% for metric in speaker_readiness %}
-        <div class="readiness-card{% if metric.color %} readiness-card--{{ metric.color }}{% endif %}">
-          <span class="readiness-card__value">{{ metric.value }}</span>
-          {% if metric.url %}
-            <a href="{{ metric.url }}" class="readiness-card__label">{{ metric.label }}</a>
-          {% else %}
-            <span class="readiness-card__label">{{ metric.label }}</span>
-          {% endif %}
-        </div>
-      {% endfor %}
-    </div>
-  </section>
-
   {# === 9. Recent talk activity === #}
   {% if history and can_change_settings %}
     <section class="talks-dashboard-section" id="activity-section">
