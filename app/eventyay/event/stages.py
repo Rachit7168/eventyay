@@ -147,10 +147,6 @@ def get_workflow_steps(event):
     Each step: {label, status, summary, phase, icon, url}
     phase is one of: 'done', 'active', 'pending', 'issue'
     """
-    from django.utils.timezone import now
-    from django.utils.translation import gettext_lazy as _
-    from django.utils.translation import ngettext_lazy
-    from eventyay.base.models import SubmissionStates
 
     submitted_count = event.submissions.filter(state=SubmissionStates.SUBMITTED).count()
     accepted_count = event.submissions.filter(state=SubmissionStates.ACCEPTED).count()

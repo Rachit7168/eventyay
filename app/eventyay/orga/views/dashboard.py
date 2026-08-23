@@ -41,6 +41,7 @@ from eventyay.base.settings import is_event_series_creation_enabled, is_meetup_c
 from eventyay.common.text.phrases import phrases
 from eventyay.common.permissions import is_admin_mode_active
 from eventyay.common.views.mixins import EventPermissionRequired, PermissionRequired
+from eventyay.base.models.profile import SpeakerProfile
 from eventyay.event.stages import get_stages, get_workflow_steps
 from eventyay.orga.views.submission import SubmissionStatsMixin
 from eventyay.talk_rules.submission import get_missing_reviews
@@ -195,8 +196,6 @@ class EventDashboardView(EventPermissionRequired, SubmissionStatsMixin, Template
             })
 
         # Speakers with incomplete profiles (missing biography)
-        from eventyay.base.models.profile import SpeakerProfile
-
         incomplete_speakers = SpeakerProfile.objects.filter(
             event=event,
             user__in=event.speakers,
@@ -354,8 +353,6 @@ class EventDashboardView(EventPermissionRequired, SubmissionStatsMixin, Template
 
     def _get_speaker_readiness(self, event):
         """Build speaker readiness summary metrics."""
-        from eventyay.base.models.profile import SpeakerProfile
-
         speaker_users = event.speakers
         total = speaker_users.count()
 

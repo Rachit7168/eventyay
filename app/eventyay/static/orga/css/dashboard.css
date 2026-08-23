@@ -2,6 +2,15 @@
    Talks Dashboard — Compact Premium Layout
    ============================================================ */
 
+/* --- 1. Page Header --- */
+.header-nav {
+  margin-bottom: 2rem;
+}
+.navigation-subtitle {
+  font-size: 1rem;
+  font-weight: 500;
+}
+
 /* --- Section wrapper --- */
 .talks-dashboard-section {
   margin-bottom: 2rem;
@@ -110,6 +119,13 @@
 .workflow-step:has(+ .workflow-step--done) .workflow-step__connector {
   background: #10b981;
 }
+
+a.workflow-step:hover,
+a.workflow-step--clickable:hover {
+  text-decoration: none;
+  background: #f8fafc;
+}
+
 .workflow-step:has(+ .workflow-step--active) .workflow-step__connector {
   background: #3b82f6;
 }
@@ -332,6 +348,12 @@
 @media (max-width: 480px) { .kpi-grid { grid-template-columns: minmax(0, 1fr); } }
 
 /* --- 7 & 8. Readiness grids --- */
+.readiness-section-title {
+  font-size: 1.1rem;
+  color: #475569;
+  font-weight: 600;
+}
+
 .readiness-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
