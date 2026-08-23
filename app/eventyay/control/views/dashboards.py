@@ -566,6 +566,45 @@ def event_index(request, organizer, event):
         ctx['checkin_overview'] = checkin_overview
         ctx['kpi_checkin_total_inside'] = total_inside
         ctx['kpi_checkin_total_positions'] = total_positions
+        ctx['kpi_checkin_percentage'] = (
+            (total_inside / total_positions * 100) if total_positions > 0 else 0
+        )
+        checkin_lists_index_url = reverse(
+            'control:event.orders.checkinlists',
+            kwargs={'event': request.event.slug, 'organizer': request.event.organizer.slug},
+        )
+        checkin_kpi_options = [{
+            'id': 'all',
+            'name': str(_('All lists')),
+            'inside_count': total_inside,
+            'position_count': total_positions,
+            'percentage': float(ctx['kpi_checkin_percentage']),
+            'url': checkin_lists_index_url,
+        }]
+        for item in checkin_overview:
+            checkin_kpi_options.append({
+                'id': str(item['id']),
+                'name': item['name'],
+                'inside_count': item['inside_count'],
+                'position_count': item['position_count'],
+                'percentage': float(item['percentage']),
+                'url': reverse(
+                    'control:event.orders.checkinlists.show',
+                    kwargs={
+                        'event': request.event.slug,
+                        'organizer': request.event.organizer.slug,
+                        'list': item['id'],
+                    },
+                ),
+            })
+        ctx['checkin_kpi_options'] = checkin_kpi_options
+        if ctx['kpi_ordered_attendees'] > 0:
+            ctx['kpi_conversion_rate'] = round(
+                ctx['kpi_paid_attendees'] / ctx['kpi_ordered_attendees'] * 100,
+                1,
+            )
+        else:
+            ctx['kpi_conversion_rate'] = None
         
         # Ticket shop status
         ctx['kpi_shop_status'] = request.event.ticket_component_presale_status
@@ -584,6 +623,10 @@ def event_index(request, organizer, event):
             ordered = opqs.filter(Q(product__quotas=q) | Q(variation__quotas=q), order__event=request.event, order__status__in=(Order.STATUS_PAID, Order.STATUS_PENDING)).count()
             paid = opqs.filter(Q(product__quotas=q) | Q(variation__quotas=q), order__event=request.event, order__status=Order.STATUS_PAID).count()
             pending = ordered - paid
+            if q.size:
+                fill_percent = min(100, round(ordered / q.size * 100, 1))
+            else:
+                fill_percent = None
             
             sales_capacity_data.append({
                 'name': q.name,
@@ -592,6 +635,7 @@ def event_index(request, organizer, event):
                 'pending': pending,
                 'remaining': left,
                 'capacity': q.size,
+                'fill_percent': fill_percent,
                 'status': status, # This is Quota.AVAILABILITY_*
                 'url': reverse('control:event.products.quotas.show', kwargs={'event': request.event.slug, 'organizer': request.event.organizer.slug, 'quota': q.id})
             })
