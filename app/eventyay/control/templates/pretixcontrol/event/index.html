@@ -8,6 +8,11 @@
 {% load money %}
 {% load getitem %}
 
+{% block custom_header %}
+    {{ block.super }}
+    <link rel="stylesheet" type="text/css" href="{% static 'eventyay-common/css/dashboard.css' %}" />
+{% endblock %}
+
 {% block title %}{{ request.event.name }} - {% trans "Tickets dashboard" %}{% endblock %}
 {% block content %}
     {# 1. Page header #}
