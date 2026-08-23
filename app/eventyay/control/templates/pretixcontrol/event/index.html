@@ -431,9 +431,10 @@ legend.dashboard-legend {
                         <td>{{ checkin.inside_count }}</td>
                         <td>{{ checkin.position_count }}</td>
                         <td>
-                            <div class="progress" style="margin-bottom: 0;">
-                                <div class="progress-bar progress-bar-success" role="progressbar" aria-valuenow="{{ checkin.percentage|floatformat:1 }}" aria-valuemin="0" aria-valuemax="100" style="width: {{ checkin.percentage|floatformat:1 }}%;">
-                                    {{ checkin.percentage|floatformat:1 }}%
+                            <div style="display: flex; align-items: center;">
+                                <span style="min-width: 50px; font-weight: 600; color: #1e293b;">{{ checkin.percentage|floatformat:1 }}%</span>
+                                <div class="progress" style="width: 100px; height: 6px; margin: 0 0 0 12px; box-shadow: none; background: #e2e8f0; border-radius: 3px;">
+                                    <div class="progress-bar progress-bar-success" role="progressbar" style="width: {{ checkin.percentage|floatformat:1 }}%; background-color: #22c55e;"></div>
                                 </div>
                             </div>
                         </td>
@@ -442,19 +443,20 @@ legend.dashboard-legend {
                 </tbody>
                 {% if checkin_overview|length > 1 %}
                 <tfoot>
-                    <tr>
-                        <th>{% trans "Total" %}</th>
-                        <th>{{ kpi_checkin_total_inside }}</th>
-                        <th>{{ kpi_checkin_total_positions }}</th>
-                        <th>
+                    <tr style="background-color: #f8fafc; font-weight: 600; color: #334155;">
+                        <td>{% trans "Total" %}</td>
+                        <td>{{ kpi_checkin_total_inside }}</td>
+                        <td>{{ kpi_checkin_total_positions }}</td>
+                        <td>
                             {% if kpi_checkin_total_positions > 0 %}
-                                <div class="progress" style="margin-bottom: 0;">
-                                    <div class="progress-bar progress-bar-success" role="progressbar" aria-valuenow="{% widthratio kpi_checkin_total_inside kpi_checkin_total_positions 100 %}" aria-valuemin="0" aria-valuemax="100" style="width: {% widthratio kpi_checkin_total_inside kpi_checkin_total_positions 100 %}%;">
-                                        {% widthratio kpi_checkin_total_inside kpi_checkin_total_positions 100 %}%
+                                <div style="display: flex; align-items: center;">
+                                    <span style="min-width: 50px; font-weight: 600; color: #1e293b;">{% widthratio kpi_checkin_total_inside kpi_checkin_total_positions 100 %}%</span>
+                                    <div class="progress" style="width: 100px; height: 6px; margin: 0 0 0 12px; box-shadow: none; background: #e2e8f0; border-radius: 3px;">
+                                        <div class="progress-bar progress-bar-success" role="progressbar" style="width: {% widthratio kpi_checkin_total_inside kpi_checkin_total_positions 100 %}%; background-color: #22c55e;"></div>
                                     </div>
                                 </div>
                             {% endif %}
-                        </th>
+                        </td>
                     </tr>
                 </tfoot>
                 {% endif %}
