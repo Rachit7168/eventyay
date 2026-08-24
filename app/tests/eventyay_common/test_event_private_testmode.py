@@ -111,7 +111,7 @@ def test_central_status_talk_mode_public(organizer_client, event):
     assert response.status_code in {301, 302}
     event.refresh_from_db()
     assert event.talks_published is True
-    assert event.settings.get('private_testmode_talks', as_type=bool) is False
+    assert event.settings.get('private_testmode_talks', default=False, as_type=bool) is False
 
 
 @pytest.mark.django_db
@@ -120,10 +120,10 @@ def test_central_status_ticketing_mode_public_test_blocked_when_unpublished(orga
     """Public test mode cannot be enabled if event is not live."""
     event.live = False
     event.save()
-    from eventyay.base.models import Item, Quota
-    item = Item.objects.create(event=event, name="Ticket", default_price=10)
+    from eventyay.base.models import Product, Quota
+    product = Product.objects.create(event=event, name="Ticket", default_price=10)
     quota = Quota.objects.create(event=event, name="Quota", size=100)
-    quota.items.add(item)
+    quota.products.add(product)
     
     central_url = reverse(
         'eventyay_common:event.live',
@@ -142,10 +142,10 @@ def test_central_status_ticketing_mode_public_sales_with_delete_test_orders(orga
     event.live = True
     event.testmode = True
     event.save()
-    from eventyay.base.models import Item, Quota, Order
-    item = Item.objects.create(event=event, name="Ticket", default_price=10)
+    from eventyay.base.models import Product, Quota, Order
+    product = Product.objects.create(event=event, name="Ticket", default_price=10)
     quota = Quota.objects.create(event=event, name="Quota", size=100)
-    quota.items.add(item)
+    quota.products.add(product)
     
     Order.objects.create(event=event, status=Order.STATUS_PENDING, testmode=True, expires=timezone.now(), total=0)
     Order.objects.create(event=event, status=Order.STATUS_PENDING, testmode=False, expires=timezone.now(), total=0)
@@ -170,10 +170,10 @@ def test_central_status_ticketing_mode_public_sales_without_delete_test_orders(o
     event.live = True
     event.testmode = True
     event.save()
-    from eventyay.base.models import Item, Quota, Order
-    item = Item.objects.create(event=event, name="Ticket", default_price=10)
+    from eventyay.base.models import Product, Quota, Order
+    product = Product.objects.create(event=event, name="Ticket", default_price=10)
     quota = Quota.objects.create(event=event, name="Quota", size=100)
-    quota.items.add(item)
+    quota.products.add(product)
     
     Order.objects.create(event=event, status=Order.STATUS_PENDING, testmode=True, expires=timezone.now(), total=0)
     

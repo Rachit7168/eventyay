@@ -949,7 +949,7 @@ class EventLive(TemplateView):
         ctx['tickets_published'] = self.request.event.tickets_published
         ctx['talks_published'] = self.request.event.talks_published
         ctx['schedule_released'] = bool(self.request.event.current_schedule)
-        private_tickets = self.request.event.settings.get('private_testmode_tickets', True, as_type=bool)
+        private_tickets = self.request.event.settings.get('private_testmode_tickets', False, as_type=bool)
         private_talks = self.request.event.settings.get('private_testmode_talks', False, as_type=bool)
         if not self.request.event.private_testmode:
             private_tickets = False
@@ -1151,7 +1151,7 @@ class EventLive(TemplateView):
                     event.talks_published = True
                     event.settings.private_testmode_talks = False
                     event.settings.talks_testmode = False
-                    event.private_testmode = event.settings.get('private_testmode_tickets', True, as_type=bool)
+                    event.private_testmode = event.settings.get('private_testmode_tickets', False, as_type=bool)
                     messages.success(self.request, _('Talk pages are now published.'))
                 event.save()
                 if previous_private != event.private_testmode:
@@ -1162,6 +1162,9 @@ class EventLive(TemplateView):
                     )
 
         elif request.POST.get('toggle_video_visibility') is not None:
+            if not is_video_enabled(event):
+                messages.error(self.request, _('Please configure video settings before changing visibility.'))
+                return redirect(self.request.path)
             current_setting = event.settings.get('venueless_show_public_link', False)
             new_setting = not current_setting
             if new_setting and not event.live:
