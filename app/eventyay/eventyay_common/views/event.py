@@ -17,15 +17,16 @@ from django.core.files import File
 from django.core.files.storage import default_storage
 from django.db import transaction
 from django.db.models.deletion import ProtectedError
-from django.db.models import Case, F, Max, Min, Prefetch, Q, Sum, When, IntegerField
+from django.db.models import Case, F, Max, Min, Prefetch, Q, Sum, When, IntegerField, Count
 from django.db.models.functions import Coalesce, Greatest
+from eventyay.base.models import SubmissionStates
 from django.http import HttpRequest, HttpResponseRedirect, JsonResponse
 from django.shortcuts import redirect
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils.encoding import iri_to_uri
 from django.utils.functional import cached_property
-from django.utils.timezone import get_current_timezone_name
+from django.utils.timezone import get_current_timezone_name, now
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import ListView, TemplateView
 from django_scopes import scope
@@ -123,6 +124,20 @@ class EventList(PaginationMixin, ListView):
             total_quota=Sum(
                 Case(When(quotas__subevent__isnull=True, then='quotas__size'), default=0, output_field=IntegerField())
             ),
+            sessions_submitted=Count('submissions', filter=Q(submissions__state=SubmissionStates.SUBMITTED), distinct=True),
+            sessions_accepted=Count('submissions', filter=Q(submissions__state=SubmissionStates.ACCEPTED), distinct=True),
+            sessions_confirmed=Count('submissions', filter=Q(submissions__state=SubmissionStates.CONFIRMED), distinct=True),
+            sessions_pending=Count('submissions', filter=Q(submissions__pending_state__isnull=False), distinct=True),
+            sessions_rejected=Count('submissions', filter=Q(submissions__state=SubmissionStates.REJECTED), distinct=True),
+            sessions_withdrawn=Count('submissions', filter=Q(submissions__state=SubmissionStates.WITHDRAWN), distinct=True),
+            sessions_canceled=Count('submissions', filter=Q(submissions__state=SubmissionStates.CANCELED), distinct=True),
+            speakers_total=Count('submissions__speakers', distinct=True),
+            speakers_accepted=Count('submissions__speakers', filter=Q(submissions__state=SubmissionStates.ACCEPTED), distinct=True),
+            speakers_confirmed=Count('submissions__speakers', filter=Q(submissions__state=SubmissionStates.CONFIRMED), distinct=True),
+            speakers_pending=Count('submissions__speakers', filter=Q(submissions__pending_state__isnull=False), distinct=True),
+            speakers_rejected=Count('submissions__speakers', filter=Q(submissions__state=SubmissionStates.REJECTED), distinct=True),
+            speakers_withdrawn=Count('submissions__speakers', filter=Q(submissions__state=SubmissionStates.WITHDRAWN), distinct=True),
+            speakers_canceled=Count('submissions__speakers', filter=Q(submissions__state=SubmissionStates.CANCELED), distinct=True),
         ).annotate(
             order_from=Coalesce('min_from', 'date_from'),
             order_to=Coalesce('max_fromto', 'max_to', 'max_from', 'date_to', 'date_from'),
@@ -158,6 +173,20 @@ class EventList(PaginationMixin, ListView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx['filter_form'] = self.filter_form
+
+        # Compute global counts for header
+        base_qs = self.request.user.get_events_with_any_permission(self.request)
+        now_dt = now()
+        is_past = Q(
+            Q(has_subevents=False)
+            & Q(
+                Q(date_to__isnull=True, date_from__lt=now_dt)
+                | Q(date_to__isnull=False, date_to__lt=now_dt)
+            )
+        )
+        ctx['total_live'] = base_qs.filter(Q(live=True) & ~is_past).count()
+        ctx['total_draft'] = base_qs.filter(Q(live=False) & ~is_past).count()
+        ctx['total_past'] = base_qs.filter(is_past).count()
 
         quotas = []
         for s in ctx['events']:

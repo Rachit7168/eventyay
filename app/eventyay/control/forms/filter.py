@@ -1233,6 +1233,8 @@ class GiftCardFilterForm(FilterForm):
 
 
 class EventFilterForm(FilterForm):
+    STATUS_FILTER_FIELDS = ('status_live', 'status_draft', 'status_past')
+
     orders = {
         'slug': 'slug',
         'organizer': 'organizer__name',
@@ -1255,6 +1257,21 @@ class EventFilterForm(FilterForm):
             ('series', _('Event series')),
         ),
         required=False,
+    )
+    status_live = forms.BooleanField(
+        label=_('Live'),
+        required=False,
+        initial=True,
+    )
+    status_draft = forms.BooleanField(
+        label=_('Draft'),
+        required=False,
+        initial=True,
+    )
+    status_past = forms.BooleanField(
+        label=_('Past'),
+        required=False,
+        initial=True,
     )
     organizer = forms.ModelChoiceField(
         label=_('Organizer'),
@@ -1310,52 +1327,102 @@ class EventFilterForm(FilterForm):
                     pk__in=self.request.user.teams.values_list('organizer', flat=True)
                 )
 
+    @property
+    def status_filters_default(self):
+        """True when no explicit status filter was submitted (show all by default)."""
+        return not any(field in self.data for field in self.STATUS_FILTER_FIELDS)
+
+    def is_status_filter_active(self, field_name):
+        if field_name not in self.STATUS_FILTER_FIELDS:
+            return False
+        if self.status_filters_default:
+            return True
+        return field_name in self.data
+
+    @property
+    def status_live_active(self):
+        return self.is_status_filter_active('status_live')
+
+    @property
+    def status_draft_active(self):
+        return self.is_status_filter_active('status_draft')
+
+    @property
+    def status_past_active(self):
+        return self.is_status_filter_active('status_past')
+
     def filter_qs(self, qs):
         fdata = self.cleaned_data
 
-        if fdata.get('status') == 'my_events':
-            # Filter for events where user is a team member
-            user = self.request.user
-            qs = qs.filter(
-                Q(organizer__teams__members=user)
-                & (
-                    Q(organizer__teams__all_events=True)
-                    | Q(organizer__teams__limit_events__in=qs.values_list('pk', flat=True))
+        if fdata.get('status'):
+            if fdata.get('status') == 'my_events':
+                user = self.request.user
+                qs = qs.filter(
+                    Q(organizer__teams__members=user)
+                    & (
+                        Q(organizer__teams__all_events=True)
+                        | Q(organizer__teams__limit_events__in=qs.values_list('pk', flat=True))
+                    )
+                ).distinct()
+            elif fdata.get('status') == 'live':
+                qs = qs.filter(live=True)
+            elif fdata.get('status') == 'running':
+                qs = (
+                    qs.filter(live=True)
+                    .annotate(p_end=Coalesce(F('presale_end'), F('date_to'), F('date_from')))
+                    .filter(Q(presale_start__isnull=True) | Q(presale_start__lte=now()))
+                    .filter(Q(p_end__gte=now()))
                 )
-            ).distinct()
-        elif fdata.get('status') == 'live':
-            qs = qs.filter(live=True)
-        elif fdata.get('status') == 'running':
-            qs = (
-                qs.filter(live=True)
-                .annotate(p_end=Coalesce(F('presale_end'), F('date_to'), F('date_from')))
-                .filter(Q(presale_start__isnull=True) | Q(presale_start__lte=now()))
-                .filter(Q(p_end__gte=now()))
-            )
-        elif fdata.get('status') == 'notlive':
-            qs = qs.filter(live=False)
-        elif fdata.get('status') == 'future':
-            qs = qs.filter(presale_start__gte=now())
-        elif fdata.get('status') == 'past':
-            qs = qs.filter(presale_end__lte=now())
-        elif fdata.get('status') == 'date_future':
-            qs = qs.filter(
+            elif fdata.get('status') == 'notlive':
+                qs = qs.filter(live=False)
+            elif fdata.get('status') == 'future':
+                qs = qs.filter(presale_start__gte=now())
+            elif fdata.get('status') == 'past':
+                qs = qs.filter(presale_end__lte=now())
+            elif fdata.get('status') == 'date_future':
+                qs = qs.filter(
+                    Q(has_subevents=False)
+                    & Q(
+                        Q(Q(date_to__isnull=True) & Q(date_from__gte=now()))
+                        | Q(Q(date_to__isnull=False) & Q(date_to__gte=now()))
+                    )
+                )
+            elif fdata.get('status') == 'date_past':
+                qs = qs.filter(
+                    Q(has_subevents=False)
+                    & Q(
+                        Q(Q(date_to__isnull=True) & Q(date_from__lt=now()))
+                        | Q(Q(date_to__isnull=False) & Q(date_to__lt=now()))
+                    )
+                )
+            elif fdata.get('status') == 'series':
+                qs = qs.filter(has_subevents=True)
+        else:
+            is_past = Q(
                 Q(has_subevents=False)
                 & Q(
-                    Q(Q(date_to__isnull=True) & Q(date_from__gte=now()))
-                    | Q(Q(date_to__isnull=False) & Q(date_to__gte=now()))
+                    Q(date_to__isnull=True, date_from__lt=now())
+                    | Q(date_to__isnull=False, date_to__lt=now())
                 )
             )
-        elif fdata.get('status') == 'date_past':
-            qs = qs.filter(
-                Q(has_subevents=False)
-                & Q(
-                    Q(Q(date_to__isnull=True) & Q(date_from__lt=now()))
-                    | Q(Q(date_to__isnull=False) & Q(date_to__lt=now()))
-                )
-            )
-        elif fdata.get('status') == 'series':
-            qs = qs.filter(has_subevents=True)
+            status_q = Q()
+
+            if self.status_filters_default:
+                fdata['status_live'] = True
+                fdata['status_draft'] = True
+                fdata['status_past'] = True
+
+            if fdata.get('status_live'):
+                status_q |= Q(live=True) & ~is_past
+            if fdata.get('status_draft'):
+                status_q |= Q(live=False) & ~is_past
+            if fdata.get('status_past'):
+                status_q |= is_past
+
+            if status_q:
+                qs = qs.filter(status_q)
+            else:
+                qs = qs.none()
 
         if fdata.get('organizer'):
             qs = qs.filter(organizer=fdata.get('organizer'))

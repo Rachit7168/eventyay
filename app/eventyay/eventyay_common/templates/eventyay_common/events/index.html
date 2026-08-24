@@ -3,14 +3,61 @@
 {% load static %}
 {% load urlreplace %}
 {% load bootstrap3 %}
+{% load eventurl %}
 {% block title %}{% trans "Events management" %}{% endblock %}
 
 {% block custom_header %}
     {{ block.super }}
+    <script type="module" src="{% static 'eventyay-common/js/event-status-filters.js' %}"></script>
+    <style>
+        .events-table-clean th {
+            border-bottom: 2px solid #f0f0f0 !important;
+            font-size: 12px;
+            color: #607d8b;
+            font-weight: normal;
+            padding-bottom: 12px !important;
+        }
+        .events-table-clean td {
+            border-bottom: 1px solid #f0f0f0 !important;
+            vertical-align: middle !important;
+            padding: 16px 8px !important;
+        }
+        .lovable-badge {
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            white-space: nowrap;
+        }
+        .badge-acc { background: #e8f5e9; color: #2e7d32; }
+        .badge-conf { background: #e3f2fd; color: #1565c0; }
+        .badge-pend { background: #fff3e0; color: #ef6c00; }
+        .badge-rej { background: #ffebee; color: #c62828; }
+        .badge-def { background: #f5f5f5; color: #757575; }
+    </style>
 {% endblock %}
 
 {% block content %}
-    <h1>{% trans "Events" %}</h1>
+    <div class="events-overview-header" style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 30px; padding-top: 20px;">
+        <div>
+            <h1 style="margin-top: 0; margin-bottom: 10px;">{% trans "Events overview" %}</h1>
+            <p class="text-muted" style="margin: 0;">{% trans "Every event you manage, with session and speaker progress at a glance." %}</p>
+        </div>
+        <div class="events-overview-stats" style="display: flex; gap: 30px; text-align: center;">
+            <div>
+                <div style="font-size: 24px; font-weight: bold;">{{ total_live|default:"0" }}</div>
+                <div class="text-muted" style="font-size: 11px; letter-spacing: 1px; font-weight: bold;">{% trans "LIVE" %}</div>
+            </div>
+            <div>
+                <div style="font-size: 24px; font-weight: bold;">{{ total_draft|default:"0" }}</div>
+                <div class="text-muted" style="font-size: 11px; letter-spacing: 1px; font-weight: bold;">{% trans "DRAFT" %}</div>
+            </div>
+            <div>
+                <div style="font-size: 24px; font-weight: bold;">{{ total_past|default:"0" }}</div>
+                <div class="text-muted" style="font-size: 11px; letter-spacing: 1px; font-weight: bold;">{% trans "PAST" %}</div>
+            </div>
+        </div>
+    </div>
+
     {% if events|length == 0 and not filter_form.filtered %}
         <div class="empty-collection">
             <p>
@@ -20,7 +67,7 @@
             </p>
 
             <a href='{% url "eventyay_common:events.add" %}' class="btn btn-primary btn-lg">
-                <span class="fa fa-plus"></span>
+                <span class="fa fa-plus" aria-hidden="true"></span>
                 {% trans "Create Event" %}
             </a>
             {% if event_series_creation_enabled %}
@@ -31,7 +78,7 @@
             {% endif %}
             {% if meetup_creation_enabled %}
             <a href='{% url "eventyay_common:events.add" %}?meetup=1' class="btn btn-default btn-lg">
-                <span class="fa fa-users"></span>
+                <span class="fa fa-users" aria-hidden="true"></span>
                 {% trans "Create Meetup" %}
             </a>
             {% endif %}
@@ -39,9 +86,12 @@
     {% else %}
         <div class="advanced-filter-search" data-advanced-filter-search>
             <form class="filter-form advanced-filter-search-form" action="" method="get">
+                {% if request.GET.ordering %}
+                    <input type="hidden" name="ordering" value="{{ request.GET.ordering }}">
+                {% endif %}
                 <div class="advanced-filter-search-bar">
                     <div class="input-group advanced-filter-search-query-group">
-                        <input id="id_query" type="text" name="query" class="form-control" placeholder="{% trans 'Search events…' %}" aria-label="{% trans 'Search events…' %}" value="{{ filter_form.query.value|default_if_none:'' }}">
+                        <input id="id_query" type="text" name="query" class="form-control" placeholder="{% trans 'Search events, organisers or URLs' %}" aria-label="{% trans 'Search events…' %}" value="{{ filter_form.query.value|default_if_none:'' }}">
                         <span class="input-group-btn">
                             <button class="btn btn-primary" type="submit">
                                 <span class="fa fa-search" aria-hidden="true"></span>
@@ -50,7 +100,32 @@
                         </span>
                     </div>
                     <div class="advanced-filter-field advanced-filter-field--inline">
-                        {% bootstrap_field filter_form.status layout='inline' %}
+                        <div class="dropdown">
+                            <button class="btn btn-default dropdown-toggle" type="button" id="statusDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+                                {% trans "Status" %}
+                                <span class="caret"></span>
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="statusDropdown" style="min-width: 150px;">
+                                <li style="padding: 4px 10px;">
+                                    <label style="font-weight: normal; cursor: pointer; display: flex; align-items: center; gap: 8px; margin: 0;">
+                                        <input type="checkbox" name="status_live" autocomplete="off"{% if filter_form.status_live_active %} checked{% endif %}>
+                                        {% trans "Live" %}
+                                    </label>
+                                </li>
+                                <li style="padding: 4px 10px;">
+                                    <label style="font-weight: normal; cursor: pointer; display: flex; align-items: center; gap: 8px; margin: 0;">
+                                        <input type="checkbox" name="status_draft" autocomplete="off"{% if filter_form.status_draft_active %} checked{% endif %}>
+                                        {% trans "Draft" %}
+                                    </label>
+                                </li>
+                                <li style="padding: 4px 10px;">
+                                    <label style="font-weight: normal; cursor: pointer; display: flex; align-items: center; gap: 8px; margin: 0;">
+                                        <input type="checkbox" name="status_past" autocomplete="off"{% if filter_form.status_past_active %} checked{% endif %}>
+                                        {% trans "Past" %}
+                                    </label>
+                                </li>
+                            </ul>
+                        </div>
                     </div>
                     <div class="advanced-filter-field advanced-filter-field--inline">
                         {% bootstrap_field filter_form.organizer layout='inline' %}
@@ -68,132 +143,125 @@
                 </div>
             </form>
         </div>
-        <div data-ajax-results-region>
-            <p>
-                <a href='{% url "eventyay_common:events.add" %}' class="btn btn-default">
-                    <span class="fa fa-plus"></span>
-                    {% trans "Create Event" %}
-                </a>
-                {% if event_series_creation_enabled %}
-                <a href='{% url "eventyay_common:events.add" %}?series=1' class="btn btn-default">
-                    {% include "eventyay_common/includes/icon_calendar_series.html" %}
-                    {% trans "Create Event Series" %}
-                </a>
-                {% endif %}
-                {% if meetup_creation_enabled %}
-                <a href='{% url "eventyay_common:events.add" %}?meetup=1' class="btn btn-default">
-                    <span class="fa fa-users"></span>
-                    {% trans "Create Meetup" %}
-                </a>
-                {% endif %}
-            </p>
-            <table class="table table-condensed table-hover events-table">
-                <thead>
-                <tr>
-                <th>
-                    {% trans "Event name" %}
-                </th>
-                <th>
-                    {% trans "Short form" %}
-                </th>
-                <th>
-                    {% trans "Organizer" %}
-                    <a href="?{% url_replace request 'ordering' '-organizer' %}"><i class="fa fa-caret-down"></i></a>
-                    <a href="?{% url_replace request 'ordering' 'organizer' %}"><i class="fa fa-caret-up"></i></a>
-                </th>
-                <th>
-                    {% trans "Start date" %}
-                    <a href="?{% url_replace request 'ordering' '-date_from' %}"><i class="fa fa-caret-down"></i></a>
-                    <a href="?{% url_replace request 'ordering' 'date_from' %}"><i class="fa fa-caret-up"></i></a>
-                    /
-                    {% trans "End date" %}
-                    <a href="?{% url_replace request 'ordering' '-date_to' %}"><i class="fa fa-caret-down"></i></a>
-                    <a href="?{% url_replace request 'ordering' 'date_to' %}"><i class="fa fa-caret-up"></i></a>
-                </th>
-                <th>
-                    {% trans "Paid tickets per quota" %}
-                    <a href="?{% url_replace request 'ordering' '-total_quota' %}"><i class="fa fa-caret-down"></i></a>
-                    <a href="?{% url_replace request 'ordering' 'total_quota' %}"><i class="fa fa-caret-up"></i></a>
-                </th>
-                <th>
-                    {% trans "Shop" %}
-                    <a href="?{% url_replace request 'ordering' '-live' %}"><i class="fa fa-caret-down"></i></a>
-                    <a href="?{% url_replace request 'ordering' 'live' %}"><i class="fa fa-caret-up"></i></a>
-                </th>
-                <th class="text-right flip">
-                    {% trans "Actions" %}
-                </th>
-                </tr>
-                </thead>
-                <tbody>
-                {% for e in events %}
+
+        <div data-ajax-results-region style="background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 10px 20px;">
+            <div class="table-responsive">
+                <table class="table table-hover events-table events-table-clean" style="margin-bottom: 0;">
+                    <thead>
                     <tr>
-                    <td class="event-name-col" data-label="{% trans 'Event name' %}">
-                        <strong><a href='{% url "eventyay_common:event.index" organizer=e.organizer.slug event=e.slug %}'>{{ e.name }}</a></strong>
-                    </td>
-                    <td data-label="{% trans 'Short form' %}">{{ e.slug }}</td>
-                    <td data-label="{% trans 'Organizer' %}">{{ e.organizer }}</td>
-                    <td class="event-date-col" data-label="{% trans 'Date' %}">
-                        {% if e.has_subevents %}
-                            {{ e.min_from|default_if_none:""|date:"SHORT_DATETIME_FORMAT" }}
-                        {% else %}
-                            {{ e.get_short_date_from_display }}
-                        {% endif %}
-                        {% if e.has_subevents %}
-                            <span class="label label-default">{% trans "Series" %}</span>
-                        {% endif %}
-                        {% if e.settings.show_date_to and e.date_to %}
-                            –<br>
-                            {% if e.has_subevents %}
-                                {{ e.max_fromto|default_if_none:e.max_from|default_if_none:e.max_to|default_if_none:""|date:"SHORT_DATETIME_FORMAT" }}
-                            {% else %}
-                                {{ e.get_short_date_to_display }}
-                            {% endif %}
-                        {% endif %}
-                        {% if e.settings.timezone != request.timezone %}
-                            <span class="fa fa-globe text-muted" data-toggle="tooltip" title="{{ e.timezone }}"></span>
-                        {% endif %}
-                    </td>
-                    <td data-label="{% trans 'Paid tickets' %}">
-                        {% for q in e.first_quotas|slice:":3" %}
-                            {% include "pretixcontrol/fragment_quota_box_paid.html" with quota=q %}
-                        {% endfor %}
-                        {% if e.first_quotas|length > 3 %}
-                            <a href="{% url 'control:event.products.quotas' organizer=e.organizer.slug event=e.slug %}"
-                               class="quotabox-more" data-toggle="tooltip" title="{% trans 'More quotas' %}"
-                               aria-label="{% trans 'More quotas' %}" data-placement="top">
-                                &middot;&middot;&middot;
-                            </a>
-                        {% endif %}
-                    </td>
-                    <td data-label="{% trans 'Shop' %}" class="events-table__cell--no-border">
-                        {% if not e.live %}
-                            <span class="label label-danger">{% trans "Shop disabled" %}</span>
-                        {% elif e.presale_has_ended %}
-                            <span class="label label-warning">{% trans "Presale over" %}</span>
-                        {% elif not e.presale_is_running %}
-                            <span class="label label-warning">{% trans "Presale not started" %}</span>
-                        {% else %}
-                            <span class="label label-success">{% trans "On sale" %}</span>
-                        {% endif %}
-                    </td>
-                    <td class="text-right flip">
-                        <a href='{% url "eventyay_common:event.create_access_to_video" organizer=e.organizer.slug event=e.slug %}'
-                           class="btn btn-sm btn-default" title="{% trans "Enable video access" %}"
-                           data-toggle="tooltip">
-                            <span class="fa fa-video-camera"></span>
-                        </a>
-                        <a href='{% url "eventyay_common:event.update" organizer=e.organizer.slug event=e.slug %}'
-                           class="btn btn-sm btn-default" title="{% trans "Edit" %}"
-                           data-toggle="tooltip">
-                            <span class="fa fa-edit"></span>
-                        </a>
-                    </td>
+                        <th style="width: 60px;"></th>
+                        <th>{% trans "Event" %}</th>
+                        <th>{% trans "Start date" %}</th>
+                        <th>{% trans "End date" %}</th>
+                        <th>{% trans "Sessions" %}</th>
+                        <th>{% trans "Speakers" %}</th>
+                        <th>{% trans "Public URL" %}</th>
                     </tr>
-                {% endfor %}
-                </tbody>
-            </table>
-            {% include "pretixcontrol/pagination.html" %}
+                    </thead>
+                    <tbody>
+                    {% for e in events %}
+                        <tr>
+                            <td data-label="{% trans 'Logo' %}">
+                                {% if e.visible_logo_url %}
+                                    <img src="{{ e.visible_logo_url }}" alt="{% trans 'Event logo' %}" class="events-table__logo" style="border-radius: 8px; max-height: 40px; max-width: 40px;">
+                                {% elif e.logo %}
+                                    <img src="{{ e.logo.url }}" alt="{% trans 'Event logo' %}" class="events-table__logo" style="border-radius: 8px; max-height: 40px; max-width: 40px;">
+                                {% else %}
+                                    <div class="events-table__logo-empty" style="width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                                        <a href='{% url "eventyay_common:event.update" organizer=e.organizer.slug event=e.slug %}#tab-0-3-open' class="text-muted" title="{% trans 'Upload logo' %}" style="opacity: 0.5; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.5'">
+                                            <span class="fa fa-pencil" aria-hidden="true"></span>
+                                        </a>
+                                    </div>
+                                {% endif %}
+                            </td>
+                            <td data-label="{% trans 'Event' %}">
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 2px;">
+                                    <span style="font-weight: bold; font-size: 14px;">
+                                        <a href='{% url "eventyay_common:event.index" organizer=e.organizer.slug event=e.slug %}' style="color: inherit; text-decoration: none;">{{ e.name }}</a>
+                                    </span>
+                                    {% if not e.live %}
+                                        <span class="label" style="background-color: #ffb74d; color: #fff; padding: 2px 6px; border-radius: 12px; font-size: 9px; font-weight: bold; letter-spacing: 1px;">{% trans "DRAFT" %}</span>
+                                    {% elif e.presale_has_ended %}
+                                        <span class="label" style="background-color: #90a4ae; color: #fff; padding: 2px 6px; border-radius: 12px; font-size: 9px; font-weight: bold; letter-spacing: 1px;">{% trans "PAST" %}</span>
+                                    {% elif not e.presale_is_running %}
+                                        <span class="label" style="background-color: #ffb74d; color: #fff; padding: 2px 6px; border-radius: 12px; font-size: 9px; font-weight: bold; letter-spacing: 1px;">{% trans "UPCOMING" %}</span>
+                                    {% else %}
+                                        <span class="label" style="background-color: #4caf50; color: #fff; padding: 2px 6px; border-radius: 12px; font-size: 9px; font-weight: bold; letter-spacing: 1px;">{% trans "LIVE" %}</span>
+                                    {% endif %}
+                                </div>
+                                <div class="text-muted" style="font-size: 12px;">{{ e.organizer }}</div>
+                            </td>
+                            <td class="event-date-col" data-label="{% trans 'Start date' %}" style="font-size: 13px;">
+                                {% if e.has_subevents %}
+                                    {{ e.min_from|default_if_none:""|date:"j M Y" }}
+                                    <br><span class="label label-default" style="font-size: 9px;">{% trans "Series" %}</span>
+                                {% else %}
+                                    {{ e.date_from|date:"j M Y" }}
+                                {% endif %}
+                            </td>
+                            <td class="event-date-col" data-label="{% trans 'End date' %}" style="font-size: 13px;">
+                                {% if e.settings.show_date_to and e.date_to %}
+                                    {% if e.has_subevents %}
+                                        {{ e.max_fromto|default_if_none:e.max_from|default_if_none:e.max_to|default_if_none:""|date:"j M Y" }}
+                                    {% else %}
+                                        {{ e.date_to|date:"j M Y" }}
+                                    {% endif %}
+                                {% endif %}
+                            </td>
+                            <td data-label="{% trans 'Sessions' %}">
+                                <div style="font-size: 16px; font-weight: bold; margin-bottom: 5px;">
+                                    {{ e.sessions_submitted|default:0 }} <span class="text-muted" style="font-size: 9px; font-weight: normal; letter-spacing: 1px;">{% trans "SUBMITTED" %}</span>
+                                </div>
+                                <div style="position: relative; display: flex; gap: 4px; flex-wrap: wrap; align-items: center;" onmouseenter="this.querySelector('.hidden-pills').style.display='flex';" onmouseleave="this.querySelector('.hidden-pills').style.display='none';">
+                                    <span class="lovable-badge badge-acc">{% trans "Accepted" %} {{ e.sessions_accepted|default:0 }}</span>
+                                    <span class="lovable-badge badge-conf">{% trans "Confirmed" %} {{ e.sessions_confirmed|default:0 }}</span>
+                                    <span class="lovable-badge badge-def toggle-pills" style="cursor: default; padding: 2px 6px;">...</span>
+                                    
+                                    <div class="hidden-pills" style="display: none; gap: 4px; flex-wrap: wrap; align-items: center; position: absolute; left: 0; top: 100%; margin-top: 5px; background: #fff; padding: 8px; border: 1px solid #e0e0e0; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 100; width: max-content; max-width: 250px;">
+                                        <span class="lovable-badge badge-pend">{% trans "Pending" %} {{ e.sessions_pending|default:0 }}</span>
+                                        <span class="lovable-badge badge-rej">{% trans "Rejected" %} {{ e.sessions_rejected|default:0 }}</span>
+                                        <span class="lovable-badge badge-def">{% trans "Withdrawn" %} {{ e.sessions_withdrawn|default:0 }}</span>
+                                        <span class="lovable-badge badge-def">{% trans "Canceled" %} {{ e.sessions_canceled|default:0 }}</span>
+                                    </div>
+                                </div>
+                            </td>
+                            <td data-label="{% trans 'Speakers' %}">
+                                <div style="font-size: 16px; font-weight: bold; margin-bottom: 5px;">
+                                    {{ e.speakers_total|default:0 }} <span class="text-muted" style="font-size: 9px; font-weight: normal; letter-spacing: 1px;">{% trans "TOTAL" %}</span>
+                                </div>
+                                <div style="position: relative; display: flex; gap: 4px; flex-wrap: wrap; align-items: center;" onmouseenter="this.querySelector('.hidden-pills').style.display='flex';" onmouseleave="this.querySelector('.hidden-pills').style.display='none';">
+                                    <span class="lovable-badge badge-acc">{% trans "Accepted" %} {{ e.speakers_accepted|default:0 }}</span>
+                                    <span class="lovable-badge badge-conf">{% trans "Confirmed" %} {{ e.speakers_confirmed|default:0 }}</span>
+                                    <span class="lovable-badge badge-def toggle-pills" style="cursor: default; padding: 2px 6px;">...</span>
+                                    
+                                    <div class="hidden-pills" style="display: none; gap: 4px; flex-wrap: wrap; align-items: center; position: absolute; left: 0; top: 100%; margin-top: 5px; background: #fff; padding: 8px; border: 1px solid #e0e0e0; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 100; width: max-content; max-width: 250px;">
+                                        <span class="lovable-badge badge-pend">{% trans "Pending" %} {{ e.speakers_pending|default:0 }}</span>
+                                        <span class="lovable-badge badge-rej">{% trans "Rejected" %} {{ e.speakers_rejected|default:0 }}</span>
+                                        <span class="lovable-badge badge-def">{% trans "Withdrawn" %} {{ e.speakers_withdrawn|default:0 }}</span>
+                                        <span class="lovable-badge badge-def">{% trans "Canceled" %} {{ e.speakers_canceled|default:0 }}</span>
+                                    </div>
+                                </div>
+                            </td>
+                            <td data-label="{% trans 'Public URL' %}">
+                                <a href="{% eventurl e 'presale:event.index' %}" target="_blank" style="color: #009688; font-weight: bold; font-size: 12px; text-decoration: none;">
+                                    {{ request.get_host }}{% eventurl e 'presale:event.index' %} <i class="fa fa-external-link" style="margin-left: 2px;"></i>
+                                </a>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted" style="padding: 30px !important;">
+                                {% trans "No events match your filters." %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <div style="margin-top: 15px;">
+                {% include "pretixcontrol/pagination.html" %}
+            </div>
         </div>
     {% endif %}
 {% endblock %}
