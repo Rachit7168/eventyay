@@ -48,6 +48,11 @@ urlpatterns = [
     url(r'^global/update/$', global_settings.UpdateCheckView.as_view(), name='admin.global.update'),
     url(r'^global/message/$', global_settings.MessageView.as_view(), name='admin.global.message'),
     path('startpage/', global_settings.StartPageSettingsView.as_view(), name='admin.startpage'),
+    path(
+        'editor/richtext-preview/',
+        global_settings.AdminRichTextPreviewView.as_view(),
+        name='admin.editor.richtext.preview',
+    ),
     url(r'^vouchers/$', admin.VoucherList.as_view(), name='admin.vouchers'),
     url(r'^vouchers/add$', admin.VoucherCreate.as_view(), name='admin.vouchers.add'),
     url(r'^vouchers/(?P<voucher>\d+)/$', admin.VoucherUpdate.as_view(), name='admin.voucher'),

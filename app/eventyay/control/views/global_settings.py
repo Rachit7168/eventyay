@@ -30,6 +30,7 @@ from eventyay.control.forms.global_settings import (
     UpdateSettingsForm,
     StartPageSettingsForm,
 )
+from eventyay.common.sanitizers import sanitize_rich_text
 from eventyay.control.permissions import (
     AdministratorPermissionRequiredMixin,
     StaffMemberRequiredMixin,
@@ -63,6 +64,11 @@ class GlobalSettingsView(AdministratorPermissionRequiredMixin, FormView):
 class StartPageSettingsView(AdministratorPermissionRequiredMixin, FormView):
     template_name = 'pretixcontrol/admin/startpage.html'
     form_class = StartPageSettingsForm
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['locales'] = [(code, name) for code, name in settings.LANGUAGES]
+        return ctx
 
     def form_valid(self, form):
         form.save()
@@ -433,3 +439,21 @@ class RefundDetailView(AdministratorPermissionRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         p = get_object_or_404(OrderRefund, pk=request.GET.get('pk'))
         return JsonResponse({'data': p.info_data})
+
+
+class AdminRichTextPreviewView(AdministratorPermissionRequiredMixin, View):
+    """AJAX endpoint for sanitizing rich-text editor HTML for admin Edit/Preview tabs."""
+
+    def post(self, request, *args, **kwargs):
+        previews = {}
+        for key, value in request.POST.items():
+            if key == 'content':
+                return JsonResponse({'html': sanitize_rich_text(value)})
+            if key.startswith('content_'):
+                locale = key[len('content_'):]
+                previews[locale] = sanitize_rich_text(value)
+
+        if previews:
+            return JsonResponse({'previews': previews})
+
+        return JsonResponse({'error': 'No content provided.'}, status=400)

@@ -12,41 +12,68 @@ function replaceHtml(target, html) {
   target.replaceChildren(...parsed.body.childNodes)
 }
 
+async function loadRichTextPreview(wrapper) {
+  const previewUrl = wrapper.getAttribute('data-richtext-preview-url')
+  const localizedBlocks = wrapper.querySelectorAll('.richtext-preview[lang]')
+  const singleBlock = wrapper.querySelector('.richtext-preview:not([lang])')
+  if (!previewUrl || (!localizedBlocks.length && !singleBlock)) return
+
+  const form = wrapper.closest('form')
+  const textareas = wrapper.querySelectorAll('textarea[data-tiptap-profile], textarea')
+  const params = new URLSearchParams()
+
+  if (localizedBlocks.length) {
+    textareas.forEach((textarea) => {
+      const lang = textarea.getAttribute('lang')
+      if (lang) params.append(`content_${lang}`, textarea.value)
+    })
+  } else if (textareas[0]) {
+    params.append('content', textareas[0].value)
+  }
+
+  try {
+    const response = await fetch(previewUrl, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': getCsrfToken(form),
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      credentials: 'same-origin',
+      body: params,
+    })
+    if (!response.ok) throw new Error(`Preview request failed: ${response.status}`)
+    const data = await response.json()
+
+    if (data.previews) {
+      localizedBlocks.forEach((block) => {
+        replaceHtml(block, data.previews[block.getAttribute('lang')] || '')
+      })
+      return
+    }
+
+    if (singleBlock) {
+      replaceHtml(singleBlock, data.html || '')
+    }
+  } catch (err) {
+    console.error('Rich text preview failed:', err)
+    if (localizedBlocks.length) {
+      localizedBlocks.forEach((block) => showPreviewError(block))
+      return
+    }
+    if (singleBlock) showPreviewError(singleBlock)
+  }
+}
+
 function initRichTextPreviewTabs() {
   document.querySelectorAll('[data-richtext-preview-tab]').forEach((tab) => {
+    if (tab.dataset.richtextPreviewBound === 'true') return
+    tab.dataset.richtextPreviewBound = 'true'
+
     const wrapper = tab.closest('[data-richtext-preview-wrapper]')
     if (!wrapper) return
 
-    const previewUrl = wrapper.getAttribute('data-richtext-preview-url')
-    const previewEl = wrapper.querySelector('.richtext-preview')
-    if (!previewUrl || !previewEl) return
-
-    const form = wrapper.closest('form')
-
-    tab.addEventListener('click', async () => {
-      const textarea = wrapper.querySelector('textarea[data-tiptap-profile], textarea')
-      if (!textarea) return
-
-      const params = new URLSearchParams()
-      params.append('content', textarea.value)
-
-      try {
-        const response = await fetch(previewUrl, {
-          method: 'POST',
-          headers: {
-            'X-CSRFToken': getCsrfToken(form),
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          credentials: 'same-origin',
-          body: params,
-        })
-        if (!response.ok) throw new Error(`Preview request failed: ${response.status}`)
-        const data = await response.json()
-        replaceHtml(previewEl, data.html)
-      } catch (err) {
-        console.error('Rich text preview failed:', err)
-        showPreviewError(previewEl)
-      }
+    tab.addEventListener('click', () => {
+      loadRichTextPreview(wrapper)
     })
   })
 }
@@ -104,3 +131,7 @@ if (document.readyState === 'loading') {
 } else {
   init()
 }
+
+window.addEventListener('eventyay:tiptap-ready', () => {
+  initRichTextPreviewTabs()
+})
