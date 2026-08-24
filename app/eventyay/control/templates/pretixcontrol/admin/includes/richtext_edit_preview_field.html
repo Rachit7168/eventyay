@@ -29,13 +29,7 @@
                 {% bootstrap_field field show_label=False form_group_class="" %}
             </div>
             <div id="{{ field.auto_id }}_preview" class="tab-pane fade">
-                {% if locales %}
-                    {% for locale_code, locale_name in locales %}
-                        <div lang="{{ locale_code }}" class="richtext-preview well{% if not forloop.first %} richtext-preview--stacked{% endif %}"></div>
-                    {% endfor %}
-                {% else %}
-                    <div class="richtext-preview well"></div>
-                {% endif %}
+                <div class="richtext-preview-list" data-richtext-preview-list></div>
             </div>
         </div>
     </div>

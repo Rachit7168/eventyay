@@ -12,15 +12,52 @@ function replaceHtml(target, html) {
   target.replaceChildren(...parsed.body.childNodes)
 }
 
+function isLocaleFieldVisible(fieldEl) {
+  const container = fieldEl?.closest?.('.tiptap-wrapper') || fieldEl
+  if (!container) return false
+  if (container.hidden) return false
+  return container.style.display !== 'none'
+}
+
+function getPreviewTextareas(wrapper) {
+  return Array.from(wrapper.querySelectorAll('textarea[data-tiptap-profile], textarea[lang], textarea')).filter(
+    (textarea) => isLocaleFieldVisible(textarea),
+  )
+}
+
+function buildPreviewBlocks(wrapper, textareas) {
+  const previewList = wrapper.querySelector('[data-richtext-preview-list]')
+  if (!previewList) {
+    const singleBlock = wrapper.querySelector('.richtext-preview')
+    return singleBlock ? [singleBlock] : []
+  }
+
+  previewList.replaceChildren()
+  const blocks = []
+
+  textareas.forEach((textarea) => {
+    const block = document.createElement('div')
+    block.className = 'richtext-preview well'
+    const lang = textarea.getAttribute('lang')
+    if (lang) block.setAttribute('lang', lang)
+    previewList.appendChild(block)
+    blocks.push(block)
+  })
+
+  return blocks
+}
+
 async function loadRichTextPreview(wrapper) {
   const previewUrl = wrapper.getAttribute('data-richtext-preview-url')
-  const localizedBlocks = wrapper.querySelectorAll('.richtext-preview[lang]')
-  const singleBlock = wrapper.querySelector('.richtext-preview:not([lang])')
-  if (!previewUrl || (!localizedBlocks.length && !singleBlock)) return
+  if (!previewUrl) return
 
   const form = wrapper.closest('form')
-  const textareas = wrapper.querySelectorAll('textarea[data-tiptap-profile], textarea')
+  const textareas = getPreviewTextareas(wrapper)
+  const previewBlocks = buildPreviewBlocks(wrapper, textareas)
+  if (!previewBlocks.length) return
+
   const params = new URLSearchParams()
+  const localizedBlocks = previewBlocks.filter((block) => block.getAttribute('lang'))
 
   if (localizedBlocks.length) {
     textareas.forEach((textarea) => {
@@ -51,16 +88,12 @@ async function loadRichTextPreview(wrapper) {
       return
     }
 
-    if (singleBlock) {
-      replaceHtml(singleBlock, data.html || '')
+    if (previewBlocks[0]) {
+      replaceHtml(previewBlocks[0], data.html || '')
     }
   } catch (err) {
     console.error('Rich text preview failed:', err)
-    if (localizedBlocks.length) {
-      localizedBlocks.forEach((block) => showPreviewError(block))
-      return
-    }
-    if (singleBlock) showPreviewError(singleBlock)
+    previewBlocks.forEach((block) => showPreviewError(block))
   }
 }
 

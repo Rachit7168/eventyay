@@ -65,11 +65,6 @@ class StartPageSettingsView(AdministratorPermissionRequiredMixin, FormView):
     template_name = 'pretixcontrol/admin/startpage.html'
     form_class = StartPageSettingsForm
 
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        ctx['locales'] = [(code, name) for code, name in settings.LANGUAGES]
-        return ctx
-
     def form_valid(self, form):
         form.save()
         messages.success(self.request, _('Your changes have been saved.'))

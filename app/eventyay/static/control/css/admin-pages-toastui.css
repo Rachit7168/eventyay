@@ -170,7 +170,7 @@
   min-height: 140px;
 }
 
-.richtext-preview--stacked {
+.richtext-preview-list .richtext-preview + .richtext-preview {
   margin-top: 10px;
 }
 
