@@ -3,6 +3,7 @@ from decimal import Decimal
 from zoneinfo import ZoneInfo
 
 import pytest
+from django.test import override_settings
 from django.urls import reverse
 from django_scopes import scopes_disabled
 
@@ -18,6 +19,7 @@ def clone_url(event):
 
 
 @pytest.mark.django_db
+@override_settings(SITE_URL='http://testserver')
 def test_clone_view_get(organizer_client, event, clone_url):
     response = organizer_client.get(clone_url)
     assert response.status_code == 200
@@ -28,7 +30,7 @@ def test_clone_view_get(organizer_client, event, clone_url):
 def test_clone_view_post_success(organizer_client, event, clone_url, user):
     with scopes_disabled():
         tr = event.tax_rules.create(rate=19, name='VAT')
-        event.items.create(
+        event.products.create(
             name='Early-bird ticket',
             category=None,
             default_price=23,
@@ -80,15 +82,15 @@ def test_clone_view_post_success(organizer_client, event, clone_url, user):
     
     with scopes_disabled():
         assert cloned_event.tax_rules.filter(rate=Decimal('19.00')).count() == 1
-        assert cloned_event.items.count() == 1
-        assert cloned_event.items.first().name == 'Early-bird ticket'
+        assert cloned_event.products.count() == 1
+        assert cloned_event.products.first().name == 'Early-bird ticket'
 
 
 @pytest.mark.django_db
 def test_clone_view_post_selective_clone(organizer_client, event, clone_url):
     with scopes_disabled():
         tr = event.tax_rules.create(rate=19, name='VAT')
-        event.items.create(
+        event.products.create(
             name='Early-bird ticket',
             category=None,
             default_price=23,
@@ -126,6 +128,6 @@ def test_clone_view_post_selective_clone(organizer_client, event, clone_url):
     assert cloned_event.name == 'Cloned Event 2'
     
     with scopes_disabled():
-        # Items and tax rules should not be cloned since clone_ticketing_data is not set
+        # Products and tax rules should not be cloned since clone_ticketing_data is not set
         assert cloned_event.tax_rules.count() == 0
-        assert cloned_event.items.count() == 0
+        assert cloned_event.products.count() == 0

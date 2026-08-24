@@ -1821,14 +1821,12 @@ class Event(
         self.domain = None
         self.save()
 
-    def clone_from(self, old, new_secrets, clone_options=None):
+    def clone_from(self, old, new_secrets):
         from eventyay.base.models import Channel
         from eventyay.base.models.storage_model import StoredFile
 
         if self.pk == old.pk:
             raise ValueError('Illegal attempt to clone into same event')
-
-        clone_options = clone_options or {}
         def clone_stored_files(*, inst=None, attrs=None, struct=None, url=None):
             if inst and attrs:
                 for a in attrs:

@@ -27,7 +27,7 @@ from django.utils.encoding import iri_to_uri
 from django.utils.functional import cached_property
 from django.utils.timezone import get_current_timezone_name
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import ListView, TemplateView
+from django.views.generic import FormView, ListView, TemplateView
 from django_scopes import scope
 from zoneinfo import ZoneInfo
 from rest_framework import views
@@ -1495,7 +1495,6 @@ class EventSearchView(views.APIView):
 
         return JsonResponse(results, safe=False)
 
-from django.views.generic import FormView
 
 class EventCloneView(EventSettingsViewMixin, EventPermissionRequiredMixin, FormView):
     template_name = 'eventyay_common/event/clone.html'
@@ -1595,8 +1594,6 @@ class EventCloneView(EventSettingsViewMixin, EventPermissionRequiredMixin, FormV
 
     @transaction.atomic
     def form_valid(self, form):
-        from eventyay.base.models import Event
-
         old_event = self.request.event
         new_event = form.instance
         
@@ -1628,7 +1625,7 @@ class EventCloneView(EventSettingsViewMixin, EventPermissionRequiredMixin, FormV
         new_event.locale = form.cleaned_data['locale']
         form.save()
 
-        new_event.clone_from(old_event, new_secrets=True, clone_options=clone_options)
+        new_event.clone_from(old_event, new_secrets=True)
         new_event.copy_data_from(old_event, clone_options=clone_options)
         
         new_event.settings.set('locales', form.cleaned_data['locales'])
