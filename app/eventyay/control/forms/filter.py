@@ -1354,75 +1354,75 @@ class EventFilterForm(FilterForm):
     def filter_qs(self, qs):
         fdata = self.cleaned_data
 
-        if fdata.get('status'):
-            if fdata.get('status') == 'my_events':
-                user = self.request.user
-                qs = qs.filter(
-                    Q(organizer__teams__members=user)
-                    & (
-                        Q(organizer__teams__all_events=True)
-                        | Q(organizer__teams__limit_events__in=qs.values_list('pk', flat=True))
-                    )
-                ).distinct()
-            elif fdata.get('status') == 'live':
-                qs = qs.filter(live=True)
-            elif fdata.get('status') == 'running':
-                qs = (
-                    qs.filter(live=True)
-                    .annotate(p_end=Coalesce(F('presale_end'), F('date_to'), F('date_from')))
-                    .filter(Q(presale_start__isnull=True) | Q(presale_start__lte=now()))
-                    .filter(Q(p_end__gte=now()))
+        if fdata.get('status') == 'my_events':
+            # Filter for events where user is a team member
+            user = self.request.user
+            qs = qs.filter(
+                Q(organizer__teams__members=user)
+                & (
+                    Q(organizer__teams__all_events=True)
+                    | Q(organizer__teams__limit_events__in=qs.values_list('pk', flat=True))
                 )
-            elif fdata.get('status') == 'notlive':
-                qs = qs.filter(live=False)
-            elif fdata.get('status') == 'future':
-                qs = qs.filter(presale_start__gte=now())
-            elif fdata.get('status') == 'past':
-                qs = qs.filter(presale_end__lte=now())
-            elif fdata.get('status') == 'date_future':
-                qs = qs.filter(
-                    Q(has_subevents=False)
-                    & Q(
-                        Q(Q(date_to__isnull=True) & Q(date_from__gte=now()))
-                        | Q(Q(date_to__isnull=False) & Q(date_to__gte=now()))
-                    )
-                )
-            elif fdata.get('status') == 'date_past':
-                qs = qs.filter(
-                    Q(has_subevents=False)
-                    & Q(
-                        Q(Q(date_to__isnull=True) & Q(date_from__lt=now()))
-                        | Q(Q(date_to__isnull=False) & Q(date_to__lt=now()))
-                    )
-                )
-            elif fdata.get('status') == 'series':
-                qs = qs.filter(has_subevents=True)
-        else:
-            is_past = Q(
+            ).distinct()
+        elif fdata.get('status') == 'live':
+            qs = qs.filter(live=True)
+        elif fdata.get('status') == 'running':
+            qs = (
+                qs.filter(live=True)
+                .annotate(p_end=Coalesce(F('presale_end'), F('date_to'), F('date_from')))
+                .filter(Q(presale_start__isnull=True) | Q(presale_start__lte=now()))
+                .filter(Q(p_end__gte=now()))
+            )
+        elif fdata.get('status') == 'notlive':
+            qs = qs.filter(live=False)
+        elif fdata.get('status') == 'future':
+            qs = qs.filter(presale_start__gte=now())
+        elif fdata.get('status') == 'past':
+            qs = qs.filter(presale_end__lte=now())
+        elif fdata.get('status') == 'date_future':
+            qs = qs.filter(
                 Q(has_subevents=False)
                 & Q(
-                    Q(date_to__isnull=True, date_from__lt=now())
-                    | Q(date_to__isnull=False, date_to__lt=now())
+                    Q(Q(date_to__isnull=True) & Q(date_from__gte=now()))
+                    | Q(Q(date_to__isnull=False) & Q(date_to__gte=now()))
                 )
             )
-            status_q = Q()
+        elif fdata.get('status') == 'date_past':
+            qs = qs.filter(
+                Q(has_subevents=False)
+                & Q(
+                    Q(Q(date_to__isnull=True) & Q(date_from__lt=now()))
+                    | Q(Q(date_to__isnull=False) & Q(date_to__lt=now()))
+                )
+            )
+        elif fdata.get('status') == 'series':
+            qs = qs.filter(has_subevents=True)
 
-            if self.status_filters_default:
-                fdata['status_live'] = True
-                fdata['status_draft'] = True
-                fdata['status_past'] = True
+        is_past = Q(
+            Q(has_subevents=False)
+            & Q(
+                Q(Q(date_to__isnull=True) & Q(date_from__lt=now()))
+                | Q(Q(date_to__isnull=False) & Q(date_to__lt=now()))
+            )
+        )
+        status_q = Q()
 
-            if fdata.get('status_live'):
-                status_q |= Q(live=True) & ~is_past
-            if fdata.get('status_draft'):
-                status_q |= Q(live=False) & ~is_past
-            if fdata.get('status_past'):
-                status_q |= is_past
+        if self.status_filters_default:
+            fdata['status_live'] = True
+            fdata['status_draft'] = True
+            fdata['status_past'] = True
 
-            if status_q:
-                qs = qs.filter(status_q)
-            else:
-                qs = qs.none()
+        if fdata.get('status_live'):
+            status_q |= Q(live=True) & ~is_past
+        if fdata.get('status_draft'):
+            status_q |= Q(live=False) & ~is_past
+        if fdata.get('status_past'):
+            status_q |= is_past
+
+        if status_q:
+            qs = qs.filter(status_q)
+        else:
+            qs = qs.none()
 
         if fdata.get('organizer'):
             qs = qs.filter(organizer=fdata.get('organizer'))

@@ -144,9 +144,9 @@
             </form>
         </div>
 
-        <div data-ajax-results-region style="background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 10px 20px;">
+        <div data-ajax-results-region class="events-table-wrapper">
             <div class="table-responsive">
-                <table class="table table-hover events-table events-table-clean" style="margin-bottom: 0;">
+                <table class="table table-hover events-table events-table-clean">
                     <thead>
                     <tr>
                         <th style="width: 60px;"></th>
@@ -163,35 +163,35 @@
                         <tr>
                             <td data-label="{% trans 'Logo' %}">
                                 {% if e.visible_logo_url %}
-                                    <img src="{{ e.visible_logo_url }}" alt="{% trans 'Event logo' %}" class="events-table__logo" style="border-radius: 8px; max-height: 40px; max-width: 40px;">
+                                    <img src="{{ e.visible_logo_url }}" alt="{% trans 'Event logo' %}" class="events-table__logo">
                                 {% elif e.logo %}
-                                    <img src="{{ e.logo.url }}" alt="{% trans 'Event logo' %}" class="events-table__logo" style="border-radius: 8px; max-height: 40px; max-width: 40px;">
+                                    <img src="{{ e.logo.url }}" alt="{% trans 'Event logo' %}" class="events-table__logo">
                                 {% else %}
-                                    <div class="events-table__logo-empty" style="width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
-                                        <a href='{% url "eventyay_common:event.update" organizer=e.organizer.slug event=e.slug %}#tab-0-3-open' class="text-muted" title="{% trans 'Upload logo' %}" style="opacity: 0.5; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.5'">
+                                    <div class="events-table__logo-empty">
+                                        <a href='{% url "eventyay_common:event.update" organizer=e.organizer.slug event=e.slug %}#tab-0-3-open' class="text-muted" title="{% trans 'Upload logo' %}">
                                             <span class="fa fa-pencil" aria-hidden="true"></span>
                                         </a>
                                     </div>
                                 {% endif %}
                             </td>
                             <td data-label="{% trans 'Event' %}">
-                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 2px;">
-                                    <span style="font-weight: bold; font-size: 14px;">
-                                        <a href='{% url "eventyay_common:event.index" organizer=e.organizer.slug event=e.slug %}' style="color: inherit; text-decoration: none;">{{ e.name }}</a>
+                                <div class="event-name-layout">
+                                    <span class="event-name-text">
+                                        <a href='{% url "eventyay_common:event.index" organizer=e.organizer.slug event=e.slug %}'>{{ e.name }}</a>
                                     </span>
                                     {% if not e.live %}
-                                        <span class="label" style="background-color: #ffb74d; color: #fff; padding: 2px 6px; border-radius: 12px; font-size: 9px; font-weight: bold; letter-spacing: 1px;">{% trans "DRAFT" %}</span>
+                                        <span class="events-status-badge events-status-badge--draft">{% trans "DRAFT" %}</span>
                                     {% elif e.presale_has_ended %}
-                                        <span class="label" style="background-color: #90a4ae; color: #fff; padding: 2px 6px; border-radius: 12px; font-size: 9px; font-weight: bold; letter-spacing: 1px;">{% trans "PAST" %}</span>
+                                        <span class="events-status-badge events-status-badge--past">{% trans "PAST" %}</span>
                                     {% elif not e.presale_is_running %}
-                                        <span class="label" style="background-color: #ffb74d; color: #fff; padding: 2px 6px; border-radius: 12px; font-size: 9px; font-weight: bold; letter-spacing: 1px;">{% trans "UPCOMING" %}</span>
+                                        <span class="events-status-badge events-status-badge--upcoming">{% trans "UPCOMING" %}</span>
                                     {% else %}
-                                        <span class="label" style="background-color: #4caf50; color: #fff; padding: 2px 6px; border-radius: 12px; font-size: 9px; font-weight: bold; letter-spacing: 1px;">{% trans "LIVE" %}</span>
+                                        <span class="events-status-badge events-status-badge--live">{% trans "LIVE" %}</span>
                                     {% endif %}
                                 </div>
-                                <div class="text-muted" style="font-size: 12px;">{{ e.organizer }}</div>
+                                <div class="text-muted event-organizer-text">{{ e.organizer }}</div>
                             </td>
-                            <td class="event-date-col" data-label="{% trans 'Start date' %}" style="font-size: 13px;">
+                            <td class="event-date-col" data-label="{% trans 'Start date' %}">
                                 {% if e.has_subevents %}
                                     {{ e.min_from|default_if_none:""|date:"j M Y" }}
                                     <br><span class="label label-default" style="font-size: 9px;">{% trans "Series" %}</span>
@@ -199,7 +199,7 @@
                                     {{ e.date_from|date:"j M Y" }}
                                 {% endif %}
                             </td>
-                            <td class="event-date-col" data-label="{% trans 'End date' %}" style="font-size: 13px;">
+                            <td class="event-date-col" data-label="{% trans 'End date' %}">
                                 {% if e.settings.show_date_to and e.date_to %}
                                     {% if e.has_subevents %}
                                         {{ e.max_fromto|default_if_none:e.max_from|default_if_none:e.max_to|default_if_none:""|date:"j M Y" }}
@@ -212,12 +212,12 @@
                                 <div style="font-size: 16px; font-weight: bold; margin-bottom: 5px;">
                                     {{ e.sessions_submitted|default:0 }} <span class="text-muted" style="font-size: 9px; font-weight: normal; letter-spacing: 1px;">{% trans "SUBMITTED" %}</span>
                                 </div>
-                                <div style="position: relative; display: flex; gap: 4px; flex-wrap: wrap; align-items: center;" onmouseenter="this.querySelector('.hidden-pills').style.display='flex';" onmouseleave="this.querySelector('.hidden-pills').style.display='none';">
+                                <div class="hover-pills-container">
                                     <span class="lovable-badge badge-acc">{% trans "Accepted" %} {{ e.sessions_accepted|default:0 }}</span>
                                     <span class="lovable-badge badge-conf">{% trans "Confirmed" %} {{ e.sessions_confirmed|default:0 }}</span>
-                                    <span class="lovable-badge badge-def toggle-pills" style="cursor: default; padding: 2px 6px;">...</span>
+                                    <span class="lovable-badge badge-def toggle-pills">...</span>
                                     
-                                    <div class="hidden-pills" style="display: none; gap: 4px; flex-wrap: wrap; align-items: center; position: absolute; left: 0; top: 100%; margin-top: 5px; background: #fff; padding: 8px; border: 1px solid #e0e0e0; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 100; width: max-content; max-width: 250px;">
+                                    <div class="hidden-pills">
                                         <span class="lovable-badge badge-pend">{% trans "Pending" %} {{ e.sessions_pending|default:0 }}</span>
                                         <span class="lovable-badge badge-rej">{% trans "Rejected" %} {{ e.sessions_rejected|default:0 }}</span>
                                         <span class="lovable-badge badge-def">{% trans "Withdrawn" %} {{ e.sessions_withdrawn|default:0 }}</span>
@@ -229,12 +229,12 @@
                                 <div style="font-size: 16px; font-weight: bold; margin-bottom: 5px;">
                                     {{ e.speakers_total|default:0 }} <span class="text-muted" style="font-size: 9px; font-weight: normal; letter-spacing: 1px;">{% trans "TOTAL" %}</span>
                                 </div>
-                                <div style="position: relative; display: flex; gap: 4px; flex-wrap: wrap; align-items: center;" onmouseenter="this.querySelector('.hidden-pills').style.display='flex';" onmouseleave="this.querySelector('.hidden-pills').style.display='none';">
+                                <div class="hover-pills-container">
                                     <span class="lovable-badge badge-acc">{% trans "Accepted" %} {{ e.speakers_accepted|default:0 }}</span>
                                     <span class="lovable-badge badge-conf">{% trans "Confirmed" %} {{ e.speakers_confirmed|default:0 }}</span>
-                                    <span class="lovable-badge badge-def toggle-pills" style="cursor: default; padding: 2px 6px;">...</span>
+                                    <span class="lovable-badge badge-def toggle-pills">...</span>
                                     
-                                    <div class="hidden-pills" style="display: none; gap: 4px; flex-wrap: wrap; align-items: center; position: absolute; left: 0; top: 100%; margin-top: 5px; background: #fff; padding: 8px; border: 1px solid #e0e0e0; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 100; width: max-content; max-width: 250px;">
+                                    <div class="hidden-pills">
                                         <span class="lovable-badge badge-pend">{% trans "Pending" %} {{ e.speakers_pending|default:0 }}</span>
                                         <span class="lovable-badge badge-rej">{% trans "Rejected" %} {{ e.speakers_rejected|default:0 }}</span>
                                         <span class="lovable-badge badge-def">{% trans "Withdrawn" %} {{ e.speakers_withdrawn|default:0 }}</span>
@@ -243,14 +243,14 @@
                                 </div>
                             </td>
                             <td data-label="{% trans 'Public URL' %}">
-                                <a href="{% eventurl e 'presale:event.index' %}" target="_blank" style="color: #009688; font-weight: bold; font-size: 12px; text-decoration: none;">
+                                <a href="{% eventurl e 'presale:event.index' %}" target="_blank" class="event-public-url">
                                     {{ request.get_host }}{% eventurl e 'presale:event.index' %} <i class="fa fa-external-link" style="margin-left: 2px;"></i>
                                 </a>
                             </td>
                         </tr>
                     {% empty %}
                         <tr>
-                            <td colspan="7" class="text-center text-muted" style="padding: 30px !important;">
+                            <td colspan="7" class="text-center text-muted events-table-empty">
                                 {% trans "No events match your filters." %}
                             </td>
                         </tr>
@@ -258,8 +258,7 @@
                     </tbody>
                 </table>
             </div>
-            
-            <div style="margin-top: 15px;">
+            <div class="events-pagination">
                 {% include "pretixcontrol/pagination.html" %}
             </div>
         </div>

@@ -174,7 +174,7 @@ class EventList(PaginationMixin, ListView):
         ctx = super().get_context_data(**kwargs)
         ctx['filter_form'] = self.filter_form
 
-        # Compute global counts for header
+        # Compute global counts for header using a single aggregate query
         base_qs = self.request.user.get_events_with_any_permission(self.request)
         now_dt = now()
         is_past = Q(
@@ -184,9 +184,16 @@ class EventList(PaginationMixin, ListView):
                 | Q(date_to__isnull=False, date_to__lt=now_dt)
             )
         )
-        ctx['total_live'] = base_qs.filter(Q(live=True) & ~is_past).count()
-        ctx['total_draft'] = base_qs.filter(Q(live=False) & ~is_past).count()
-        ctx['total_past'] = base_qs.filter(is_past).count()
+        
+        totals = base_qs.aggregate(
+            total_live=Count(Case(When(Q(live=True) & ~is_past, then=1), output_field=IntegerField())),
+            total_draft=Count(Case(When(Q(live=False) & ~is_past, then=1), output_field=IntegerField())),
+            total_past=Count(Case(When(is_past, then=1), output_field=IntegerField())),
+        )
+        
+        ctx['total_live'] = totals['total_live']
+        ctx['total_draft'] = totals['total_draft']
+        ctx['total_past'] = totals['total_past']
 
         quotas = []
         for s in ctx['events']:

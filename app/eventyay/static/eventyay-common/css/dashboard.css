@@ -251,17 +251,23 @@
 .events-table__logo {
     max-height: 40px;
     max-width: 40px;
-    border-radius: 4px;
+    border-radius: 8px;
 }
 
-.events-table__logo-placeholder {
+.events-table__logo-empty {
     width: 40px;
     height: 40px;
-    background-color: #eee;
-    border-radius: 4px;
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
+}
+.events-table__logo-empty a {
+    opacity: 0.5;
+    transition: opacity 0.2s;
+}
+.events-table__logo-empty a:hover {
+    opacity: 1;
 }
 
 .events-stat-badges {
@@ -275,4 +281,99 @@
     font-size: 11px;
     font-weight: 600;
     padding: 3px 6px;
+}
+
+.events-table-wrapper {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 10px 20px;
+}
+.events-table-wrapper .events-table {
+    margin-bottom: 0;
+}
+
+.events-status-badge {
+    color: #fff;
+    padding: 2px 6px;
+    border-radius: 12px;
+    font-size: 9px;
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+.events-status-badge--draft,
+.events-status-badge--upcoming {
+    background-color: #ffb74d;
+}
+.events-status-badge--past {
+    background-color: #90a4ae;
+}
+.events-status-badge--live {
+    background-color: #4caf50;
+}
+
+.event-name-layout {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 2px;
+}
+.event-name-text {
+    font-weight: bold;
+    font-size: 14px;
+}
+.event-name-text a {
+    color: inherit;
+    text-decoration: none;
+}
+.event-organizer-text {
+    font-size: 12px;
+}
+
+.events-table td.event-date-col {
+    font-size: 13px;
+}
+
+.hover-pills-container {
+    position: relative;
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+.hover-pills-container .hidden-pills {
+    display: none;
+    gap: 4px;
+    flex-wrap: wrap;
+    align-items: center;
+    position: absolute;
+    left: 0;
+    top: 100%;
+    margin-top: 5px;
+    background: #fff;
+    padding: 8px;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 100;
+    width: max-content;
+    max-width: 250px;
+}
+.hover-pills-container:hover .hidden-pills {
+    display: flex;
+}
+.hover-pills-container .toggle-pills {
+    cursor: default;
+    padding: 2px 6px;
+}
+
+.event-public-url {
+    color: #009688;
+    font-weight: bold;
+    font-size: 12px;
+    text-decoration: none;
+}
+
+.events-table-empty {
+    padding: 30px;
 }
