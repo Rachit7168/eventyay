@@ -1,6 +1,12 @@
 {% extends "eventyay_common/event/base.html" %}
 {% load i18n %}
 {% load bootstrap3 %}
+{% block custom_header %}
+    {{ block.super }}
+    {% load static %}
+    <script type="text/javascript" src="{% static 'eventyay-common/js/dialog-triggers.js' %}"></script>
+{% endblock %}
+
 {% block content %}
 
     {% trans "Event status" as header_title %}
@@ -106,14 +112,14 @@
                         {% if request.event.live %}
                             <input type="hidden" name="live" value="false">
                             {% if request.event.tickets_published or request.event.talks_published %}
-                                <button type="submit" class="btn btn-default btn-custom-margin">{% trans "Unpublish event" %}</button>
+                                <button type="button" class="btn btn-default btn-custom-margin" data-toggle="dialog" data-target="#unpublishErrorDialog">{% trans "Unpublish event" %}</button>
                             {% else %}
                                 <button type="submit" class="btn btn-default btn-custom-margin">{% trans "Unpublish event" %}</button>
                             {% endif %}
                         {% else %}
                             <input type="hidden" name="live" value="true">
                             {% if info_publish_issues %}
-                                <button type="submit" class="btn btn-primary btn-custom-margin">{% trans "Publish event" %}</button>
+                                <button type="button" class="btn btn-primary btn-custom-margin" data-toggle="dialog" data-target="#publishEventErrorDialog">{% trans "Publish event" %}</button>
                             {% else %}
                                 <button type="submit" class="btn btn-primary btn-custom-margin">{% trans "Publish event" %}</button>
                             {% endif %}
@@ -155,10 +161,10 @@
                     </div>
                 </div>
                 <div class="card-action-col">
-                    <a href="{% url "control:event.quick" organizer=request.organizer.slug event=request.event.slug %}" class="btn {% if ticketing_ready %}btn-default{% else %}btn-primary{% endif %} btn-custom-margin">
+                    <a href="{% url 'control:event.quick' organizer=request.organizer.slug event=request.event.slug %}" class="btn {% if ticketing_ready %}btn-default{% else %}btn-primary{% endif %} btn-custom-margin">
                         {% trans "Set up tickets" %}
                     </a>
-                    <a href="{% url "control:event.products" organizer=request.organizer.slug event=request.event.slug %}" class="btn {% if ticketing_ready %}btn-primary{% else %}btn-default{% endif %} btn-custom">
+                    <a href="{% url 'control:event.products' organizer=request.organizer.slug event=request.event.slug %}" class="btn {% if ticketing_ready %}btn-primary{% else %}btn-default{% endif %} btn-custom">
                         {% trans "Manage Tickets" %}
                     </a>
                 </div>
@@ -210,7 +216,7 @@
                                     <div class="btn active-badge-status"><i class="fa fa-check-circle"></i> {% trans "Active" %}</div>
                                 {% else %}
                                     {% if not ticketing_ready or not request.event.live %}
-                                        <button type="submit" class="btn btn-default btn-custom">{% trans "Enable" %}</button>
+                                        <button type="button" class="btn btn-default btn-custom" data-toggle="dialog" data-target="#ticketingTestErrorDialog">{% trans "Enable" %}</button>
                                     {% else %}
                                         <button type="submit" class="btn btn-default btn-custom">{% trans "Enable" %}</button>
                                     {% endif %}
@@ -255,7 +261,7 @@
                                         </div>
                                     {% endif %}
                                     {% if ticket_issues or not ticketing_ready or not request.event.live %}
-                                        <button type="submit" class="btn btn-primary btn-custom">{% trans "Go live" %}</button>
+                                        <button type="button" class="btn btn-primary btn-custom" data-toggle="dialog" data-target="#ticketingLiveErrorDialog">{% trans "Go live" %}</button>
                                     {% else %}
                                         <button type="submit" class="btn btn-primary btn-custom">{% trans "Go live" %}</button>
                                     {% endif %}
@@ -293,7 +299,7 @@
                     </div>
                 </div>
                 <div class="card-action-col">
-                    <a href="{% url "eventyay_common:event.update" organizer=request.organizer.slug event=request.event.slug %}#cfp" class="btn btn-primary btn-custom-margin">
+                    <a href="{% url 'eventyay_common:event.update' organizer=request.organizer.slug event=request.event.slug %}#cfp" class="btn btn-primary btn-custom-margin">
                         {% trans "Fix issues" %}
                     </a>
                     <a href="{{ request.event.urls.schedule }}" target="_blank" class="btn btn-default btn-custom">
@@ -372,7 +378,7 @@
                                     <div class="btn active-badge-status"><i class="fa fa-check-circle"></i> {% trans "Active" %}</div>
                                 {% else %}
                                     {% if not request.event.live %}
-                                        <button type="submit" class="btn btn-primary btn-custom">{% trans "Go live" %}</button>
+                                        <button type="button" class="btn btn-primary btn-custom" data-toggle="dialog" data-target="#talksLiveErrorDialog">{% trans "Go live" %}</button>
                                     {% else %}
                                         <button type="submit" class="btn btn-primary btn-custom">{% trans "Go live" %}</button>
                                     {% endif %}
@@ -417,7 +423,7 @@
                                 {% endif %}
                             </button>
                         {% else %}
-                            <button type="submit" name="toggle_video_visibility" class="btn btn-default btn-custom">{% trans "Not configured" %}</button>
+                            <button type="button" class="btn btn-default btn-custom" data-toggle="dialog" data-target="#videoNotConfiguredDialog">{% trans "Not configured" %}</button>
                         {% endif %}
                     </form>
                 </div>
@@ -440,7 +446,7 @@
                     </div>
                 </div>
                 <div class="card-action-col">
-                    <a href="{% url "eventyay_common:event.update" organizer=request.organizer.slug event=request.event.slug %}#danger-zone-tab-open"
+                    <a href="{% url 'eventyay_common:event.update' organizer=request.organizer.slug event=request.event.slug %}#danger-zone-tab-open"
                             class="btn btn-danger btn-custom-margin">
                         <i class="fa fa-trash"></i> {% trans "Cancel or delete event" %}
                     </a>
@@ -448,5 +454,7 @@
             </div>
         </div>
     </div>
+
+    {% include "eventyay_common/event/includes/live_error_dialogs.html" %}
 
 {% endblock %}

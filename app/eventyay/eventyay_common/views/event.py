@@ -1121,6 +1121,9 @@ class EventLive(TemplateView):
                     event.cartposition_set.filter(addon_to__isnull=False).delete()
                     event.cartposition_set.all().delete()
                     messages.success(self.request, _('Tickets are now publicly sold.'))
+                else:
+                    messages.error(self.request, _('Unknown ticketing mode.'))
+                    return redirect(self.request.path)
                 event.save()
                 if previous_testmode != event.testmode:
                     self.request.event.log_action(
@@ -1142,6 +1145,7 @@ class EventLive(TemplateView):
                 if mode == 'private_test':
                     event.talks_published = False
                     event.settings.private_testmode_talks = True
+                    event.settings.talks_testmode = False
                     event.private_testmode = True
                     messages.success(self.request, _('Private test mode is now enabled for talks.'))
                 elif mode == 'public':
