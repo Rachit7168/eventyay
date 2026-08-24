@@ -30,7 +30,7 @@
 
 {% block content %}
 {% has_event_perm "base.orga_list_speakerprofile" request.user request request.event as can_view_speakers %}
-{% has_event_perm "base.update_event" request.user request request.event as can_update_event %}
+{% has_event_perm "base.change_settings.event" request.user request request.event as can_change_settings %}
 
 {% if "congratulations" in request.GET %}
     <div class="alert alert-success congratulations">
@@ -57,12 +57,18 @@
     </div>
     <div class="td-section-card-body">
         <div id="timeline-steps" class="stages mb-0">
-            {% for stp in timeline %}
-                <div {% if stp.phase == "done" and stp.url %}href="{{ stp.url }}"{% endif %} class="step step-{{ stp.phase }}">
+            {% for stp in workflow_steps|default:timeline %}
+                <div {% if stp.url %}href="{{ stp.url }}"{% endif %} class="step step-{{ stp.phase }}">
                     <div class="step-icon">
                         <span class="fa {% if stp.icon %}fa-{{ stp.icon }}{% else %}fa-check{% endif %}"></span>
                     </div>
                     <div class="step-label">{{ stp.label }}</div>
+                    {% if stp.status %}
+                        <div class="step-status text-muted small">{{ stp.status }}</div>
+                    {% endif %}
+                    {% if stp.detail %}
+                        <div class="step-detail text-muted small">{{ stp.detail }}</div>
+                    {% endif %}
                     {% if stp.links and can_change_settings %}
                         <div class="step-links">
                             <ul>

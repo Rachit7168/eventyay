@@ -93,12 +93,12 @@
 .td-action-card.primary { border-top-color: var(--color-primary, #3b4a6b); }
 
 .td-action-card-inactive {
-  border-top-color: var(--color-success, #28a745) !important;
+  border-top-color: var(--color-success, #28a745);
   background: #f9fffe;
 }
 
 .td-action-card-inactive .td-action-header .fa:first-child {
-  color: var(--color-success, #28a745) !important;
+  color: var(--color-success, #28a745);
 }
 
 .td-action-header {
@@ -129,7 +129,7 @@
 
 .td-action-ok-badge .fa {
   font-size: 11px;
-  color: var(--color-success, #28a745) !important;
+  color: var(--color-success, #28a745);
 }
 
 .td-action-header .fa { font-size: 14px; }
@@ -412,7 +412,7 @@ a.td-kpi-card:hover {
 }
 
 .td-analytics-section #stats {
-  margin-top: 0 !important;
+  margin-top: 0;
 }
 
 /* --------------------------------------------------------------------------

@@ -431,9 +431,14 @@ class EventDashboardView(EventPermissionRequired, SubmissionStatsMixin, Template
         withdrawn = sub_counts['withdrawn']
         drafts = sub_counts.get('drafts', 0)
         speaker_count = event.speakers.count()
-        pending_reviews = event.submissions.filter(state=SubmissionStates.SUBMITTED).count()
         emails_sent = event.queued_mails.filter(sent__isnull=False).count()
         talk_count = event.talks.count()
+
+        reviews_missing = 0
+        if self.request.user and self.request.user.is_authenticated:
+            is_reviewer = event.teams.filter(members__in=[self.request.user], is_reviewer=True).exists()
+            if is_reviewer:
+                reviews_missing = get_missing_reviews(event, self.request.user).count()
 
         current_schedule = getattr(event, 'current_schedule', None)
         schedule_version = current_schedule.version if current_schedule else '-'
@@ -444,8 +449,8 @@ class EventDashboardView(EventPermissionRequired, SubmissionStatsMixin, Template
         cards = [
             {
                 'label': _('Submitted proposals'),
-                'value': total,
-                'url': event.orga_urls.submissions,
+                'value': submitted,
+                'url': event.orga_urls.submissions + f'?state={SubmissionStates.SUBMITTED}',
                 'link': _('View all'),
                 'color': '',
                 'icon': 'inbox',
@@ -483,11 +488,11 @@ class EventDashboardView(EventPermissionRequired, SubmissionStatsMixin, Template
                 'icon': 'users',
             },
             {
-                'label': _('Pending reviews'),
-                'value': submitted,
+                'label': _('Pending your review'),
+                'value': reviews_missing,
                 'url': event.orga_urls.reviews,
                 'link': _('Review now'),
-                'color': 'warning' if submitted else 'muted',
+                'color': 'warning' if reviews_missing else 'muted',
                 'icon': 'eye',
             },
             {
@@ -545,7 +550,9 @@ class EventDashboardView(EventPermissionRequired, SubmissionStatsMixin, Template
         """Return funnel bar data with normalised widths for the submission funnel."""
         total = sub_counts['total'] or 1  # avoid division by zero
         rows = [
-            {'label': _('Submitted'), 'count': sub_counts['total'], 'key': 'submitted', 'pct': 100},
+            {'label': _('Total received'), 'count': sub_counts['total'], 'key': 'total', 'pct': 100},
+            {'label': _('Submitted'), 'count': sub_counts['submitted'], 'key': 'submitted',
+             'pct': round(sub_counts['submitted'] / total * 100)},
             {'label': _('Accepted'), 'count': sub_counts['accepted'] + sub_counts['confirmed'], 'key': 'accepted',
              'pct': round((sub_counts['accepted'] + sub_counts['confirmed']) / total * 100)},
             {'label': _('Confirmed'), 'count': sub_counts['confirmed'], 'key': 'confirmed',
