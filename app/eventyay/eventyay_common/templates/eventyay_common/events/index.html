@@ -8,52 +8,26 @@
 
 {% block custom_header %}
     {{ block.super }}
-    <script type="module" src="{% static 'eventyay-common/js/event-status-filters.js' %}"></script>
-    <style>
-        .events-table-clean th {
-            border-bottom: 2px solid #f0f0f0 !important;
-            font-size: 12px;
-            color: #607d8b;
-            font-weight: normal;
-            padding-bottom: 12px !important;
-        }
-        .events-table-clean td {
-            border-bottom: 1px solid #f0f0f0 !important;
-            vertical-align: middle !important;
-            padding: 16px 8px !important;
-        }
-        .lovable-badge {
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 10px;
-            white-space: nowrap;
-        }
-        .badge-acc { background: #e8f5e9; color: #2e7d32; }
-        .badge-conf { background: #e3f2fd; color: #1565c0; }
-        .badge-pend { background: #fff3e0; color: #ef6c00; }
-        .badge-rej { background: #ffebee; color: #c62828; }
-        .badge-def { background: #f5f5f5; color: #757575; }
-    </style>
 {% endblock %}
 
 {% block content %}
-    <div class="events-overview-header" style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 30px; padding-top: 20px;">
+    <div class="events-overview-header">
         <div>
-            <h1 style="margin-top: 0; margin-bottom: 10px;">{% trans "Events overview" %}</h1>
-            <p class="text-muted" style="margin: 0;">{% trans "Every event you manage, with session and speaker progress at a glance." %}</p>
+            <h1>{% trans "Events overview" %}</h1>
+            <p class="text-muted">{% trans "Every event you manage, with session and speaker progress at a glance." %}</p>
         </div>
-        <div class="events-overview-stats" style="display: flex; gap: 30px; text-align: center;">
+        <div class="events-overview-stats">
             <div>
-                <div style="font-size: 24px; font-weight: bold;">{{ total_live|default:"0" }}</div>
-                <div class="text-muted" style="font-size: 11px; letter-spacing: 1px; font-weight: bold;">{% trans "LIVE" %}</div>
+                <div class="events-overview-stats__count">{{ total_live|default:"0" }}</div>
+                <div class="text-muted events-overview-stats__label">{% trans "LIVE" %}</div>
             </div>
             <div>
-                <div style="font-size: 24px; font-weight: bold;">{{ total_draft|default:"0" }}</div>
-                <div class="text-muted" style="font-size: 11px; letter-spacing: 1px; font-weight: bold;">{% trans "DRAFT" %}</div>
+                <div class="events-overview-stats__count">{{ total_draft|default:"0" }}</div>
+                <div class="text-muted events-overview-stats__label">{% trans "DRAFT" %}</div>
             </div>
             <div>
-                <div style="font-size: 24px; font-weight: bold;">{{ total_past|default:"0" }}</div>
-                <div class="text-muted" style="font-size: 11px; letter-spacing: 1px; font-weight: bold;">{% trans "PAST" %}</div>
+                <div class="events-overview-stats__count">{{ total_past|default:"0" }}</div>
+                <div class="text-muted events-overview-stats__label">{% trans "PAST" %}</div>
             </div>
         </div>
     </div>
@@ -105,21 +79,21 @@
                                 {% trans "Status" %}
                                 <span class="caret"></span>
                             </button>
-                            <ul class="dropdown-menu" aria-labelledby="statusDropdown" style="min-width: 150px;">
-                                <li style="padding: 4px 10px;">
-                                    <label style="font-weight: normal; cursor: pointer; display: flex; align-items: center; gap: 8px; margin: 0;">
+                            <ul class="dropdown-menu dropdown-menu--status-filters" aria-labelledby="statusDropdown">
+                                <li>
+                                    <label>
                                         <input type="checkbox" name="status_live" autocomplete="off"{% if filter_form.status_live_active %} checked{% endif %}>
                                         {% trans "Live" %}
                                     </label>
                                 </li>
-                                <li style="padding: 4px 10px;">
-                                    <label style="font-weight: normal; cursor: pointer; display: flex; align-items: center; gap: 8px; margin: 0;">
+                                <li>
+                                    <label>
                                         <input type="checkbox" name="status_draft" autocomplete="off"{% if filter_form.status_draft_active %} checked{% endif %}>
                                         {% trans "Draft" %}
                                     </label>
                                 </li>
-                                <li style="padding: 4px 10px;">
-                                    <label style="font-weight: normal; cursor: pointer; display: flex; align-items: center; gap: 8px; margin: 0;">
+                                <li>
+                                    <label>
                                         <input type="checkbox" name="status_past" autocomplete="off"{% if filter_form.status_past_active %} checked{% endif %}>
                                         {% trans "Past" %}
                                     </label>
