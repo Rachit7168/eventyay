@@ -266,81 +266,6 @@ class EventDashboardView(EventPermissionRequired, SubmissionStatsMixin, Template
         }
         return counts
 
-    def _build_workflow_steps(self, event, stages, sub_counts):
-        """Build a list of workflow step dicts for the labeled timeline."""
-        cfp = getattr(event, 'cfp', None)
-
-        cfp_status = _('Open') if (cfp and cfp.is_open) else _('Closed')
-        cfp_detail = ''
-        if cfp and cfp.deadline:
-            cfp_detail = str(cfp.deadline.strftime('%b %-d'))
-
-        steps = [
-            {
-                'label': _('Call for proposals'),
-                'status': cfp_status,
-                'detail': cfp_detail,
-                'phase': 'done' if not (cfp and cfp.is_open) else 'current',
-                'icon': 'bullhorn',
-            },
-            {
-                'label': _('Review'),
-                'status': _('Completed') if stages['REVIEW']['phase'] == 'done' else (
-                    _('In progress') if stages['REVIEW']['phase'] == 'current' else _('Pending')
-                ),
-                'detail': str(sub_counts['rejected']) + ' ' + str(_('rejected')) if sub_counts['rejected'] else '',
-                'phase': stages['REVIEW']['phase'],
-                'icon': 'eye',
-            },
-            {
-                'label': _('Acceptance'),
-                'status': _('Completed') if sub_counts['accepted'] + sub_counts['confirmed'] > 0 and sub_counts['submitted'] == 0 else (
-                    _('In progress') if sub_counts['accepted'] > 0 else _('Pending')
-                ),
-                'detail': str(sub_counts['accepted'] + sub_counts['confirmed']) + ' ' + str(_('accepted')),
-                'phase': 'done' if (sub_counts['accepted'] + sub_counts['confirmed'] > 0 and sub_counts['submitted'] == 0)
-                         else ('current' if sub_counts['accepted'] > 0 else 'pending'),
-                'icon': 'check-circle',
-            },
-            {
-                'label': _('Confirmation'),
-                'status': _('In progress') if sub_counts['accepted'] > 0 else (
-                    _('Completed') if sub_counts['confirmed'] > 0 else _('Pending')
-                ),
-                'detail': str(sub_counts['accepted']) + ' ' + str(_('unconfirmed')) if sub_counts['accepted'] else '',
-                'phase': 'issue' if sub_counts['accepted'] > 0 else (
-                    'done' if sub_counts['confirmed'] > 0 else 'pending'
-                ),
-                'icon': 'user-check',
-            },
-            {
-                'label': _('Scheduling'),
-                'status': _('Completed') if stages['SCHEDULE']['phase'] == 'done' else (
-                    _('In progress') if stages['SCHEDULE']['phase'] == 'current' else _('Pending')
-                ),
-                'detail': '',
-                'phase': stages['SCHEDULE']['phase'],
-                'icon': 'calendar',
-            },
-            {
-                'label': _('Published'),
-                'status': _('Live') if event.talks_published else _('Pending'),
-                'detail': '',
-                'phase': 'done' if event.talks_published else 'pending',
-                'icon': 'globe',
-            },
-            {
-                'label': _('Live'),
-                'status': _('Running') if stages['EVENT']['phase'] == 'current' else (
-                    _('Done') if stages['EVENT']['phase'] == 'done' else _('Pending')
-                ),
-                'detail': '',
-                'phase': stages['EVENT']['phase'],
-                'icon': 'play-circle',
-            },
-        ]
-        return steps
-
     def _build_action_items(self, event, sub_counts, can_change_submissions):
         """Return all action item types, always. Use 'active' flag to distinguish
         items that need attention vs those that are fine."""
@@ -787,7 +712,6 @@ class EventDashboardView(EventPermissionRequired, SubmissionStatsMixin, Template
         # New dashboard context: workflow, actions, KPIs, funnel, readiness
         # ------------------------------------------------------------------
         sub_counts = self._get_submission_counts(event)
-        result['workflow_steps'] = self._build_workflow_steps(event, stages, sub_counts)
         result['action_items'] = self._build_action_items(event, sub_counts, can_change_submissions)
         result['kpi_cards'] = self._build_kpi_cards(event, sub_counts)
         result['funnel_data'] = self._build_funnel_data(sub_counts)

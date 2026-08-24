@@ -52,11 +52,66 @@
   position: relative;
 }
 
+.stages .step {
+  position: relative;
+}
+
 .stages .step .step-links {
-  z-index: 1050;
-  border-radius: 6px;
+  display: none;
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 280px;
+  background: #ffffff;
   border: 1px solid #e5e8ed;
+  border-radius: 6px;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+  padding: 10px 14px;
+  z-index: 1050;
+  text-align: left;
+}
+
+.stages .step:first-child .step-links {
+  left: 0;
+  transform: none;
+}
+
+.stages .step:last-child .step-links,
+.stages .step:nth-last-child(2) .step-links {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+
+.stages .step:hover .step-links {
+  display: block;
+}
+
+.stages .step .step-links ul {
+  margin: 0;
+  padding-left: 18px;
+  list-style: disc;
+}
+
+.stages .step .step-links li {
+  margin-bottom: 6px;
+  font-size: 13px;
+  color: #333;
+  line-height: 1.4;
+}
+
+.stages .step .step-links li:last-child {
+  margin-bottom: 0;
+}
+
+.stages .step .step-links a {
+  color: var(--color-primary, #3b4a6b);
+  text-decoration: none;
+}
+
+.stages .step .step-links a:hover {
+  text-decoration: underline;
 }
 
 /* --------------------------------------------------------------------------
@@ -105,15 +160,6 @@
 .td-action-card.info    { border-top-color: var(--color-info, #17a2b8); }
 .td-action-card.primary { border-top-color: var(--color-primary, #3b4a6b); }
 
-.td-action-card-inactive {
-  border-top-color: var(--color-success, #28a745);
-  background: #f9fffe;
-}
-
-.td-action-card-inactive .td-action-header .fa:first-child {
-  color: var(--color-success, #28a745);
-}
-
 .td-action-header {
   display: flex;
   align-items: center;
@@ -123,17 +169,33 @@
   color: #333;
 }
 
+.td-action-header .fa {
+  font-size: 14px;
+}
+
 .td-action-title {
   flex: 1;
+}
+
+/* All good items -> Blue */
+.td-action-card-inactive,
+.td-action-card.primary {
+  border-top-color: var(--color-primary, #3b4a6b);
+  background: #f8fbff;
+}
+
+.td-action-card-inactive .td-action-header .fa:first-child,
+.td-action-card.primary .td-action-header .fa:first-child {
+  color: var(--color-primary, #3b4a6b);
 }
 
 .td-action-ok-badge {
   margin-left: auto;
   font-size: 11px;
   font-weight: 600;
-  color: var(--color-success, #28a745);
-  background: #e8f5e9;
-  border: 1px solid #a5d6a7;
+  color: var(--color-primary, #3b4a6b);
+  background: #eef2f9;
+  border: 1px solid #c5d4ed;
   border-radius: 10px;
   padding: 2px 8px;
   white-space: nowrap;
@@ -142,14 +204,20 @@
 
 .td-action-ok-badge .fa {
   font-size: 11px;
-  color: var(--color-success, #28a745);
+  color: var(--color-primary, #3b4a6b);
 }
 
-.td-action-header .fa { font-size: 14px; }
-.td-action-card.warning .td-action-header .fa { color: #fd7e14; }
-.td-action-card.danger  .td-action-header .fa { color: var(--color-danger, #dc3545); }
-.td-action-card.info    .td-action-header .fa { color: var(--color-info, #17a2b8); }
-.td-action-card.primary .td-action-header .fa { color: var(--color-primary, #3b4a6b); }
+/* Action required items -> Red */
+.td-action-card-active,
+.td-action-card.danger {
+  border-top-color: var(--color-danger, #dc3545);
+  background: #fff;
+}
+
+.td-action-card-active .td-action-header .fa:first-child,
+.td-action-card.danger .td-action-header .fa:first-child {
+  color: var(--color-danger, #dc3545);
+}
 
 .td-action-badge {
   display: inline-block;

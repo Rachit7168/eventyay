@@ -30,7 +30,7 @@
 
 {% block content %}
 {% has_event_perm "base.orga_list_speakerprofile" request.user request request.event as can_view_speakers %}
-{% has_event_perm "base.change_settings.event" request.user request request.event as can_change_settings %}
+{% has_event_perm "base.update_event" request.user request request.event as can_change_settings %}
 
 {% if "congratulations" in request.GET %}
     <div class="alert alert-success congratulations">
@@ -68,9 +68,11 @@
                             <ul>
                                 {% for link in stp.links %}
                                     <li>
-                                        <a {% if link.url %}href="{{ link.url }}"{% endif %}>
+                                        {% if link.url %}
+                                            <a href="{{ link.url }}">{{ link.title }}</a>
+                                        {% else %}
                                             {{ link.title }}
-                                        </a>
+                                        {% endif %}
                                     </li>
                                 {% endfor %}
                             </ul>
@@ -91,7 +93,7 @@
     <div class="td-section-card-body">
         <div class="td-action-grid">
             {% for item in action_items %}
-                <div class="td-action-card {{ item.color }}{% if not item.active %} td-action-card-inactive{% endif %}" id="action-card-{{ forloop.counter }}">
+                <div class="td-action-card {% if item.active %}td-action-card-active danger{% else %}td-action-card-inactive primary{% endif %}" id="action-card-{{ forloop.counter }}">
                     <div class="td-action-header">
                         <span class="fa fa-{{ item.icon }}"></span>
                         <span class="td-action-title">{{ item.title }}</span>
@@ -103,7 +105,7 @@
                     </div>
                     <div class="td-action-desc">{{ item.desc }}</div>
                     {% if item.active %}
-                        <a href="{{ item.url }}" class="td-action-btn {{ item.color }}">{{ item.btn }}</a>
+                        <a href="{{ item.url }}" class="td-action-btn danger">{{ item.btn }}</a>
                     {% endif %}
                 </div>
             {% endfor %}
