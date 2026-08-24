@@ -148,7 +148,13 @@ class I18nRichTextEditorWidget(I18nTextarea):
         attrs = attrs.copy() if attrs is not None else {}
         attrs.setdefault('data-tiptap-profile', 'richtext')
         super().__init__(locales=locales, field=field, attrs=attrs)
-        self.widget = RichTextWidget(attrs=attrs)
+
+    def format_output(self, rendered_widgets, id_):
+        wrapped = [
+            f'<div class="tiptap-wrapper" data-tiptap-wrapper="true">{widget}</div>'
+            for widget in rendered_widgets
+        ]
+        return super().format_output(wrapped, id_)
 
 
 class I18nEmailEditorWidget(I18nTextarea):
@@ -166,7 +172,16 @@ class I18nEmailEditorWidget(I18nTextarea):
         if preview_url:
             attrs['data-tiptap-preview-url'] = preview_url
         super().__init__(locales=locales, field=field, attrs=attrs)
-        self.widget = EmailEditorWidget(attrs=attrs, placeholders=placeholders, preview_url=preview_url)
+
+    def format_output(self, rendered_widgets, id_):
+        wrapped = [
+            (
+                f'<div class="tiptap-wrapper" data-tiptap-wrapper="true" '
+                f'data-email-editor="true">{widget}</div>'
+            )
+            for widget in rendered_widgets
+        ]
+        return super().format_output(wrapped, id_)
 
 
 class EmailEditorWidget(Textarea):

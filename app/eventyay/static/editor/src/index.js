@@ -83,3 +83,4 @@ if (document.readyState === 'loading') {
 }
 
 window.eventyayTiptap = { init, mountEditor }
+window.dispatchEvent(new CustomEvent('eventyay:tiptap-ready'))

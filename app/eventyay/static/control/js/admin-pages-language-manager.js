@@ -276,4 +276,9 @@
     window.addEventListener('eventyay:toastui-ready', () => {
         window.setTimeout(initAll, 0)
     })
+
+    window.addEventListener('eventyay:tiptap-ready', () => {
+        window.eventyayTiptap?.init?.()
+        window.setTimeout(initAll, 0)
+    })
 })()
