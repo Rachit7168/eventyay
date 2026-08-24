@@ -46,6 +46,19 @@
   padding: 0;
 }
 
+.workflow-card,
+.workflow-card .td-section-card-body {
+  overflow: visible;
+  position: relative;
+}
+
+.stages .step .step-links {
+  z-index: 1050;
+  border-radius: 6px;
+  border: 1px solid #e5e8ed;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+}
+
 /* --------------------------------------------------------------------------
    Section headings (standalone, outside card — kept for analytics wrapper)
    -------------------------------------------------------------------------- */
