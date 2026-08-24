@@ -172,6 +172,7 @@ const drawPieChart = (data, scope, type) => {
             enabled: false,
         },
         legend: {
+            position: "bottom",
             formatter: function (val, opts) {
                 if (val.length > 20) val = val.slice(0, 20) + "…"
                 return val + " - " + opts.w.globals.series[opts.seriesIndex]
