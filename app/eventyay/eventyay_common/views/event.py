@@ -990,14 +990,14 @@ class EventLive(TemplateView):
             if not cfp.text:
                 warnings.append(
                     {
-                        'text': _('The Call for Papers text is missing. Please add a description.'),
+                        'text': _('The Call for Proposals text is missing. Please add a description.'),
                         'url': cfp.urls.text,
                     }
                 )
             elif len(str(cfp.text)) < 50:
                 warnings.append(
                     {
-                        'text': _('The Call for Papers text is too short (needs at least 50 characters).'),
+                        'text': _('The Call for Proposals text is too short (needs at least 50 characters).'),
                         'url': cfp.urls.text,
                     }
                 )

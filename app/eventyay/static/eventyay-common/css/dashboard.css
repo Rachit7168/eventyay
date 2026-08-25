@@ -337,7 +337,7 @@
 .status-card-danger { border-color: #f5c6cb; }
 .status-label { font-size: 14px; padding: 5px 10px; }
 .alert-custom { margin-left: 50px; margin-top: 15px; border-radius: 6px; }
-.alert-list { margin-bottom: 0; margin-top: 8px; }
+.alert-list { margin-bottom: 0; margin-top: 8px; padding-left: 20px; }
 .section-flex-row { display: flex; align-items: flex-start; gap: 24px; }
 .card-content-col { flex: 1; min-width: 0; }
 .card-action-col { flex-shrink: 0; display: flex; flex-direction: column; align-items: stretch; gap: 8px; padding-top: 5px; width: 190px; }
@@ -355,8 +355,8 @@
 .mode-row { display: flex; align-items: center; }
 .mode-title { font-size: 15px; }
 .warning-banner { background: var(--status-warning-bg); border-left: 4px solid var(--status-warning-border); border-radius: 4px; padding: 8px 12px; color: var(--status-warning-text); font-size: 13px; }
-.alert-compact { margin-top: 12px; margin-bottom: 0; padding: 10px; font-size: 13px; }
-.alert-compact-list { margin-bottom: 0; margin-top: 5px; }
+.alert-compact { margin-top: 12px; margin-bottom: 0; padding: 10px 15px; font-size: 13px; }
+.alert-compact-list { margin-bottom: 0; margin-top: 5px; padding-left: 20px; }
 .warnings-container { margin-left: 50px; margin-top: 25px; border: 1px solid var(--status-warning-border); border-radius: 8px; background: #fff8e1; padding: 18px; }
 .warning-heading { color: var(--status-warning-dark); font-size: 15px; }
 .warning-list { margin-top: 10px; padding-left: 20px; color: #555; font-size: 13px; line-height: 1.5; }
