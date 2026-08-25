@@ -87,8 +87,6 @@ _PAGE_ATTRIBUTES: dict[str, set[str]] = {
     'img': {'src', 'alt', 'width', 'height', 'title'}
 }
 
-# _EMAIL_ATTR_FILTER can filter img src correctly, but let's make a generic one if needed.
-# We can use the same attribute_filter logic for Page, or a custom one.
 _PAGE_ATTR_FILTER = _attribute_filter(_PAGE_ATTRIBUTES)
 
 def sanitize_rich_text(html: str) -> str:

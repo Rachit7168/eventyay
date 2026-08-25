@@ -30,7 +30,7 @@ from eventyay.control.forms.global_settings import (
     UpdateSettingsForm,
     StartPageSettingsForm,
 )
-from eventyay.common.sanitizers import sanitize_rich_text
+from eventyay.common.sanitizers import sanitize_page_rich_text
 from eventyay.control.permissions import (
     AdministratorPermissionRequiredMixin,
     StaffMemberRequiredMixin,
@@ -443,10 +443,10 @@ class AdminRichTextPreviewView(AdministratorPermissionRequiredMixin, View):
         previews = {}
         for key, value in request.POST.items():
             if key == 'content':
-                return JsonResponse({'html': sanitize_rich_text(value)})
+                return JsonResponse({'html': sanitize_page_rich_text(value)})
             if key.startswith('content_'):
                 locale = key[len('content_'):]
-                previews[locale] = sanitize_rich_text(value)
+                previews[locale] = sanitize_page_rich_text(value)
 
         if previews:
             return JsonResponse({'previews': previews})
