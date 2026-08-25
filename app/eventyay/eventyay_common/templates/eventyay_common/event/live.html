@@ -97,7 +97,7 @@
                     </div>
                     {% if info_publish_issues %}
                         <div class="alert alert-warning alert-custom">
-                            <strong><i class="fa fa-warning"></i> {% trans "Attention required:" %}</strong>
+                            <strong>{% trans "Attention required:" %}</strong>
                             <ul class="alert-list">
                                 {% for issue in info_publish_issues %}
                                     <li>{{ issue|safe }}</li>
@@ -236,7 +236,7 @@
                             </p>
                             {% if ticket_issues %}
                                 <div class="alert alert-warning alert-compact">
-                                    <strong><i class="fa fa-warning"></i> {% trans "Attention required:" %}</strong>
+                                    <strong>{% trans "Attention required:" %}</strong>
                                     <ul class="alert-compact-list">
                                         {% for issue in ticket_issues %}
                                             <li>{{ issue|safe }}</li>
