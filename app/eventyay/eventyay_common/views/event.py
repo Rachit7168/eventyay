@@ -987,10 +987,17 @@ class EventLive(TemplateView):
         suggestions = []
         if hasattr(self.request.event, 'cfp'):
             cfp = self.request.event.cfp
-            if not cfp.text or len(str(cfp.text)) < 50:
+            if not cfp.text:
                 warnings.append(
                     {
-                        'text': _('The CfP doesn’t have a full text yet.'),
+                        'text': _('The Call for Papers text is missing. Please add a description.'),
+                        'url': cfp.urls.text,
+                    }
+                )
+            elif len(str(cfp.text)) < 50:
+                warnings.append(
+                    {
+                        'text': _('The Call for Papers text is too short (needs at least 50 characters).'),
                         'url': cfp.urls.text,
                     }
                 )
