@@ -81,6 +81,16 @@ def _clean(
     )
 
 
+_PAGE_TAGS: frozenset[str] = _RICH_TEXT_TAGS | frozenset({'img'})
+_PAGE_ATTRIBUTES: dict[str, set[str]] = {
+    **_LINK_ATTRIBUTES,
+    'img': {'src', 'alt', 'width', 'height', 'title'}
+}
+
+# _EMAIL_ATTR_FILTER can filter img src correctly, but let's make a generic one if needed.
+# We can use the same attribute_filter logic for Page, or a custom one.
+_PAGE_ATTR_FILTER = _attribute_filter(_PAGE_ATTRIBUTES)
+
 def sanitize_rich_text(html: str) -> str:
     """Sanitize HTML from the simple rich text editor profile."""
     return _clean(
@@ -89,6 +99,18 @@ def sanitize_rich_text(html: str) -> str:
         attributes=_LINK_ATTRIBUTES,
         attribute_filter=_RICH_TEXT_ATTR_FILTER,
         link_rel='noopener noreferrer',
+    )
+
+
+def sanitize_page_rich_text(html: str) -> str:
+    """Sanitize HTML from the page text editor profile which allows inline images."""
+    return _clean(
+        html,
+        tags=_PAGE_TAGS,
+        attributes=_PAGE_ATTRIBUTES,
+        attribute_filter=_PAGE_ATTR_FILTER,
+        link_rel='noopener noreferrer',
+        url_schemes=_EMAIL_URL_SCHEMES,  # to allow data:image URLs for initial upload
     )
 
 

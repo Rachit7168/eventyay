@@ -13,6 +13,7 @@ from lxml import etree
 
 from eventyay.base.models.page import Page
 from eventyay.common.forms.fields import I18nRichTextFormField
+from eventyay.common.sanitizers import sanitize_page_rich_text
 
 
 logger = logging.getLogger(__name__)
@@ -32,11 +33,13 @@ class PageSettingsForm(forms.ModelForm):
             'link_in_header',
             'link_in_footer',
             'confirmation_required',
+            'text',
         )
 
     text = I18nRichTextFormField(
         required=False,
-        label=_('Page content')
+        label=_('Page content'),
+        sanitizer=sanitize_page_rich_text
     )
 
     def __init__(self, *args, **kwargs):

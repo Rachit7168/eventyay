@@ -24,6 +24,10 @@
         if (editor && typeof editor.getMarkdown === 'function') {
             return String(editor.getMarkdown() || '')
         }
+        const tiptap = fieldEl.__eventyayTiptapEditor
+        if (tiptap && typeof tiptap.getHTML === 'function') {
+            return String(tiptap.getHTML() || '')
+        }
         return String(fieldEl.value || '')
     }
 
@@ -32,6 +36,10 @@
         const editor = fieldEl.__eventyayToastUiEditor
         if (editor && typeof editor.setMarkdown === 'function') {
             editor.setMarkdown('')
+        }
+        const tiptap = fieldEl.__eventyayTiptapEditor
+        if (tiptap && tiptap.commands && typeof tiptap.commands.setContent === 'function') {
+            tiptap.commands.setContent('')
         }
         fieldEl.value = ''
     }
@@ -114,6 +122,11 @@
                 const editor = entry?.fieldEl?.__eventyayToastUiEditor
                 if (editor && typeof editor.focus === 'function') {
                     editor.focus()
+                    return
+                }
+                const tiptap = entry?.fieldEl?.__eventyayTiptapEditor
+                if (tiptap && tiptap.commands && typeof tiptap.commands.focus === 'function') {
+                    tiptap.commands.focus()
                     return
                 }
                 entry?.fieldEl?.focus?.()
