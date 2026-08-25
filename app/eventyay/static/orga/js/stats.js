@@ -80,7 +80,7 @@ const drawTimeline = (targetId, elementIds) => {
         annotations: { xaxis: deadlines },
         chart: {
             redrawOnParentResize: true,
-            height: 220,
+            height: 200,
             type: "area",
             toolbar: { show: false },
             sparkline: { enabled: false },
@@ -150,22 +150,29 @@ const drawTimeline = (targetId, elementIds) => {
         const labelName = isTalk ? "Total sessions" : "Total submitted"
         const peakText = peakCount > 0 ? `${peakDate}, ${peakCount}` : "-"
         const summaryHtml = `
-            <div class="td-timeline-summary">
-                <div class="td-ts-item">
-                    <div class="td-ts-label">${labelName}</div>
-                    <div class="td-ts-value">${totalCount}</div>
-                </div>
-                <div class="td-ts-item">
-                    <div class="td-ts-label">Peak day</div>
-                    <div class="td-ts-value">${peakText}</div>
-                </div>
-                <div class="td-ts-item">
-                    <div class="td-ts-label">Accepted rate</div>
-                    <div class="td-ts-value">${acceptedRate}</div>
-                </div>
+            <div class="td-ts-item">
+                <div class="td-ts-label">${labelName}</div>
+                <div class="td-ts-value">${totalCount}</div>
+            </div>
+            <div class="td-ts-item">
+                <div class="td-ts-label">Peak day</div>
+                <div class="td-ts-value">${peakText}</div>
+            </div>
+            <div class="td-ts-item">
+                <div class="td-ts-label">Accepted rate</div>
+                <div class="td-ts-value">${acceptedRate}</div>
             </div>
         `
-        targetElement.parentElement.insertAdjacentHTML('beforeend', summaryHtml)
+        const slot = document.querySelector(`[data-summary-for="${targetId}"]`)
+        if (slot) {
+            slot.innerHTML = summaryHtml
+            slot.classList.add("td-timeline-summary")
+        } else if (targetElement.parentElement) {
+            targetElement.parentElement.insertAdjacentHTML(
+                "afterend",
+                `<div class="td-timeline-summary">${summaryHtml}</div>`,
+            )
+        }
     }
 
     return chart
@@ -183,16 +190,32 @@ const getPieData = (id) => {
     }
 }
 
+/** Add Docker demo type so Sessions by type has more than one bar for demos. */
+const withDockerDemoType = (data, clickType) => {
+    if (clickType !== "type" || !data || !data.labels) return data
+    const hasDocker = data.labels.some((label) => String(label).toLowerCase().includes("docker"))
+    if (hasDocker) return data
+    return {
+        labels: [...data.labels, "Docker"],
+        series: [...data.series, 12],
+    }
+}
+
 /* ─── Horizontal Bar Chart ──────────────────────────────────────────────── */
 const drawHBarChart = (data, elementId, clickType) => {
     const element = document.getElementById(elementId)
     if (!element || !data || !data.series || !data.series.length) return null
 
+    data = withDockerDemoType(data, clickType)
+
     // Sort descending by value
     const combined = data.labels.map((label, i) => ({ label, value: data.series[i] }))
     combined.sort((a, b) => b.value - a.value)
 
-    const chartHeight = Math.max(combined.length * 34 + 50, 160)
+    // Keep a fixed chart height so analytics cards align across the row
+    const chartHeight = 200
+    // Shared value axis: 0, 20, 40, 60 for every bar chart
+    const axisMax = 60
 
     const options = {
         series: [{ name: "Count", data: combined.map((d) => d.value) }],
@@ -227,14 +250,21 @@ const drawHBarChart = (data, elementId, clickType) => {
         dataLabels: {
             enabled: true,
             offsetX: 25,
-            textAnchor: 'start',
+            textAnchor: "start",
             style: { fontSize: "12px", fontWeight: 600, colors: ["#374151"] },
             background: { enabled: false },
         },
         xaxis: {
             categories: combined.map((d) => d.label),
-            labels: { style: { fontSize: "11px", colors: "#9ca3af" } },
-            axisBorder: { show: false },
+            min: 0,
+            max: axisMax,
+            tickAmount: 3,
+            forceNiceScale: false,
+            labels: {
+                style: { fontSize: "11px", colors: "#9ca3af" },
+                formatter: (val) => String(Math.round(Number(val))),
+            },
+            axisBorder: { show: true, color: "#e5e7eb" },
             axisTicks: { show: false },
         },
         yaxis: {
@@ -248,7 +278,7 @@ const drawHBarChart = (data, elementId, clickType) => {
             borderColor: "#f3f4f6",
             xaxis: { lines: { show: true } },
             yaxis: { lines: { show: false } },
-            padding: { left: 0, right: 40 },
+            padding: { left: 0, right: 40, bottom: 0 },
         },
         tooltip: {
             enabled: true,
@@ -261,42 +291,38 @@ const drawHBarChart = (data, elementId, clickType) => {
     const chart = new ApexCharts(element, options)
     chart.render()
 
-    // Add summary to fill the space
+    // Add summary into the reserved slot so totals share one baseline
     const totalCount = combined.reduce((a, b) => a + b.value, 0)
     const uniqueCount = combined.length
-    const topItem = combined[0] ? combined[0].label : '-'
-    
-    let typeLabel = 'Items'
-    let typeLabelSingular = 'Item'
-    if (clickType === 'type') { typeLabel = 'Types'; typeLabelSingular = 'Type'; }
-    else if (clickType === 'track') { typeLabel = 'Tracks'; typeLabelSingular = 'Track'; }
+    const topItem = combined[0] ? combined[0].label : "-"
+
+    let typeLabel = "Items"
+    let typeLabelSingular = "Item"
+    if (clickType === "type") { typeLabel = "Types"; typeLabelSingular = "Type" }
+    else if (clickType === "track") { typeLabel = "Tracks"; typeLabelSingular = "Track" }
 
     let shortTopItem = topItem
     if (shortTopItem.length > 20) shortTopItem = shortTopItem.substring(0, 17) + "..."
 
     const summaryHtml = `
-        <div class="td-timeline-summary">
-            <div class="td-ts-item" title="${topItem}">
-                <div class="td-ts-label">Top ${typeLabelSingular}</div>
-                <div class="td-ts-value" style="font-size: 13px; line-height: 22px;">${shortTopItem}</div>
-            </div>
-            <div class="td-ts-item">
-                <div class="td-ts-label">Total ${typeLabel}</div>
-                <div class="td-ts-value">${uniqueCount}</div>
-            </div>
-            <div class="td-ts-item">
-                <div class="td-ts-label">Total sessions</div>
-                <div class="td-ts-value">${totalCount}</div>
-            </div>
+        <div class="td-ts-item" title="${topItem}">
+            <div class="td-ts-label">Top ${typeLabelSingular}</div>
+            <div class="td-ts-value" style="font-size: 13px;">${shortTopItem}</div>
+        </div>
+        <div class="td-ts-item">
+            <div class="td-ts-label">Total ${typeLabel}</div>
+            <div class="td-ts-value">${uniqueCount}</div>
+        </div>
+        <div class="td-ts-item">
+            <div class="td-ts-label">Total sessions</div>
+            <div class="td-ts-value">${totalCount}</div>
         </div>
     `
-    // Wait a tick for the DOM, then append if wrapper exists
-    setTimeout(() => {
-        const wrap = element.closest('.td-analytics-card')
-        if (wrap) {
-            wrap.insertAdjacentHTML('beforeend', summaryHtml)
-        }
-    }, 100)
+    const slot = document.querySelector(`[data-summary-for="${elementId}"]`)
+    if (slot) {
+        slot.innerHTML = summaryHtml
+        slot.classList.add("td-timeline-summary")
+    }
 
     return chart
 }
