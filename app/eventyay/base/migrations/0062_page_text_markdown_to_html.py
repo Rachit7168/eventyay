@@ -5,7 +5,7 @@ from eventyay.base.templatetags.rich_text import compile_markdown
 import copy
 
 def convert_markdown_to_html(apps, schema_editor):
-    Page = apps.get_model('eventyaybase', 'Page')
+    Page = apps.get_model('base', 'Page')
     for page in Page.objects.all():
         if page.text:
             text_data = page.text.data
@@ -29,7 +29,7 @@ def convert_markdown_to_html(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('eventyaybase', '0061_price_max_digits_currency_support'),
+        ('base', '0061_price_max_digits_currency_support'),
     ]
 
     operations = [
