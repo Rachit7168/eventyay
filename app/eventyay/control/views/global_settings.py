@@ -434,21 +434,3 @@ class RefundDetailView(AdministratorPermissionRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         p = get_object_or_404(OrderRefund, pk=request.GET.get('pk'))
         return JsonResponse({'data': p.info_data})
-
-
-class AdminRichTextPreviewView(AdministratorPermissionRequiredMixin, View):
-    """AJAX endpoint for sanitizing rich-text editor HTML for admin Edit/Preview tabs."""
-
-    def post(self, request, *args, **kwargs):
-        previews = {}
-        for key, value in request.POST.items():
-            if key == 'content':
-                return JsonResponse({'html': sanitize_page_rich_text(value)})
-            if key.startswith('content_'):
-                locale = key[len('content_'):]
-                previews[locale] = sanitize_page_rich_text(value)
-
-        if previews:
-            return JsonResponse({'previews': previews})
-
-        return JsonResponse({'error': 'No content provided.'}, status=400)

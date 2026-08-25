@@ -165,18 +165,3 @@
   font-size: 12px;
   font-weight: 600;
 }
-
-.richtext-preview {
-  min-height: 140px;
-}
-
-.richtext-preview-list .richtext-preview + .richtext-preview {
-  margin-top: 10px;
-}
-
-.richtext-preview[lang] {
-  background-repeat: no-repeat;
-  background-position: 10px 12px;
-  background-size: 18px 12px;
-  padding-left: 34px;
-}
