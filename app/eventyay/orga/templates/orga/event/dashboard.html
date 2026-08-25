@@ -49,6 +49,8 @@
 {% endwith %}
 {% endwith %}
 
+<div class="td-dashboard">
+
 {# ─── 1. Talk workflow ──────────────────────────────────────────────────────── #}
 <div class="td-section-card workflow-card mb-3" aria-label="{% trans "Talk workflow timeline" %}">
     <div class="td-section-card-header">
@@ -123,14 +125,19 @@
         <div class="td-kpi-grid">
             {% for card in kpi_cards %}
                 <a href="{{ card.url }}" class="td-kpi-card" id="kpi-card-{{ forloop.counter }}" title="{{ card.label }}">
-                    <div class="td-kpi-details">
-                        <div class="td-kpi-label">
-                            {% if card.icon %}<span class="fa fa-{{ card.icon }} fa-fw text-muted mr-1"></span>{% endif %}
-                            {{ card.label }}
+                    <div class="td-kpi-left">
+                        {% if card.icon %}
+                        <div class="td-kpi-icon">
+                            <span class="fa fa-{{ card.icon }}"></span>
                         </div>
+                        {% endif %}
+                        <div class="td-kpi-value {% if card.color %}{{ card.color }}{% endif %}">{{ card.value }}</div>
+                    </div>
+                    <div class="td-kpi-divider"></div>
+                    <div class="td-kpi-details">
+                        <div class="td-kpi-label">{{ card.label }}</div>
                         <div class="td-kpi-link">{{ card.link }}</div>
                     </div>
-                    <div class="td-kpi-value {% if card.color %}{{ card.color }}{% endif %}">{{ card.value }}</div>
                 </a>
             {% endfor %}
         </div>
@@ -283,7 +290,7 @@
     {% if can_change_settings %}
     <div class="td-section-card td-note-card" id="internal-note-card">
         <div class="td-section-card-header">
-            <span class="fa fa-sticky-note" style="color:#f9a825;"></span>
+            <span class="fa fa-sticky-note" style="color:#f59e0b;"></span>
             {% trans "Internal note" %}
         </div>
         <div class="td-section-card-body">
@@ -306,5 +313,7 @@
     {% endif %}
 
 </div>
+
+</div>{# end .td-dashboard #}
 
 {% endblock content %}
