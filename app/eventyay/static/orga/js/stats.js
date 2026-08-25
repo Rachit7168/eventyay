@@ -221,12 +221,13 @@ const drawHBarChart = (data, elementId, clickType) => {
                 horizontal: true,
                 barHeight: "55%",
                 borderRadius: 3,
-                dataLabels: { position: "right" },
+                dataLabels: { position: "top" },
             },
         },
         dataLabels: {
             enabled: true,
-            offsetX: 6,
+            offsetX: 25,
+            textAnchor: 'start',
             style: { fontSize: "12px", fontWeight: 600, colors: ["#374151"] },
             background: { enabled: false },
         },
@@ -247,7 +248,7 @@ const drawHBarChart = (data, elementId, clickType) => {
             borderColor: "#f3f4f6",
             xaxis: { lines: { show: true } },
             yaxis: { lines: { show: false } },
-            padding: { left: 0, right: 16 },
+            padding: { left: 0, right: 40 },
         },
         tooltip: {
             enabled: true,
@@ -259,6 +260,44 @@ const drawHBarChart = (data, elementId, clickType) => {
 
     const chart = new ApexCharts(element, options)
     chart.render()
+
+    // Add summary to fill the space
+    const totalCount = combined.reduce((a, b) => a + b.value, 0)
+    const uniqueCount = combined.length
+    const topItem = combined[0] ? combined[0].label : '-'
+    
+    let typeLabel = 'Items'
+    let typeLabelSingular = 'Item'
+    if (clickType === 'type') { typeLabel = 'Types'; typeLabelSingular = 'Type'; }
+    else if (clickType === 'track') { typeLabel = 'Tracks'; typeLabelSingular = 'Track'; }
+
+    let shortTopItem = topItem
+    if (shortTopItem.length > 20) shortTopItem = shortTopItem.substring(0, 17) + "..."
+
+    const summaryHtml = `
+        <div class="td-timeline-summary">
+            <div class="td-ts-item" title="${topItem}">
+                <div class="td-ts-label">Top ${typeLabelSingular}</div>
+                <div class="td-ts-value" style="font-size: 13px; line-height: 22px;">${shortTopItem}</div>
+            </div>
+            <div class="td-ts-item">
+                <div class="td-ts-label">Total ${typeLabel}</div>
+                <div class="td-ts-value">${uniqueCount}</div>
+            </div>
+            <div class="td-ts-item">
+                <div class="td-ts-label">Total sessions</div>
+                <div class="td-ts-value">${totalCount}</div>
+            </div>
+        </div>
+    `
+    // Wait a tick for the DOM, then append if wrapper exists
+    setTimeout(() => {
+        const wrap = element.closest('.td-analytics-card')
+        if (wrap) {
+            wrap.insertAdjacentHTML('beforeend', summaryHtml)
+        }
+    }, 100)
+
     return chart
 }
 
