@@ -27,6 +27,7 @@ def test_clone_view_get(organizer_client, event, clone_url):
 
 
 @pytest.mark.django_db
+@override_settings(SITE_URL='http://testserver')
 def test_clone_view_post_success(organizer_client, event, clone_url, user):
     with scopes_disabled():
         tr = event.tax_rules.create(rate=19, name='VAT')
@@ -77,9 +78,9 @@ def test_clone_view_post_success(organizer_client, event, clone_url, user):
     assert cloned_event.name == 'Cloned Event'
     assert cloned_event.organizer == event.organizer
     assert cloned_event.settings.timezone == 'Europe/Berlin'
-    
+
     assert Team.objects.filter(limit_events=cloned_event, members=user).exists()
-    
+
     with scopes_disabled():
         assert cloned_event.tax_rules.filter(rate=Decimal('19.00')).count() == 1
         assert cloned_event.products.count() == 1
@@ -87,6 +88,7 @@ def test_clone_view_post_success(organizer_client, event, clone_url, user):
 
 
 @pytest.mark.django_db
+@override_settings(SITE_URL='http://testserver')
 def test_clone_view_post_selective_clone(organizer_client, event, clone_url):
     with scopes_disabled():
         tr = event.tax_rules.create(rate=19, name='VAT')
@@ -126,7 +128,7 @@ def test_clone_view_post_selective_clone(organizer_client, event, clone_url):
     cloned_event = Event.objects.get(slug='cloned-event-2')
 
     assert cloned_event.name == 'Cloned Event 2'
-    
+
     with scopes_disabled():
         # Products and tax rules should not be cloned since clone_ticketing_data is not set
         assert cloned_event.tax_rules.count() == 0

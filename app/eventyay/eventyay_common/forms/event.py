@@ -332,6 +332,8 @@ class EventUpdateForm(I18nModelForm):
             'date_to': SplitDateTimePickerWidget(attrs={'data-date-after': '#id_date_from_0'}),
             'date_admission': SplitDateTimePickerWidget(attrs={'data-date-default': '#id_date_from_0'}),
         }
+
+
 class EventCloneForm(I18nModelForm):
     locales = forms.MultipleChoiceField(
         choices=django_settings.LANGUAGES,

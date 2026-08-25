@@ -1636,6 +1636,9 @@ class EventCloneView(EventSettingsViewMixin, EventPermissionRequiredMixin, FormV
         with scope(organizer=new_event.organizer):
             if not new_event.checkin_lists.exists():
                 new_event.checkin_lists.create(name=_('Default'), all_products=True)
+            for team in self.request.user.teams.filter(organizer=new_event.organizer):
+                if not team.all_events and team.can_create_events:
+                    team.limit_events.add(new_event)
 
         new_event.set_defaults()
         
