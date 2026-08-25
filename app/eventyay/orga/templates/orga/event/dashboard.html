@@ -131,13 +131,12 @@
                             <span class="fa fa-{{ card.icon }}"></span>
                         </div>
                         {% endif %}
-                        <div class="td-kpi-value {% if card.color %}{{ card.color }}{% endif %}">{{ card.value }}</div>
+                        <div class="td-kpi-details">
+                            <div class="td-kpi-label">{{ card.label }}</div>
+                            <div class="td-kpi-link">{{ card.link }}</div>
+                        </div>
                     </div>
-                    <div class="td-kpi-divider"></div>
-                    <div class="td-kpi-details">
-                        <div class="td-kpi-label">{{ card.label }}</div>
-                        <div class="td-kpi-link">{{ card.link }}</div>
-                    </div>
+                    <div class="td-kpi-value {% if card.color %}{{ card.color }}{% endif %}">{{ card.value }}</div>
                 </a>
             {% endfor %}
         </div>
