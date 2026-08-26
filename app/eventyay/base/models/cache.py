@@ -12,8 +12,17 @@ from django.db import models, transaction
 from eventyay.core.utils.redis import aredis, sredis
 
 # Django's RedisCache may raise these when a stored model blob cannot be unpickled
-# (e.g. Room pickled with Event.settings / Hierarkey + Twisted method reducers).
-_CACHE_LOAD_ERRORS = (AttributeError, TypeError, ValueError, pickle.UnpicklingError)
+# (e.g. Room pickled with Event.settings / Hierarkey + Twisted method reducers,
+# or truncated / incompatible pickle payloads from Redis).
+_CACHE_LOAD_ERRORS = (
+    AttributeError,
+    TypeError,
+    ValueError,
+    EOFError,
+    IndexError,
+    ImportError,
+    pickle.UnpicklingError,
+)
 _CACHE_STORE_ERRORS = (AttributeError, TypeError, pickle.PicklingError)
 
 SETIFHIGHER = """local c = tonumber(redis.call('get', KEYS[1]));
@@ -102,16 +111,19 @@ class VersionedModel(models.Model):
         cache = caches["process"]
         try:
             cached_instance = cache.get(self._cachekey)
+            if cached_instance is not None:
+                cached_version = getattr(cached_instance, "version", None)
+                if cached_version is None:
+                    cache.delete(self._cachekey)
+                elif cached_version == latest_version:
+                    self._refresh_from_cache(cached_instance)
+                    return
         except _CACHE_LOAD_ERRORS:
             logger.warning(
                 "VersionedModel.refresh_from_db_if_outdated: dropping unreadable cache for %s",
                 self._cachekey,
             )
             cache.delete(self._cachekey)
-            cached_instance = None
-        if cached_instance and cached_instance.version == latest_version:
-            self._refresh_from_cache(cached_instance)
-            return
 
         await database_sync_to_async(self.refresh_from_db)()
         try:
