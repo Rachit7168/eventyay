@@ -1,60 +1,118 @@
 const globalData = document.getElementById("global-data")
-const dataMapping = globalData && globalData.dataset.mapping ? JSON.parse(globalData.dataset.mapping) : {}
-let searchUrl = globalData && globalData.dataset.url ? globalData.dataset.url : ""
+let dataMapping = {}
+let searchUrl = ""
+
+try {
+    if (globalData && globalData.dataset.mapping) {
+        dataMapping = JSON.parse(globalData.dataset.mapping)
+    }
+    if (globalData && globalData.dataset.url) {
+        searchUrl = globalData.dataset.url
+    }
+} catch (error) {
+    console.error("Failed to parse analytics mapping", error)
+}
+
+const chartInstances = {
+    timeline: null,
+    type: null,
+    track: null,
+}
+
+const loadPayload = () => {
+    const payloadEl = document.getElementById("stats-payload")
+    if (!payloadEl) return null
+    try {
+        return JSON.parse(payloadEl.textContent)
+    } catch (error) {
+        console.error("Failed to parse analytics payload", error)
+        return null
+    }
+}
+
+const toChartData = (rows) => {
+    if (!rows || !rows.length) return null
+    return {
+        series: rows.map((row) => row.value),
+        labels: rows.map((row) => row.label),
+    }
+}
+
+const destroyChart = (key) => {
+    if (!chartInstances[key]) return
+    try {
+        chartInstances[key].destroy()
+    } catch (error) {
+        console.error("Failed to destroy analytics chart", key, error)
+    }
+    chartInstances[key] = null
+}
+
+const clearChartTarget = (elementId) => {
+    const element = document.getElementById(elementId)
+    if (element) element.innerHTML = ""
+}
+
+const clearSummary = (elementId) => {
+    const slot = document.querySelector(`[data-summary-for="${elementId}"]`)
+    if (slot) slot.innerHTML = ""
+}
+
+const getScopeBundle = (payload, scope) => {
+    if (!payload) return null
+    return payload[scope] || null
+}
 
 /* ─── Timeline (area chart) ─────────────────────────────────────────────── */
-const drawTimeline = (targetId, elementIds) => {
+const drawTimeline = (targetId, timelineRows, label, stateRows) => {
     const targetElement = document.getElementById(targetId)
-    if (!targetElement) return null
+    if (!targetElement || !timelineRows || !timelineRows.length) return null
+    if (typeof ApexCharts === "undefined") {
+        console.error("ApexCharts is not available for timeline rendering")
+        return null
+    }
 
-    const dataElements = elementIds
-        .map((id) => document.getElementById(id))
-        .filter((element) => element && element.dataset.timeline)
-
-    if (!dataElements.length) return null
-
-    const annotations = globalData && globalData.dataset.annotations ? globalData.dataset.annotations : '{"deadlines":[]}'
-    const deadlines = JSON.parse(annotations).deadlines.map(
-        (element) => {
-            return {
-                x: new Date(element[0]).getTime(),
-                borderColor: "#ff4560",
-                strokeDashArray: 0,
-                label: {
-                    style: {
-                        borderColor: "#ff4560",
-                        background: "#ff4560",
-                        color: "#fff",
-                        fontSize: "14px",
-                        padding: { top: 5 },
-                    },
-                    text: element[1],
+    let deadlines = []
+    try {
+        const annotations = globalData && globalData.dataset.annotations
+            ? globalData.dataset.annotations
+            : '{"deadlines":[]}'
+        deadlines = JSON.parse(annotations).deadlines.map((element) => ({
+            x: new Date(element[0]).getTime(),
+            borderColor: "#ff4560",
+            strokeDashArray: 0,
+            label: {
+                style: {
+                    borderColor: "#ff4560",
+                    background: "#ff4560",
+                    color: "#fff",
+                    fontSize: "14px",
+                    padding: { top: 5 },
                 },
-            }
-        },
-    )
-    let options = {
-        series: dataElements.map((element) => {
-            let parsedData = JSON.parse(element.dataset.timeline).map((element) => {
-                return { x: new Date(element.x).getTime(), y: element.y }
-            })
-            
-            parsedData.sort((a, b) => a.x - b.x)
-            
-            if (parsedData.length > 0) {
-                const ONE_DAY = 86400000
-                const firstTime = parsedData[0].x
-                parsedData.unshift({ x: firstTime - ONE_DAY, y: 0 })
-                
-                const lastTime = parsedData[parsedData.length - 1].x
-                parsedData.push({ x: lastTime + ONE_DAY, y: 0 })
-            }
-            
-            return {
-                name: element.dataset.label,
-                data: parsedData,
-            }
-        }),
+                text: element[1],
+            },
+        }))
+    } catch (error) {
+        console.error("Failed to parse timeline annotations", error)
+        deadlines = []
+    }
+
+    let parsedData = timelineRows.map((point) => ({
+        x: new Date(point.x).getTime(),
+        y: point.y,
+    }))
+    parsedData.sort((a, b) => a.x - b.x)
+
+    if (parsedData.length > 0) {
+        const ONE_DAY = 86400000
+        const firstTime = parsedData[0].x
+        parsedData.unshift({ x: firstTime - ONE_DAY, y: 0 })
+        const lastTime = parsedData[parsedData.length - 1].x
+        parsedData.push({ x: lastTime + ONE_DAY, y: 0 })
+    }
+
+    const options = {
+        series: [{ name: label, data: parsedData }],
         xaxis: {
             type: "datetime",
             tooltip: { enabled: false },
@@ -90,7 +148,7 @@ const drawTimeline = (targetId, elementIds) => {
         stroke: { width: 2, curve: "smooth" },
         dataLabels: { enabled: false },
         legend: {
-            formatter: function (val, opts) {
+            formatter: function (val) {
                 if (val.length > 15) val = val.slice(0, 15) + "…"
                 return val
             },
@@ -111,83 +169,59 @@ const drawTimeline = (targetId, elementIds) => {
             marker: { show: true },
         },
     }
+
     const chart = new ApexCharts(targetElement, options)
     chart.render()
 
-    // ── Inject Summary Stats ──
-    const isTalk = targetId.includes("talk")
     let totalCount = 0
     let peakCount = 0
     let peakDate = "-"
-    
-    const timelineData = options.series[0]?.data || []
-    timelineData.forEach(d => {
-        totalCount += d.y
-        if (d.y > peakCount) {
-            peakCount = d.y
-            const dateObj = new Date(d.x)
-            peakDate = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    parsedData.forEach((point) => {
+        totalCount += point.y
+        if (point.y > peakCount) {
+            peakCount = point.y
+            peakDate = new Date(point.x).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+            })
         }
     })
 
     let acceptedRate = "0.0%"
-    const stateDataPrefix = isTalk ? "talk" : "submission"
-    const stateDataEl = document.getElementById(stateDataPrefix + "-state-data")
-    if (stateDataEl && stateDataEl.dataset.states) {
-        const states = JSON.parse(stateDataEl.dataset.states)
+    if (stateRows && stateRows.length) {
         let accepted = 0
         let total = 0
-        states.forEach(s => {
-            total += s.value
-            if (s.label.toLowerCase() === 'accepted' || s.label.toLowerCase() === 'confirmed') {
-                accepted += s.value
+        stateRows.forEach((row) => {
+            total += row.value
+            const stateLabel = String(row.label).toLowerCase()
+            if (stateLabel === "accepted" || stateLabel === "confirmed") {
+                accepted += row.value
             }
         })
         if (total > 0) acceptedRate = ((accepted / total) * 100).toFixed(1) + "%"
     }
 
-    if (totalCount >= 0) {
-        const labelName = isTalk ? "Total sessions" : "Total submitted"
-        const peakText = peakCount > 0 ? `${peakDate}, ${peakCount}` : "-"
-        const summaryHtml = `
-            <div class="td-ts-item">
-                <div class="td-ts-label">${labelName}</div>
-                <div class="td-ts-value">${totalCount}</div>
-            </div>
-            <div class="td-ts-item">
-                <div class="td-ts-label">Peak day</div>
-                <div class="td-ts-value">${peakText}</div>
-            </div>
-            <div class="td-ts-item">
-                <div class="td-ts-label">Accepted rate</div>
-                <div class="td-ts-value">${acceptedRate}</div>
-            </div>
-        `
-        const slot = document.querySelector(`[data-summary-for="${targetId}"]`)
-        if (slot) {
-            slot.innerHTML = summaryHtml
-            slot.classList.add("td-timeline-summary")
-        } else if (targetElement.parentElement) {
-            targetElement.parentElement.insertAdjacentHTML(
-                "afterend",
-                `<div class="td-timeline-summary">${summaryHtml}</div>`,
-            )
-        }
+    const summaryHtml = `
+        <div class="td-ts-item">
+            <div class="td-ts-label">Total sessions</div>
+            <div class="td-ts-value">${totalCount}</div>
+        </div>
+        <div class="td-ts-item">
+            <div class="td-ts-label">Peak day</div>
+            <div class="td-ts-value">${peakCount > 0 ? `${peakDate}, ${peakCount}` : "-"}</div>
+        </div>
+        <div class="td-ts-item">
+            <div class="td-ts-label">Accepted rate</div>
+            <div class="td-ts-value">${acceptedRate}</div>
+        </div>
+    `
+    const slot = document.querySelector(`[data-summary-for="${targetId}"]`)
+    if (slot) {
+        slot.innerHTML = summaryHtml
+        slot.classList.add("td-timeline-summary")
     }
 
     return chart
-}
-
-/* ─── Data helpers ──────────────────────────────────────────────────────── */
-const getPieData = (id) => {
-    const element = document.getElementById(id)
-    if (!element || !element.dataset.states) return null
-    const data = JSON.parse(element.dataset.states)
-    if (!data || !data.length) return null
-    return {
-        series: data.map((e) => e.value),
-        labels: data.map((e) => e.label),
-    }
 }
 
 /** Add Docker demo type so Sessions by type has more than one bar for demos. */
@@ -205,16 +239,17 @@ const withDockerDemoType = (data, clickType) => {
 const drawHBarChart = (data, elementId, clickType) => {
     const element = document.getElementById(elementId)
     if (!element || !data || !data.series || !data.series.length) return null
+    if (typeof ApexCharts === "undefined") {
+        console.error("ApexCharts is not available for bar chart rendering")
+        return null
+    }
 
     data = withDockerDemoType(data, clickType)
 
-    // Sort descending by value
     const combined = data.labels.map((label, i) => ({ label, value: data.series[i] }))
     combined.sort((a, b) => b.value - a.value)
 
-    // Keep a fixed chart height so analytics cards align across the row
     const chartHeight = 200
-    // Shared value axis: 0, 20, 40, 60 for every bar chart
     const axisMax = 60
 
     const options = {
@@ -228,15 +263,24 @@ const drawHBarChart = (data, elementId, clickType) => {
             events: {
                 dataPointSelection: (event, chartContext, config) => {
                     if (!clickType || !dataMapping[clickType]) return
-                    const typeMapping = { track: "track", type: "submission_type", state: "state", language: "content_locale" }
+                    const typeMapping = {
+                        track: "track",
+                        type: "submission_type",
+                        state: "state",
+                        language: "content_locale",
+                    }
                     const label = combined[config.dataPointIndex].label
                     const searchValue = dataMapping[clickType][label]
                     if (searchValue) {
                         window.location.href = searchUrl + "&" + typeMapping[clickType] + "=" + searchValue
                     }
                 },
-                dataPointMouseEnter: () => { element.style.cursor = "pointer" },
-                dataPointMouseLeave: () => { element.style.cursor = "inherit" },
+                dataPointMouseEnter: () => {
+                    element.style.cursor = "pointer"
+                },
+                dataPointMouseLeave: () => {
+                    element.style.cursor = "inherit"
+                },
             },
         },
         plotOptions: {
@@ -291,15 +335,19 @@ const drawHBarChart = (data, elementId, clickType) => {
     const chart = new ApexCharts(element, options)
     chart.render()
 
-    // Add summary into the reserved slot so totals share one baseline
     const totalCount = combined.reduce((a, b) => a + b.value, 0)
     const uniqueCount = combined.length
     const topItem = combined[0] ? combined[0].label : "-"
 
     let typeLabel = "Items"
     let typeLabelSingular = "Item"
-    if (clickType === "type") { typeLabel = "Types"; typeLabelSingular = "Type" }
-    else if (clickType === "track") { typeLabel = "Tracks"; typeLabelSingular = "Track" }
+    if (clickType === "type") {
+        typeLabel = "Types"
+        typeLabelSingular = "Type"
+    } else if (clickType === "track") {
+        typeLabel = "Tracks"
+        typeLabelSingular = "Track"
+    }
 
     let shortTopItem = topItem
     if (shortTopItem.length > 20) shortTopItem = shortTopItem.substring(0, 17) + "..."
@@ -329,18 +377,32 @@ const drawHBarChart = (data, elementId, clickType) => {
 
 /* ─── Stats Table (language / state) ───────────────────────────────────── */
 const PALETTE = ["#2185d0", "#f97316", "#22c55e", "#8b5cf6", "#ef4444", "#06b6d4", "#f59e0b", "#ec4899", "#10b981", "#a78bfa"]
+const MIN_STATS_ROWS = 3
+
+const statsRoot = document.getElementById("stats")
+const TOTAL_LABEL = (statsRoot && statsRoot.dataset.totalLabel) || "Total"
 
 const drawStatsTable = (data, elementId) => {
     const element = document.getElementById(elementId)
-    if (!element || !data || !data.series || !data.series.length) return
+    if (!element) return
+
+    if (!data || !data.series || !data.series.length) {
+        element.innerHTML = `<p class="td-analytics-empty">No data for this status</p>`
+        return
+    }
 
     const total = data.series.reduce((a, b) => a + b, 0)
-
-    // Sort descending
     const rows = data.labels.map((label, i) => ({ label, value: data.series[i] }))
     rows.sort((a, b) => b.value - a.value)
 
+    // Data rows stay above Total; pad so every card has the same body height
     let html = `<table class="td-stats-table">
+        <colgroup>
+            <col class="td-col-dot" />
+            <col class="td-col-name" />
+            <col class="td-col-count" />
+            <col class="td-col-pct" />
+        </colgroup>
         <thead><tr>
             <th colspan="2">Name</th>
             <th class="td-st-count">Count</th>
@@ -359,113 +421,132 @@ const drawStatsTable = (data, elementId) => {
         </tr>`
     })
 
+    const padTo = Math.max(MIN_STATS_ROWS, rows.length)
+    for (let i = rows.length; i < padTo; i += 1) {
+        html += `<tr class="td-st-pad" aria-hidden="true">
+            <td class="td-st-dot"></td>
+            <td class="td-st-name">&nbsp;</td>
+            <td class="td-st-count"></td>
+            <td class="td-st-pct"></td>
+        </tr>`
+    }
+
     html += `</tbody>
         <tfoot><tr>
-            <td colspan="2"><strong>Total</strong></td>
+            <td colspan="2"><strong>${TOTAL_LABEL}</strong></td>
             <td class="td-st-count"><strong>${total}</strong></td>
             <td class="td-st-pct"><strong>100%</strong></td>
         </tr></tfoot>
     </table>`
 
-    // View-all link if exists
-    const linkEl = element.closest(".td-analytics-card")?.querySelector(".td-analytics-view-all")
-    if (linkEl) linkEl.style.display = "block"
-
     element.innerHTML = html
 }
 
-/* ─── Legacy donut (kept for any page that still uses it) ───────────────── */
-const drawPieChart = (data, scope, type) => {
-    const id = scope + "-" + type
-    const element = document.getElementById(id)
-    if (!element || !element.classList.contains("pie")) return null
-    if (!data || !data.series || !data.series.length) return null
+/** Pad every stats table body to the same row count so Total lines up. */
+const equalizeStatsTableRows = () => {
+    const bodies = document.querySelectorAll(".td-analytics-bottom-row .td-stats-table tbody")
+    if (!bodies.length) return
 
-    const typeMapping = { track: "track", type: "submission_type", state: "state", language: "content_locale" }
-    const options = {
-        series: data.series,
-        labels: data.labels,
-        chart: {
-            height: 300,
-            width: "100%",
-            redrawOnParentResize: true,
-            type: "donut",
-            events: {
-                dataPointSelection: (event, chartContext, config) => {
-                    if (!dataMapping[type]) return
-                    const label = config.w.config.labels[config.dataPointIndex]
-                    const searchValue = dataMapping[type][label]
-                    if (searchValue) window.location.href = searchUrl + "&" + typeMapping[type] + "=" + searchValue
-                },
-                dataPointMouseEnter: () => { element.style.cursor = "pointer" },
-                dataPointMouseLeave: () => { element.style.cursor = "inherit" },
-            },
-        },
-        dataLabels: { enabled: false },
-        legend: {
-            position: "bottom",
-            formatter: (val, opts) => {
-                if (val.length > 20) val = val.slice(0, 20) + "…"
-                return val + " – " + opts.w.globals.series[opts.seriesIndex]
-            },
-        },
-        plotOptions: {
-            pie: {
-                customScale: 0.85,
-                donut: { labels: { show: true, name: { formatter: (val) => val.length > 15 ? val.slice(0, 15) + "…" : val } } },
-            },
-        },
-        tooltip: { enabled: false },
-    }
-    const chart = new ApexCharts(element, options)
-    chart.render()
-    return chart
-}
-
-/* ─── Main render ───────────────────────────────────────────────────────── */
-let chartTypes = ["state"]
-if (dataMapping.type) chartTypes.push("type")
-if (dataMapping.track) chartTypes.push("track")
-if (dataMapping.language) chartTypes.push("language")
-
-const renderAllCharts = () => {
-    // ── Timelines ──
-    if (document.getElementById("proposal-timeline")) {
-        drawTimeline("proposal-timeline", ["submission-timeline-data"])
-    } else if (document.getElementById("timeline")) {
-        drawTimeline("timeline", ["submission-timeline-data"])
-    }
-    if (document.getElementById("talk-timeline")) {
-        drawTimeline("talk-timeline", ["talk-timeline-data"])
-    }
-
-    // ── Horizontal bar charts: type & track ──
-    const barTypes = ["type", "track"]
-    barTypes.forEach((t) => {
-        const subData = getPieData("submission-" + t + "-data")
-        if (subData) drawHBarChart(subData, "submission-" + t + "-chart", t)
-
-        const talkData = getPieData("talk-" + t + "-data")
-        if (talkData) drawHBarChart(talkData, "talk-" + t + "-chart", t)
+    let maxRows = MIN_STATS_ROWS
+    bodies.forEach((tbody) => {
+        maxRows = Math.max(maxRows, tbody.querySelectorAll("tr").length)
     })
 
-    // ── Tables: language & state ──
-    const tableTypes = ["language", "state"]
-    tableTypes.forEach((t) => {
-        const subData = getPieData("submission-" + t + "-data")
-        if (subData) drawStatsTable(subData, "submission-" + t + "-table")
-
-        const talkData = getPieData("talk-" + t + "-data")
-        if (talkData) drawStatsTable(talkData, "talk-" + t + "-table")
-    })
-
-    // ── Legacy pie (any .pie element still present) ──
-    chartTypes.forEach((item) => {
-        const subData = getPieData("submission-" + item + "-data")
-        if (subData) drawPieChart(subData, "submission", item)
-        const talkData = getPieData("talk-" + item + "-data")
-        if (talkData) drawPieChart(talkData, "talk", item)
+    bodies.forEach((tbody) => {
+        const current = tbody.querySelectorAll("tr").length
+        for (let i = current; i < maxRows; i += 1) {
+            const tr = document.createElement("tr")
+            tr.className = "td-st-pad"
+            tr.setAttribute("aria-hidden", "true")
+            tr.innerHTML = `<td class="td-st-dot"></td><td class="td-st-name">&nbsp;</td><td class="td-st-count"></td><td class="td-st-pct"></td>`
+            tbody.appendChild(tr)
+        }
     })
 }
 
-setTimeout(renderAllCharts, 10)
+/* ─── Per-card render ───────────────────────────────────────────────────── */
+const renderCard = (payload, cardName, scope) => {
+    const bundle = getScopeBundle(payload, scope)
+    if (!bundle) return
+
+    if (cardName === "timeline") {
+        destroyChart("timeline")
+        clearChartTarget("stats-timeline")
+        clearSummary("stats-timeline")
+        const titleEl = document.querySelector("[data-stats-timeline-title]")
+        if (titleEl && payload.titles) {
+            titleEl.textContent = payload.titles[scope] || payload.titles.all
+        }
+        if (bundle.timeline && bundle.timeline.length) {
+            chartInstances.timeline = drawTimeline(
+                "stats-timeline",
+                bundle.timeline,
+                bundle.timelineLabel || "Sessions",
+                bundle.state,
+            )
+        } else {
+            clearChartTarget("stats-timeline")
+            const slot = document.querySelector('[data-summary-for="stats-timeline"]')
+            if (slot) slot.innerHTML = `<p class="td-analytics-empty">No data for this status</p>`
+        }
+        return
+    }
+
+    if (cardName === "type") {
+        destroyChart("type")
+        clearChartTarget("stats-type-chart")
+        clearSummary("stats-type-chart")
+        const typeData = toChartData(bundle.type)
+        if (typeData) {
+            chartInstances.type = drawHBarChart(typeData, "stats-type-chart", "type")
+        } else {
+            const slot = document.querySelector('[data-summary-for="stats-type-chart"]')
+            if (slot) slot.innerHTML = `<p class="td-analytics-empty">No data for this status</p>`
+        }
+        return
+    }
+
+    if (cardName === "track") {
+        destroyChart("track")
+        clearChartTarget("stats-track-chart")
+        clearSummary("stats-track-chart")
+        const trackData = toChartData(bundle.track)
+        if (trackData) {
+            chartInstances.track = drawHBarChart(trackData, "stats-track-chart", "track")
+        } else {
+            const slot = document.querySelector('[data-summary-for="stats-track-chart"]')
+            if (slot) slot.innerHTML = `<p class="td-analytics-empty">No data for this status</p>`
+        }
+        return
+    }
+
+    if (cardName === "language") {
+        drawStatsTable(toChartData(bundle.language), "stats-language-table")
+        return
+    }
+
+    if (cardName === "state") {
+        drawStatsTable(toChartData(bundle.state), "stats-state-table")
+    }
+}
+
+const initAnalyticsFilters = () => {
+    const payload = loadPayload()
+    if (!payload) {
+        equalizeStatsTableRows()
+        return
+    }
+
+    const filters = document.querySelectorAll("[data-stats-filter]")
+    filters.forEach((filter) => {
+        const cardName = filter.getAttribute("data-stats-filter")
+        renderCard(payload, cardName, filter.value || "all")
+        filter.addEventListener("change", () => {
+            renderCard(payload, cardName, filter.value || "all")
+            equalizeStatsTableRows()
+        })
+    })
+    equalizeStatsTableRows()
+}
+
+setTimeout(initAnalyticsFilters, 10)

@@ -10,20 +10,19 @@
 {% block stylesheets %}
     {% compress css %}
         <link rel="stylesheet" href="{% static "orga/css/dashboard.css" %}">
-        <link rel="stylesheet" href="{% static "orga/css/talks_dashboard.css" %}">
     {% endcompress %}
+    {# Cache-busted + outside compress so local redesign CSS always refreshes #}
+    <link rel="stylesheet" href="{% static "orga/css/talks_dashboard.css" %}?v=20260826-funnel5">
     <link rel="stylesheet" type="text/css" href="{% static "vendored/apexcharts/apexcharts.css" %}" />
 {% endblock stylesheets %}
 
 {% block scripts %}
     {% has_event_perm "base.orga_list_submission" request.user request request.event as can_view_submission_stats %}
-    {% compress js %}
-        <script defer src="{% static "vendored/apexcharts/apexcharts.min.js" %}"></script>
-        {% if can_view_submission_stats %}
-            <script defer src="{% static "orga/js/stats.js" %}"></script>
-        {% endif %}
-        <script defer src="{% static "orga/js/talks_dashboard_charts.js" %}"></script>
-    {% endcompress %}
+    <script defer src="{% static "vendored/apexcharts/apexcharts.min.js" %}"></script>
+    {% if can_view_submission_stats %}
+        <script defer src="{% static "orga/js/stats.js" %}?v=20260826-padrows"></script>
+    {% endif %}
+    <script defer src="{% static "orga/js/talks_dashboard_charts.js" %}?v=20260826-padrows"></script>
 {% endblock scripts %}
 
 {% block content %}
@@ -247,23 +246,22 @@
         <div class="td-readiness-grid">
             <article class="td-section-card" id="submission-funnel-card">
                 <div class="td-section-card-header">
-                    <span class="fa fa-filter" aria-hidden="true"></span>
                     <span id="td-funnel-title">{% trans "Submission funnel" %}</span>
                     <span class="td-card-filter ms-auto">{% trans "All time" %}</span>
                 </div>
                 <div class="td-section-card-body td-funnel-body">
-                    <div class="td-funnel-rows" role="img" aria-label="{% trans "Submission funnel" %}">
+                    <div class="td-funnel-chart" role="img" aria-label="{% trans "Submission funnel" %}">
                         {% for row in funnel_data.rows %}
                             <div class="td-funnel-row td-funnel-{{ row.key }}">
-                                <div class="td-funnel-label">{{ row.label }}</div>
+                                <span class="td-funnel-label">{{ row.label }}</span>
                                 <div class="td-funnel-track">
                                     <div
                                         class="td-funnel-bar"
-                                        style="--td-funnel-w: {{ row.width }}%; --td-funnel-inset: {{ row.inset }}%"
+                                        style="width: {{ row.width }}%"
                                         aria-hidden="true"
                                     ></div>
                                 </div>
-                                <div class="td-funnel-value">{{ row.count }}</div>
+                                <span class="td-funnel-value">{{ row.count }}</span>
                             </div>
                         {% endfor %}
                     </div>
@@ -276,44 +274,33 @@
 
             <article class="td-section-card" id="session-readiness-card">
                 <div class="td-section-card-header">
-                    <span class="fa fa-calendar-check-o" aria-hidden="true"></span>
                     {% trans "Session readiness" %}
                 </div>
                 <div class="td-section-card-body td-readiness-body">
-                    <div class="td-readiness-summary">
-                        <div class="td-readiness-ring-wrap"
-                             data-td-donut
-                             data-labels='["{% trans "Scheduled" %}", "{% trans "Unscheduled" %}"]'
-                             data-series="[{{ session_readiness.scheduled }}, {{ session_readiness.unscheduled }}]"
-                             data-colors='["#22c55e", "#f97316"]'
-                             data-total-label="{% trans "Confirmed" %}"></div>
-                        <div class="td-readiness-highlights">
-                            <div class="td-readiness-hl">
-                                <span class="td-readiness-hl-value success">{{ session_readiness.confirmed }}</span>
-                                <span class="td-readiness-hl-label">{% trans "Confirmed" %}</span>
-                            </div>
-                            <div class="td-readiness-hl">
-                                <span class="td-readiness-hl-value success">{{ session_readiness.scheduled }}</span>
-                                <span class="td-readiness-hl-label">{% trans "Scheduled" %}</span>
-                            </div>
-                        </div>
-                    </div>
-                    <table class="td-readiness-table">
+                    <table class="td-readiness-table no-hover">
                         <tr>
-                            <td>{% trans "Unscheduled sessions" %}</td>
-                            <td><span class="td-readiness-val {% if session_readiness.unscheduled %}warning{% else %}success{% endif %}">{{ session_readiness.unscheduled }}</span></td>
+                            <td>{% trans "Confirmed sessions" %}</td>
+                            <td><span class="td-readiness-val">{{ session_readiness.confirmed }}</span></td>
                         </tr>
                         <tr>
-                            <td>{% trans "Sessions missing room/time" %}</td>
-                            <td><span class="td-readiness-val {% if session_readiness.missing_room_or_time %}warning{% else %}success{% endif %}">{{ session_readiness.missing_room_or_time }}</span></td>
+                            <td>{% trans "Scheduled sessions" %}</td>
+                            <td><span class="td-readiness-val success">{{ session_readiness.scheduled }}</span></td>
+                        </tr>
+                        <tr>
+                            <td>{% trans "Unscheduled sessions" %}</td>
+                            <td><span class="td-readiness-val {% if session_readiness.unscheduled %}danger{% endif %}">{{ session_readiness.unscheduled }}</span></td>
+                        </tr>
+                        <tr>
+                            <td>{% trans "Sessions missing room / time" %}</td>
+                            <td><span class="td-readiness-val {% if session_readiness.missing_room_or_time %}danger{% endif %}">{{ session_readiness.missing_room_or_time }}</span></td>
                         </tr>
                         <tr>
                             <td>{% trans "Sessions with conflicts" %}</td>
-                            <td><span class="td-readiness-val {% if session_readiness.conflicts %}danger{% else %}success{% endif %}">{{ session_readiness.conflicts }}</span></td>
+                            <td><span class="td-readiness-val {% if session_readiness.conflicts %}danger{% endif %}">{{ session_readiness.conflicts }}</span></td>
                         </tr>
                         <tr>
                             <td>{% trans "Cancelled sessions" %}</td>
-                            <td><span class="td-readiness-val {% if session_readiness.canceled %}muted{% else %}success{% endif %}">{{ session_readiness.canceled }}</span></td>
+                            <td><span class="td-readiness-val">{{ session_readiness.canceled }}</span></td>
                         </tr>
                     </table>
                     <div class="td-readiness-footer">
@@ -325,44 +312,29 @@
             {% if can_view_speakers %}
             <article class="td-section-card" id="speaker-readiness-card">
                 <div class="td-section-card-header">
-                    <span class="fa fa-users" aria-hidden="true"></span>
                     {% trans "Speaker readiness" %}
                 </div>
                 <div class="td-section-card-body td-readiness-body">
-                    <div class="td-readiness-summary">
-                        <div class="td-readiness-ring-wrap"
-                             data-td-donut
-                             data-labels='["{% trans "Ready" %}", "{% trans "Incomplete" %}"]'
-                             data-series="[{{ speaker_readiness.ready }}, {{ speaker_readiness.incomplete }}]"
-                             data-colors='["#2185d0", "#f97316"]'
-                             data-total-label="{% trans "Speakers" %}"></div>
-                        <div class="td-readiness-highlights">
-                            <div class="td-readiness-hl">
-                                <span class="td-readiness-hl-value">{{ speaker_readiness.total }}</span>
-                                <span class="td-readiness-hl-label">{% trans "Total speakers" %}</span>
-                            </div>
-                            <div class="td-readiness-hl">
-                                <span class="td-readiness-hl-value success">{{ speaker_readiness.ready_pct }}%</span>
-                                <span class="td-readiness-hl-label">{% trans "Ready" %}</span>
-                            </div>
-                        </div>
-                    </div>
-                    <table class="td-readiness-table">
+                    <table class="td-readiness-table no-hover">
+                        <tr>
+                            <td>{% trans "Total speakers" %}</td>
+                            <td><span class="td-readiness-val">{{ speaker_readiness.total }}</span></td>
+                        </tr>
                         <tr>
                             <td>{% trans "Confirmed speakers" %}</td>
                             <td><span class="td-readiness-val success">{{ speaker_readiness.confirmed }}</span></td>
                         </tr>
                         <tr>
                             <td>{% trans "Missing biography" %}</td>
-                            <td><span class="td-readiness-val {% if speaker_readiness.missing_bio %}warning{% else %}success{% endif %}">{{ speaker_readiness.missing_bio }}</span></td>
+                            <td><span class="td-readiness-val {% if speaker_readiness.missing_bio %}danger{% endif %}">{{ speaker_readiness.missing_bio }}</span></td>
                         </tr>
                         <tr>
                             <td>{% trans "Missing profile image" %}</td>
-                            <td><span class="td-readiness-val {% if speaker_readiness.missing_avatar %}warning{% else %}success{% endif %}">{{ speaker_readiness.missing_avatar }}</span></td>
+                            <td><span class="td-readiness-val {% if speaker_readiness.missing_avatar %}danger{% endif %}">{{ speaker_readiness.missing_avatar }}</span></td>
                         </tr>
                         <tr>
                             <td>{% trans "Speakers without session" %}</td>
-                            <td><span class="td-readiness-val {% if speaker_readiness.speakers_without_session %}warning{% else %}success{% endif %}">{{ speaker_readiness.speakers_without_session }}</span></td>
+                            <td><span class="td-readiness-val {% if speaker_readiness.speakers_without_session %}danger{% endif %}">{{ speaker_readiness.speakers_without_session }}</span></td>
                         </tr>
                     </table>
                     <div class="td-readiness-footer">
@@ -383,52 +355,9 @@
                     <span class="fa fa-bar-chart" aria-hidden="true"></span>
                     {% trans "Analytics" %}
                 </h2>
-                <span class="td-card-filter">{% trans "Full event" %}</span>
             </div>
             <div class="td-analytics-shell">
                 {% include "orga/submission/includes/statistics.html" %}
-
-                {% if room_status %}
-                <div class="td-analytics-bottom-row td-room-status-row">
-                    <article class="td-analytics-card td-analytics-card-table" id="room-status-card">
-                        <div class="td-analytics-card-title">
-                            <span class="fa fa-map-marker" aria-hidden="true"></span>
-                            {% trans "Sessions by room status" %}
-                        </div>
-                        <div class="td-analytics-table-wrap">
-                            <table class="td-stats-table">
-                                <thead>
-                                    <tr>
-                                        <th></th>
-                                        <th>{% trans "Name" %}</th>
-                                        <th class="td-st-count">{% trans "Count" %}</th>
-                                        <th class="td-st-pct">%</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for row in room_status.rows %}
-                                        <tr>
-                                            <td class="td-st-dot"><span class="td-dot-{{ row.status }}"></span></td>
-                                            <td class="td-st-name">{{ row.label }}</td>
-                                            <td class="td-st-count">{{ row.count }}</td>
-                                            <td class="td-st-pct">{{ row.pct }}%</td>
-                                        </tr>
-                                    {% endfor %}
-                                </tbody>
-                                <tfoot>
-                                    <tr>
-                                        <td></td>
-                                        <td><strong>{% trans "Total" %}</strong></td>
-                                        <td class="td-st-count"><strong>{{ room_status.total }}</strong></td>
-                                        <td class="td-st-pct"><strong>100%</strong></td>
-                                    </tr>
-                                </tfoot>
-                            </table>
-                        </div>
-                        <a href="{{ room_status.schedule_url }}" class="td-analytics-view-all td-analytics-view-all-visible">{% trans "Open schedule" %} ></a>
-                    </article>
-                </div>
-                {% endif %}
             </div>
         </section>
     {% endif %}

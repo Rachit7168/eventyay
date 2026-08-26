@@ -278,6 +278,63 @@ body:has(.td-dashboard) #page-content {
   padding: 3px 10px;
 }
 
+.td-analytics-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: var(--td-card-header-height, 48px);
+  padding: 0 12px 0 16px;
+  border-bottom: 1px solid #f0f2f4;
+  flex-shrink: 0;
+}
+
+.td-analytics-card-header .td-analytics-card-title {
+  min-height: 0;
+  padding: 0;
+  border-bottom: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.td-analytics-card-filter {
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.td-analytics-filter-select {
+  appearance: none;
+  -webkit-appearance: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--td-text, #111827);
+  background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%236b7280' d='M1.4.6 6 5.2 10.6.6 12 2 6 8 0 2z'/%3E%3C/svg%3E") no-repeat right 8px center;
+  background-size: 9px 6px;
+  border: 1px solid var(--td-border);
+  border-radius: 7px;
+  padding: 5px 26px 5px 10px;
+  min-width: 0;
+  max-width: 150px;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.td-analytics-filter-select:hover {
+  border-color: #cbd5e1;
+}
+
+.td-analytics-filter-select:focus {
+  outline: 2px solid rgba(33, 133, 208, 0.35);
+  outline-offset: 1px;
+  border-color: #2185d0;
+}
+
+.td-analytics-empty {
+  margin: 16px;
+  font-size: 13px;
+  color: var(--td-muted);
+}
+
 .td-section-card {
   background: #fff;
   border: var(--td-card-border, 1px solid var(--td-border));
@@ -1051,47 +1108,9 @@ body:has(.td-dashboard) #page-content {
 }
 
 .td-readiness-body {
-  gap: 16px;
-}
-
-.td-readiness-summary {
-  display: grid;
-  grid-template-columns: 140px 1fr;
-  gap: 16px;
-  align-items: center;
-  flex-shrink: 0;
-}
-
-.td-readiness-ring-wrap {
-  min-height: 140px;
-}
-
-.td-readiness-highlights {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-
-.td-readiness-hl {
-  background: #f9fafb;
-  border: 1px solid #f3f4f6;
-  border-radius: 10px;
-  padding: 12px;
-}
-
-.td-readiness-hl-value {
-  display: block;
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--td-text);
-  letter-spacing: -0.02em;
-}
-
-.td-readiness-hl-value.success { color: var(--td-green); }
-
-.td-readiness-hl-label {
-  font-size: 12px;
-  color: var(--td-muted);
+  gap: 0;
+  padding-top: 4px;
+  padding-bottom: 12px;
 }
 
 .td-readiness-table {
@@ -1100,8 +1119,18 @@ body:has(.td-dashboard) #page-content {
   flex: 1 1 auto;
 }
 
-.td-readiness-table tr {
-  border-bottom: 1px solid #f3f4f6;
+/* Override global base.css table cell borders */
+.td-dashboard .td-readiness-table th,
+.td-dashboard .td-readiness-table td {
+  border: none;
+}
+
+.td-dashboard .td-readiness-table tr {
+  border-bottom: none;
+}
+
+.td-dashboard .td-readiness-table tr:hover {
+  background: transparent;
 }
 
 .td-readiness-table tr:last-child {
@@ -1109,123 +1138,133 @@ body:has(.td-dashboard) #page-content {
 }
 
 .td-readiness-table td {
-  padding: 8px 2px;
-  font-size: 13px;
-  color: var(--td-text);
+  padding: 11px 2px;
+  font-size: 13.5px;
+  color: #374151;
+  line-height: 1.35;
+  vertical-align: middle;
 }
 
 .td-readiness-table td:last-child {
   text-align: right;
-  font-weight: 700;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  padding-left: 12px;
+  white-space: nowrap;
 }
 
-.td-readiness-val.success { color: var(--td-green); }
-.td-readiness-val.warning { color: var(--td-orange); }
-.td-readiness-val.danger { color: var(--td-red); }
-.td-readiness-val.muted { color: var(--td-muted); }
+.td-readiness-val {
+  color: #111827;
+}
+
+.td-readiness-val.success {
+  color: #16a34a;
+}
+
+.td-readiness-val.danger {
+  color: #dc2626;
+}
 
 .td-readiness-footer {
   margin-top: auto;
   padding-top: 12px;
-  border-top: 1px solid var(--td-border);
+  border-top: none;
   flex-shrink: 0;
 }
 
 /* --------------------------------------------------------------------------
-   Submission funnel — continuous triangle tunnel (reference style)
+   Submission funnel — center-aligned stepped bars
    -------------------------------------------------------------------------- */
 .td-funnel-body {
   gap: 0;
-  padding-top: 14px;
-  padding-bottom: 14px;
+  padding: 10px 4px 12px;
 }
 
-.td-funnel-rows {
+.td-funnel-chart {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 6px;
   flex: 1 1 auto;
   justify-content: center;
-  min-height: 0;
+  min-height: 200px;
   width: 100%;
 }
 
 .td-funnel-row {
   display: grid;
-  grid-template-columns: 96px minmax(0, 1fr) 44px;
+  grid-template-columns: 86px minmax(0, 1fr) 36px;
   align-items: center;
-  column-gap: 10px;
+  column-gap: 8px;
   min-height: 34px;
 }
 
 .td-funnel-label {
-  font-family: var(--td-font-display);
-  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 26px;
+  padding: 3px 8px;
+  border-radius: 5px;
+  font-size: 11.5px;
   font-weight: 700;
   line-height: 1.2;
   white-space: nowrap;
+  text-align: center;
 }
 
 .td-funnel-track {
-  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   height: 32px;
   width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  overflow: hidden;
 }
 
 .td-funnel-bar {
   height: 100%;
-  width: var(--td-funnel-w, 100%);
   max-width: 100%;
-  /* Bottom edge matches next band top → continuous triangle sides */
-  clip-path: polygon(
-    0% 0%,
-    100% 0%,
-    calc(100% - var(--td-funnel-inset, 8%)) 100%,
-    var(--td-funnel-inset, 8%) 100%
-  );
-  transition: width 0.35s ease;
+  border-radius: 4px;
+  transition: width 0.3s ease;
 }
 
 .td-funnel-value {
-  font-family: var(--td-font-display);
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
   text-align: right;
   font-variant-numeric: tabular-nums;
   line-height: 1;
-  white-space: nowrap;
+  color: #374151;
 }
 
-/* Soft track + bright trapezoid */
-.td-funnel-submitted .td-funnel-track { background: #e8f1fb; }
-.td-funnel-submitted .td-funnel-bar { background: #2185d0; }
-.td-funnel-submitted .td-funnel-label,
-.td-funnel-submitted .td-funnel-value { color: #1d6fa8; }
+.td-funnel-submitted .td-funnel-label {
+  background: #dbeafe;
+  color: #1e40af;
+}
+.td-funnel-submitted .td-funnel-bar { background: #60a5fa; }
 
-.td-funnel-accepted .td-funnel-track { background: #e8f8ef; }
-.td-funnel-accepted .td-funnel-bar { background: #22c55e; }
-.td-funnel-accepted .td-funnel-label,
-.td-funnel-accepted .td-funnel-value { color: #15803d; }
+.td-funnel-accepted .td-funnel-label {
+  background: #dcfce7;
+  color: #166534;
+}
+.td-funnel-accepted .td-funnel-bar { background: #4ade80; }
 
-.td-funnel-confirmed .td-funnel-track { background: #fff7e8; }
-.td-funnel-confirmed .td-funnel-bar { background: #f5a623; }
-.td-funnel-confirmed .td-funnel-label,
-.td-funnel-confirmed .td-funnel-value { color: #b45309; }
+.td-funnel-confirmed .td-funnel-label {
+  background: #fef3c7;
+  color: #92400e;
+}
+.td-funnel-confirmed .td-funnel-bar { background: #fbbf24; }
 
-.td-funnel-rejected .td-funnel-track { background: #fef2f2; }
-.td-funnel-rejected .td-funnel-bar { background: #ef4444; }
-.td-funnel-rejected .td-funnel-label,
-.td-funnel-rejected .td-funnel-value { color: #b91c1c; }
+.td-funnel-rejected .td-funnel-label {
+  background: #fee2e2;
+  color: #991b1b;
+}
+.td-funnel-rejected .td-funnel-bar { background: #f87171; }
 
-.td-funnel-withdrawn .td-funnel-track { background: #f3eefc; }
-.td-funnel-withdrawn .td-funnel-bar { background: #8b5cf6; }
-.td-funnel-withdrawn .td-funnel-label,
-.td-funnel-withdrawn .td-funnel-value { color: #6d28d9; }
+.td-funnel-withdrawn .td-funnel-label {
+  background: #ede9fe;
+  color: #5b21b6;
+}
+.td-funnel-withdrawn .td-funnel-bar { background: #a78bfa; }
 
 .td-funnel-footer {
   display: flex;
@@ -1241,26 +1280,23 @@ body:has(.td-dashboard) #page-content {
 
 .td-funnel-footer strong {
   color: var(--td-text);
-  font-family: var(--td-font-display);
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
 @media (max-width: 1200px) {
   .td-funnel-row {
-    grid-template-columns: 84px minmax(0, 1fr) 40px;
-    column-gap: 8px;
+    grid-template-columns: 78px minmax(0, 1fr) 32px;
   }
 }
 
 @media (max-width: 767px) {
   .td-funnel-row {
-    grid-template-columns: 78px minmax(0, 1fr) 36px;
-    min-height: 30px;
+    grid-template-columns: 72px minmax(0, 1fr) 28px;
   }
   .td-funnel-track { height: 28px; }
-  .td-funnel-label { font-size: 12px; }
+  .td-funnel-label { font-size: 10.5px; }
   .td-funnel-value { font-size: 13px; }
 }
 
@@ -1314,15 +1350,54 @@ body:has(.td-dashboard) #page-content {
 
 .td-analytics-bottom-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--td-card-gap, 12px);
   align-items: stretch;
 }
 
-.td-room-status-row {
-  margin-top: 12px;
-  grid-template-columns: 1fr;
-  max-width: 520px;
+.td-analytics-card.td-analytics-card-table {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.td-analytics-card.td-analytics-card-table .td-analytics-table-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.td-analytics-card.td-analytics-card-table .td-stats-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+.td-analytics-card.td-analytics-card-table .td-analytics-view-all,
+.td-analytics-card.td-analytics-card-table .td-analytics-card-footer {
+  margin-top: auto;
+  flex-shrink: 0;
+}
+
+.td-analytics-card-filter-spacer {
+  display: inline-block;
+  width: 1px;
+  height: 30px;
+  visibility: hidden;
+  flex-shrink: 0;
+}
+
+.td-col-dot { width: 28px; }
+.td-col-name { width: auto; }
+.td-col-count { width: 72px; }
+.td-col-pct { width: 64px; }
+
+.td-st-pad td {
+  border-bottom-color: transparent !important;
+  color: transparent;
+  user-select: none;
+  height: 38px;
 }
 
 .td-analytics-chart-wrap {
@@ -1620,24 +1695,26 @@ body:has(.td-dashboard) #page-content {
 }
 
 .td-note-card {
-  background: #fffef5;
-  border-color: #fde68a;
+  background: #fff;
+  border-color: var(--td-border);
 }
 
 .td-section-card.td-note-card .td-section-card-header {
-  background: #fffbeb;
-  border-bottom-color: #fde68a;
+  background: #fafbfc;
+  border-bottom-color: var(--td-border);
 }
 
 .td-section-card.td-note-card .td-section-card-header .fa {
   color: #d97706;
 }
 
+/* Only the writing area keeps a soft sticky-note tint */
 .td-note-textarea {
   width: 100%;
-  border: 1px solid #fde68a;
+  border: 1px solid #f3e8c8;
+  border-left: 3px solid #eab308;
   border-radius: var(--td-radius-sm);
-  background: #fffff8;
+  background: #fffdf5;
   padding: 10px 12px;
   font-size: 13px;
   color: var(--td-text);
@@ -1650,8 +1727,10 @@ body:has(.td-dashboard) #page-content {
 
 .td-note-textarea:focus {
   outline: none;
-  border-color: #f59e0b;
-  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+  border-color: #eab308;
+  border-left-color: #ca8a04;
+  background: #fffbeb;
+  box-shadow: 0 0 0 3px rgba(234, 179, 8, 0.15);
 }
 
 .td-note-footer {
@@ -1668,7 +1747,7 @@ body:has(.td-dashboard) #page-content {
 
 .td-note-save-btn {
   padding: 8px 16px;
-  background: #d97706;
+  background: #2185d0;
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -1680,7 +1759,7 @@ body:has(.td-dashboard) #page-content {
 
 .td-note-save-btn:hover,
 .td-note-save-btn:focus {
-  background: #b45309;
+  background: #1a6faf;
 }
 
 /* --------------------------------------------------------------------------
@@ -1740,9 +1819,6 @@ body:has(.td-dashboard) #page-content {
   }
   .td-analytics-card-timeline {
     grid-column: auto;
-  }
-  .td-readiness-summary {
-    grid-template-columns: 1fr;
   }
 }
 

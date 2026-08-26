@@ -539,16 +539,13 @@ class EventDashboardView(EventPermissionRequired, SubmissionStatsMixin, Template
         }
 
     def _build_funnel_data(self, sub_counts):
-        """Return funnel rows with connecting trapezoid geometry.
+        """Return funnel rows with center-aligned bar widths.
 
-        Each band's bottom edge matches the next band's top width so stacked
-        segments form one continuous triangle silhouette.
+        Width is proportional to each stage count (relative to the max),
+        with a small floor so zero-count stages still show a thin bar.
         """
         total = sub_counts['total'] or 1
         accepted_total = sub_counts['accepted_total']
-        # Top → bottom widths (% of track). Last bottom is slightly narrower.
-        stepped_widths = [100, 82, 64, 46, 30]
-        tip_width = 18
 
         rows = [
             {
@@ -577,13 +574,10 @@ class EventDashboardView(EventPermissionRequired, SubmissionStatsMixin, Template
                 'key': 'withdrawn',
             },
         ]
-        for index, row in enumerate(rows):
-            top = stepped_widths[index]
-            bottom = stepped_widths[index + 1] if index + 1 < len(stepped_widths) else tip_width
-            # Horizontal inset on the bar itself so bottom edge = next top width
-            inset = round((1 - (bottom / top)) / 2 * 100, 2)
-            row['width'] = top
-            row['inset'] = inset
+
+        max_count = max((row['count'] for row in rows), default=0) or 1
+        for row in rows:
+            row['width'] = max(14, round(row['count'] / max_count * 100, 1))
 
         conversion = round(accepted_total / total * 100, 1) if sub_counts['total'] else 0
         return {'rows': rows, 'conversion': conversion}
