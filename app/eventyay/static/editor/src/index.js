@@ -51,7 +51,14 @@ function mountEditor(textarea) {
     }
   })
 
-  const toolbar = buildToolbar(editor, { profile, placeholders, previewUrl, locale: fieldLang || '' })
+  const toolbar = buildToolbar(editor, {
+    profile,
+    placeholders,
+    previewUrl,
+    locale: fieldLang || '',
+    editorEl,
+    textarea,
+  })
 
   textarea.style.display = 'none'
   wrapper.insertBefore(toolbar, textarea)
