@@ -131,7 +131,7 @@
 
 .order-overview-filter-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 16px;
   align-items: flex-end;
   margin-bottom: 0;
@@ -148,39 +148,24 @@
   margin-bottom: 6px;
 }
 
-/* Date range capsule styling */
-.order-overview-date-range {
-  display: flex;
-  align-items: flex-end;
-  grid-column: span 2;
+.order-overview-filter-field .form-control,
+.order-overview-filter-field .input-group .form-control {
+  border-radius: 6px;
+  border-color: #ced4da;
+  box-shadow: none;
+  height: 34px;
 }
 
-.order-overview-date-range .date-from,
-.order-overview-date-range .date-until {
-  flex: 1;
-}
-
-.order-overview-date-range .date-from .form-control {
+.order-overview-filter-field .input-group .form-control {
   border-top-right-radius: 0;
   border-bottom-right-radius: 0;
 }
 
-.order-overview-date-range .date-until .form-control {
-  border-top-left-radius: 0;
-  border-bottom-left-radius: 0;
-  margin-left: -1px; /* collapse the middle border */
-}
-
-/* Ensure focus border is fully visible on top of collapsed borders */
-.order-overview-date-range .form-control:focus {
-  z-index: 2;
-  position: relative;
-}
-
-.order-overview-filter-field .form-control {
-  border-radius: 6px;
+.order-overview-filter-field .input-group-addon {
+  background: #fff;
   border-color: #ced4da;
-  box-shadow: none;
+  color: #6c757d;
+  cursor: pointer;
 }
 
 .order-overview-filter-field .form-control:focus {
@@ -193,12 +178,19 @@
   flex-wrap: wrap;
   gap: 12px;
   margin-bottom: 0;
+  align-items: center;
+}
+
+.order-overview-filter-actions .filter-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 0;
 }
 
 .order-overview-filter-actions .btn {
   border-radius: 6px;
-  padding: 8px 20px;
-  font-weight: 500;
+  min-width: 40px;
 }
 
 .order-overview-filter-help {
@@ -504,11 +496,7 @@ table.order-overview-table > tbody > tr.variation.classified > td:first-child::b
   }
 
   .order-overview-filter-actions .btn {
-    flex: 1 1 auto;
-  }
-
-  .order-overview-date-range {
-    grid-column: span 1;
+    flex: 0 0 auto;
   }
 
   /* Table Flip for Order Overview */

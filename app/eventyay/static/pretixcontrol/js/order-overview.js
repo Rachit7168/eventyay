@@ -91,7 +91,23 @@ function initOrderOverviewReport(root = document) {
                 }
             });
         });
-    }
+    // Open the datepicker when the calendar addon is clicked.
+    toggleRoot.querySelectorAll('.order-overview-filter-field .input-group.date').forEach((group) => {
+        const input = group.querySelector('.datepickerfield');
+        const addon = group.querySelector('.input-group-addon');
+        if (!input || !addon) {
+            return;
+        }
+        addon.addEventListener('click', () => {
+            input.focus();
+            if (window.jQuery) {
+                const picker = window.jQuery(input).data('DateTimePicker');
+                if (picker && typeof picker.show === 'function') {
+                    picker.show();
+                }
+            }
+        });
+    });
 }
 
 document.addEventListener('DOMContentLoaded', () => {

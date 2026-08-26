@@ -1954,13 +1954,12 @@ class OverviewFilterForm(FilterForm):
             ('date_from', _('Start date')),
             ('date_until', _('End date')),
         ):
-            self.fields[field_name].widget = forms.DateInput(
+            self.fields[field_name].widget = DatePickerWidget(
                 attrs={
-                    'class': 'form-control datepickerfield',
                     'autocomplete': 'off',
-                    'placeholder': placeholder,
                 }
             )
+            self.fields[field_name].widget.attrs['placeholder'] = placeholder
 
 
 class TaskFilterForm(forms.Form):

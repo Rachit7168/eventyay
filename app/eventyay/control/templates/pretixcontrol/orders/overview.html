@@ -51,31 +51,36 @@
                 </h3>
             </div>
             <div class="panel-body">
-                <form class="order-overview-filter-form" action="" method="get">
+                <form class="order-overview-filter-form filter-form" action="" method="get">
                     <div class="order-overview-filter-grid">
                         {% if request.event.has_subevents %}
                             <div class="order-overview-filter-field">
-                                {% bootstrap_field filter_form.subevent layout='' show_label=False %}
+                                {% bootstrap_field filter_form.subevent layout='inline' %}
                             </div>
                         {% endif %}
                         <div class="order-overview-filter-field">
-                            {% bootstrap_field filter_form.date_axis layout='' show_label=False %}
+                            {% bootstrap_field filter_form.date_axis layout='inline' %}
                         </div>
-                        <div class="order-overview-date-range">
-                            <div class="order-overview-filter-field date-from">
-                                {% bootstrap_field filter_form.date_from layout='' show_label=False %}
+                        <div class="order-overview-filter-field">
+                            <label class="sr-only" for="{{ filter_form.date_from.id_for_label }}">{{ filter_form.date_from.label }}</label>
+                            <div class="input-group date">
+                                {{ filter_form.date_from }}
+                                <span class="input-group-addon" aria-hidden="true">
+                                    <span class="fa fa-calendar"></span>
+                                </span>
                             </div>
-                            <div class="order-overview-filter-field date-until">
-                                {% bootstrap_field filter_form.date_until layout='' show_label=False %}
+                        </div>
+                        <div class="order-overview-filter-field">
+                            <label class="sr-only" for="{{ filter_form.date_until.id_for_label }}">{{ filter_form.date_until.label }}</label>
+                            <div class="input-group date">
+                                {{ filter_form.date_until }}
+                                <span class="input-group-addon" aria-hidden="true">
+                                    <span class="fa fa-calendar"></span>
+                                </span>
                             </div>
                         </div>
                         <div class="order-overview-filter-actions">
-                            <button class="btn btn-primary" type="submit">
-                                {% trans "Apply filter" %}
-                            </button>
-                            <a href="{{ request.path }}" class="btn btn-default">
-                                {% trans "Reset" %}
-                            </a>
+                            {% include "eventyay_common/filter_actions.html" %}
                         </div>
                     </div>
                     {{ filter_form.browser_timezone }}
