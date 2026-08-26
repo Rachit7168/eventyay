@@ -46,7 +46,7 @@ def convert_markdown_to_html(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('base', '0063_jitsi_video_moderator_permissions'),
+        ('base', '0064_gmailoauthcredential'),
     ]
 
     operations = [
