@@ -96,7 +96,15 @@ class VersionedModel(models.Model):
         cache = caches["process"]
         try:
             cached_instance = cache.get(self._cachekey)
-        except (AttributeError, TypeError, ValueError, EOFError, pickle.UnpicklingError):
+        except (
+            AttributeError,
+            TypeError,
+            ValueError,
+            EOFError,
+            ImportError,
+            IndexError,
+            pickle.UnpicklingError,
+        ):
             logger.warning(
                 "VersionedModel.refresh_from_db_if_outdated: dropping unreadable cache for %s",
                 self._cachekey,

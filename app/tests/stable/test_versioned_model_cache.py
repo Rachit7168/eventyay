@@ -23,13 +23,21 @@ def test_room_pickle_excludes_related_event_settings(room, event):
 
 
 @pytest.mark.django_db
-def test_refresh_drops_unreadable_process_cache(room, event):
+@pytest.mark.parametrize(
+    'cache_error',
+    [
+        AttributeError('corrupt'),
+        ImportError('missing module'),
+        IndexError('truncated pickle'),
+    ],
+)
+def test_refresh_drops_unreadable_process_cache(room, event, cache_error):
     with scope(event=event):
         room = Room.objects.get(pk=room.pk)
         original_version = room.version
 
         process_cache = MagicMock()
-        process_cache.get.side_effect = AttributeError('corrupt')
+        process_cache.get.side_effect = cache_error
         process_cache.delete = MagicMock()
         process_cache.set = MagicMock()
 
