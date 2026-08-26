@@ -101,14 +101,18 @@ class RoomPermissions(permissions.BasePermission):
         if request.method == "POST":
             traits = request.auth.get("traits")
             module_config = request.data.get("module_config")
+            # Server-backed modules need the development admin gate in addition to
+            # the usual create-permission check (do not return early — mixed
+            # payloads still need the general room-create permission check).
             if module_config_contains_server_backed_room(module_config):
-                return (
+                if not (
                     has_server_room_development_admin_trait(traits)
                     and request.event.has_permission_implicit(
                         traits=traits,
                         permissions=server_backed_room_create_permissions(module_config),
                     )
-                )
+                ):
+                    return False
             return request.event.has_permission_implicit(
                 traits=traits,
                 permissions=[

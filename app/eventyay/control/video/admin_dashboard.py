@@ -80,7 +80,13 @@ def get_video_server_dashboard_rows():
     rows = []
     for server_type, config in VIDEO_SERVER_CONFIGS.items():
         queryset = config.model.objects.all().order_by(config.order_by)
-        if hasattr(config.model, "event_exclusive"):
+        # event_exclusive is a nullable ForeignKey on BBB/Janus/Jitsi/TURN;
+        # StreamingServer has no such field. Prefer the model field check over
+        # getattr so we never touch a reverse OneToOne that could raise.
+        has_event_exclusive = any(
+            field.name == "event_exclusive" for field in config.model._meta.fields
+        )
+        if has_event_exclusive:
             queryset = queryset.select_related("event_exclusive")
 
         for server in queryset:
@@ -90,7 +96,7 @@ def get_video_server_dashboard_rows():
                     "server_type": server_type,
                     "type_label": config.label,
                     "name": getattr(server, config.display_attr),
-                    "event_exclusive": getattr(server, "event_exclusive", None),
+                    "event_exclusive": server.event_exclusive if has_event_exclusive else None,
                     "edit_url": reverse(
                         config.update_url_name, kwargs={"pk": server.pk}
                     ),

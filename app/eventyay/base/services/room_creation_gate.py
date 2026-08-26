@@ -1,3 +1,5 @@
+from collections import Counter
+
 from eventyay.core.permissions import Permission
 
 
@@ -20,19 +22,34 @@ def module_config_contains_server_backed_room(module_config):
     )
 
 
-def newly_added_server_backed_room_modules(old_module_config, new_module_config):
-    old_types = {
-        module.get("type")
-        for module in old_module_config or []
-        if isinstance(module, dict)
-    }
+def _server_backed_module_types(module_config):
     return [
-        module
-        for module in new_module_config or []
-        if isinstance(module, dict)
-        and module.get("type") in SERVER_BACKED_ROOM_MODULE_TYPES
-        and module.get("type") not in old_types
+        module.get("type")
+        for module in module_config or []
+        if isinstance(module, dict) and module.get("type") in SERVER_BACKED_ROOM_MODULE_TYPES
     ]
+
+
+def newly_added_server_backed_room_modules(old_module_config, new_module_config):
+    """Return server-backed modules that increase the count of a given type.
+
+    Compares multiplicities so adding a second ``call.bigbluebutton`` (or any
+    other server-backed type) is treated as newly added even when that type
+    already existed once in the room.
+    """
+    old_counts = Counter(_server_backed_module_types(old_module_config))
+    seen_counts = Counter()
+    newly_added = []
+    for module in new_module_config or []:
+        if not isinstance(module, dict):
+            continue
+        module_type = module.get("type")
+        if module_type not in SERVER_BACKED_ROOM_MODULE_TYPES:
+            continue
+        seen_counts[module_type] += 1
+        if seen_counts[module_type] > old_counts[module_type]:
+            newly_added.append(module)
+    return newly_added
 
 
 def has_server_room_development_admin_trait(traits):
