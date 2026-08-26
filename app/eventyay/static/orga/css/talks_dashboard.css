@@ -576,48 +576,94 @@ body:has(.td-dashboard) #page-content {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
 .td-workflow-step .step-links li {
   margin: 0;
-  padding: 4px 4px 4px 2px;
+  padding: 0;
   font-size: 12.5px;
   line-height: 1.4;
   color: var(--td-text);
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
+  display: block;
 }
 
 .td-workflow-step .step-links li::before {
+  display: none;
+}
+
+.td-workflow-step .step-links a,
+.td-workflow-step .step-links span {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+  padding: 7px 10px;
+  border-radius: 7px;
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.td-workflow-step .step-links a::before,
+.td-workflow-step .step-links span::before {
   content: "";
   flex: 0 0 6px;
   width: 6px;
   height: 6px;
   margin-top: 5px;
-  margin-left: 2px;
   border-radius: 50%;
   background: var(--td-blue);
 }
 
-.td-workflow-step .step-links a,
-.td-workflow-step .step-links span {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
 .td-workflow-step .step-links a {
-  color: var(--td-blue);
+  color: #1d4ed8;
   text-decoration: none;
+  font-weight: 500;
+  cursor: pointer;
 }
 
-.td-workflow-step .step-links a:hover {
-  text-decoration: underline;
+.td-workflow-step .step-links a::after {
+  content: ">";
+  margin-left: auto;
+  padding-left: 8px;
+  color: #93c5fd;
+  font-weight: 700;
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: opacity 0.15s ease, transform 0.15s ease, color 0.15s ease;
+}
+
+.td-workflow-step .step-links a:hover,
+.td-workflow-step .step-links a:focus {
+  background: var(--td-blue-soft);
+  color: #1e3a8a;
+  text-decoration: none;
+  box-shadow: inset 0 0 0 1px #bfdbfe;
+}
+
+.td-workflow-step .step-links a:hover::before,
+.td-workflow-step .step-links a:focus::before {
+  background: #1d4ed8;
+  box-shadow: 0 0 0 3px rgba(33, 133, 208, 0.2);
+}
+
+.td-workflow-step .step-links a:hover::after,
+.td-workflow-step .step-links a:focus::after {
+  opacity: 1;
+  transform: translateX(0);
+  color: var(--td-blue);
+}
+
+.td-workflow-step .step-links a:focus-visible {
+  outline: 2px solid var(--td-blue);
+  outline-offset: 1px;
 }
 
 .td-workflow-step .step-links span {
   color: var(--td-muted);
+}
+
+.td-workflow-step .step-links span::before {
+  background: #d1d5db;
 }
 
 /* --------------------------------------------------------------------------

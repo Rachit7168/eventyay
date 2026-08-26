@@ -262,7 +262,9 @@ class EventDashboardView(EventPermissionRequired, SubmissionStatsMixin, Template
             'canceled': Submission.all_objects.filter(
                 event=event, state=SubmissionStates.CANCELED
             ).count(),
-            'drafts': event.submissions.filter(state=SubmissionStates.DRAFT).count(),
+            'drafts': Submission.all_objects.filter(
+                event=event, state=SubmissionStates.DRAFT
+            ).count(),
             'total': Submission.all_objects.exclude(
                 state__in=[SubmissionStates.DELETED, SubmissionStates.DRAFT]
             ).filter(event=event).count(),
@@ -912,7 +914,7 @@ class EventDashboardView(EventPermissionRequired, SubmissionStatsMixin, Template
             LogEntry.objects.filter(event=event)
             .filter(q)
             .select_related('user', 'event', 'content_type')
-            .order_by('-datetime')[:5]
+            .order_by('-datetime')[:8]
         )
         rows = []
         for entry in entries:
@@ -923,9 +925,15 @@ class EventDashboardView(EventPermissionRequired, SubmissionStatsMixin, Template
             if obj is not None:
                 reference = str(getattr(obj, 'title', None) or getattr(obj, 'name', None) or obj)
                 orga_urls = getattr(obj, 'orga_urls', None)
-                if orga_urls is not None and hasattr(orga_urls, 'base'):
-                    reference_url = orga_urls.base
-            message = entry.display or entry.action_type
+                if orga_urls is not None:
+                    try:
+                        reference_url = orga_urls.base
+                    except (AttributeError, ValueError, KeyError):
+                        reference_url = ''
+            try:
+                message = entry.display()
+            except (TypeError, AttributeError, ValueError):
+                message = entry.action_type
             rows.append({
                 'datetime': entry.datetime,
                 'user': entry.user,
