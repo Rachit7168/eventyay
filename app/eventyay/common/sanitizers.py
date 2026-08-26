@@ -44,10 +44,13 @@ def _attribute_filter(allowed: Mapping[str, set[str]]) -> Callable[[str, str, st
     def filter_attr(tag: str, attr: str, value: str) -> str | None:
         if attr not in allowed.get(tag, ()):
             return None
-        if tag == 'a' and attr == 'href' and value.lstrip().lower().startswith('data:'):
-            return None
+        
+        normalized = value.lstrip().lower()
+        if normalized.startswith('data:'):
+            if not (tag == 'img' and attr == 'src' and normalized.startswith('data:image/')):
+                return None
+
         if tag == 'img' and attr == 'src':
-            normalized = value.lstrip().lower()
             if not normalized.startswith(('data:image/', 'http://', 'https://', '/')):
                 return None
         return value
