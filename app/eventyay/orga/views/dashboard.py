@@ -407,6 +407,7 @@ class EventDashboardView(EventPermissionRequired, SubmissionStatsMixin, Template
                 'icon': 'inbox',
                 'hint': None,
                 'tier': 'primary',
+                'sparkline': 'blue',
             },
             {
                 'label': _('Accepted proposals'),
@@ -420,6 +421,7 @@ class EventDashboardView(EventPermissionRequired, SubmissionStatsMixin, Template
                 'icon': 'check',
                 'hint': _('{rate}% conversion').format(rate=conversion) if conversion is not None else None,
                 'tier': 'primary',
+                'sparkline': 'green',
             },
             {
                 'label': _('Confirmed sessions'),
@@ -430,6 +432,7 @@ class EventDashboardView(EventPermissionRequired, SubmissionStatsMixin, Template
                 'icon': 'check-circle',
                 'hint': None,
                 'tier': 'primary',
+                'sparkline': 'green',
             },
             {
                 'label': _('Scheduled sessions'),
@@ -440,6 +443,7 @@ class EventDashboardView(EventPermissionRequired, SubmissionStatsMixin, Template
                 'icon': 'calendar',
                 'hint': None,
                 'tier': 'primary',
+                'sparkline': 'blue',
             },
             {
                 'label': _('Speakers'),
@@ -450,6 +454,7 @@ class EventDashboardView(EventPermissionRequired, SubmissionStatsMixin, Template
                 'icon': 'users',
                 'hint': None,
                 'tier': 'primary',
+                'sparkline': None,
             },
             {
                 'label': _('Pending reviews'),
@@ -457,9 +462,10 @@ class EventDashboardView(EventPermissionRequired, SubmissionStatsMixin, Template
                 'url': event.orga_urls.reviews,
                 'link': _('Review now'),
                 'color': 'warning' if reviews_missing else 'muted',
-                'icon': 'eye',
+                'icon': 'clock-o',
                 'hint': None,
                 'tier': 'primary',
+                'sparkline': None,
             },
         ]
         secondary = [

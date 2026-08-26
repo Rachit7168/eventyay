@@ -125,14 +125,14 @@ const drawTimeline = (targetId, timelineRows, label, stateRows) => {
                     day: "dd MMM",
                     hour: "HH:mm",
                 },
-                style: { fontWeight: 400, fontSize: "11px", colors: "#9ca3af" },
+                style: { fontWeight: 500, fontSize: "12.5px", colors: "#6b7280" },
             },
             axisBorder: { show: false },
             axisTicks: { show: false },
         },
         yaxis: {
             labels: {
-                style: { fontSize: "11px", colors: "#9ca3af" },
+                style: { fontSize: "12.5px", colors: "#6b7280", fontWeight: 500 },
             },
         },
         annotations: { xaxis: deadlines },
@@ -305,7 +305,7 @@ const drawHBarChart = (data, elementId, clickType) => {
             tickAmount: 3,
             forceNiceScale: false,
             labels: {
-                style: { fontSize: "11px", colors: "#9ca3af" },
+                style: { fontSize: "12.5px", colors: "#6b7280", fontWeight: 500 },
                 formatter: (val) => String(Math.round(Number(val))),
             },
             axisBorder: { show: true, color: "#e5e7eb" },
@@ -313,7 +313,7 @@ const drawHBarChart = (data, elementId, clickType) => {
         },
         yaxis: {
             labels: {
-                style: { fontSize: "11.5px", colors: "#374151", fontWeight: 500 },
+                style: { fontSize: "12.5px", colors: "#374151", fontWeight: 500 },
                 maxWidth: 130,
             },
         },

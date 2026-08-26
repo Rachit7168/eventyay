@@ -39,7 +39,7 @@
   --td-card-header-height: 48px;
   --td-card-gap: 12px;
   --td-kpi-min-height: 148px;
-  --td-action-min-height: var(--td-kpi-min-height);
+  --td-action-min-height: 168px;
   --td-analytics-chart-height: 220px;
   --td-analytics-summary-height: 72px;
   --td-analytics-footer-height: 42px;
@@ -190,9 +190,10 @@ body:has(.td-dashboard) #page-content {
   margin-bottom: var(--td-space-4);
 }
 
-/* Quick actions is itself the framed bar */
+/* Quick actions is itself the framed bar — keep compact to lift KPIs up */
 .td-section.td-quick-section {
-  padding: 10px 14px;
+  padding: 6px 14px;
+  margin-bottom: 12px;
 }
 
 .td-section-heading {
@@ -643,6 +644,77 @@ body:has(.td-dashboard) #page-content {
   min-width: 0;
 }
 
+.td-upcoming-list,
+.td-upcoming-list ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.td-upcoming-group + .td-upcoming-group {
+  margin-top: 4px;
+}
+
+.td-upcoming-day {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--td-muted);
+  margin-bottom: 4px;
+}
+
+.td-upcoming-item {
+  display: grid;
+  grid-template-columns: 12px 44px 1fr;
+  gap: 8px;
+  align-items: start;
+  padding: 8px 0;
+  position: relative;
+  font-size: 13px;
+}
+
+.td-upcoming-item::before {
+  content: "";
+  width: 9px;
+  height: 9px;
+  margin-top: 4px;
+  border-radius: 50%;
+  background: var(--td-blue);
+  box-shadow: 0 0 0 3px var(--td-blue-soft);
+  justify-self: center;
+}
+
+.td-upcoming-item:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 18px;
+  bottom: -8px;
+  width: 2px;
+  background: #e5e7eb;
+}
+
+.td-upcoming-time {
+  color: var(--td-purple);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.td-upcoming-label {
+  color: var(--td-text);
+}
+
+.td-upcoming-empty {
+  margin: 0;
+  color: var(--td-muted);
+  font-size: 13px;
+}
+
+.td-upcoming-card .td-view-all-link {
+  margin-top: auto;
+}
+
 .td-action-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -748,17 +820,33 @@ body:has(.td-dashboard) #page-content {
   min-width: 0;
 }
 
+.td-action-count {
+  font-family: var(--td-font-display);
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--td-text);
+  margin: 2px 0 0;
+}
+
+.td-action-danger .td-action-count { color: var(--td-red); }
+.td-action-warning .td-action-count { color: var(--td-orange); }
+.td-action-caution .td-action-count { color: #a16207; }
+.td-action-info .td-action-count { color: var(--td-blue); }
+
 .td-action-desc {
   margin: 0;
   font-family: var(--td-font-body);
-  font-size: 15px;
+  font-size: 13.5px;
   line-height: 1.45;
   color: var(--td-muted);
   flex: 1 1 auto;
   min-height: 0;
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 4;
+  -webkit-line-clamp: 3;
   overflow: hidden;
 }
 
@@ -824,60 +912,6 @@ body:has(.td-dashboard) #page-content {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-}
-
-/* Upcoming */
-.td-upcoming-list,
-.td-upcoming-list ul {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.td-upcoming-group + .td-upcoming-group {
-  margin-top: 12px;
-}
-
-.td-upcoming-day {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--td-muted);
-  margin-bottom: 6px;
-}
-
-.td-upcoming-item {
-  display: grid;
-  grid-template-columns: 44px 1fr;
-  gap: 8px;
-  padding: 6px 0;
-  border-bottom: 1px solid #f3f4f6;
-  font-size: 13px;
-}
-
-.td-upcoming-item:last-child {
-  border-bottom: none;
-}
-
-.td-upcoming-time {
-  color: var(--td-purple);
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
-.td-upcoming-label {
-  color: var(--td-text);
-}
-
-.td-upcoming-empty {
-  margin: 0;
-  color: var(--td-muted);
-  font-size: 13px;
-}
-
-.td-upcoming-card .td-view-all-link {
-  margin-top: auto;
 }
 
 /* --------------------------------------------------------------------------
@@ -987,18 +1021,21 @@ body:has(.td-dashboard) #page-content {
 .td-status-card.td-status-card-live {
   border-color: #bbf7d0;
   background: linear-gradient(180deg, #f0fdf4 0%, #fff 48%);
+  box-shadow: inset 4px 0 0 var(--td-green), var(--td-card-shadow, var(--td-shadow));
 }
 
 .td-status-card.td-status-card-off,
 .td-status-card.td-status-card-danger {
   border-color: #fecaca;
   background: linear-gradient(180deg, #fff5f5 0%, #fff 48%);
+  box-shadow: inset 4px 0 0 var(--td-red), var(--td-card-shadow, var(--td-shadow));
 }
 
 .td-status-card.td-status-card-pending,
 .td-status-card.td-status-card-info {
   border-color: #bfdbfe;
   background: linear-gradient(180deg, #eff6ff 0%, #fff 48%);
+  box-shadow: inset 4px 0 0 var(--td-blue), var(--td-card-shadow, var(--td-shadow));
 }
 
 .td-kpi-card:hover,
@@ -1009,6 +1046,25 @@ body:has(.td-dashboard) #page-content {
   transform: translateY(-1px);
   text-decoration: none;
   color: inherit;
+}
+
+.td-status-card.td-status-card-live:hover,
+.td-status-card.td-status-card-live:focus {
+  box-shadow: inset 4px 0 0 var(--td-green), var(--td-shadow-hover);
+}
+
+.td-status-card.td-status-card-off:hover,
+.td-status-card.td-status-card-off:focus,
+.td-status-card.td-status-card-danger:hover,
+.td-status-card.td-status-card-danger:focus {
+  box-shadow: inset 4px 0 0 var(--td-red), var(--td-shadow-hover);
+}
+
+.td-status-card.td-status-card-pending:hover,
+.td-status-card.td-status-card-pending:focus,
+.td-status-card.td-status-card-info:hover,
+.td-status-card.td-status-card-info:focus {
+  box-shadow: inset 4px 0 0 var(--td-blue), var(--td-shadow-hover);
 }
 
 .td-kpi-top {
@@ -1097,6 +1153,41 @@ body:has(.td-dashboard) #page-content {
   color: var(--td-red);
 }
 
+/* Subtle decorative sparklines behind KPI values */
+.td-kpi-sparkline {
+  position: relative;
+  overflow: hidden;
+}
+
+.td-kpi-sparkline::after {
+  content: "";
+  position: absolute;
+  right: 8px;
+  bottom: 36px;
+  width: 72px;
+  height: 28px;
+  opacity: 0.35;
+  pointer-events: none;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+}
+
+.td-kpi-sparkline-blue::after {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 72 28' fill='none'%3E%3Cpath d='M1 22 C10 20 14 8 22 10 C30 12 34 24 42 18 C50 12 58 4 71 6' stroke='%232185d0' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+
+.td-kpi-sparkline-green::after {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 72 28' fill='none'%3E%3Cpath d='M1 20 C12 22 16 6 26 8 C36 10 40 22 50 14 C58 8 64 4 71 5' stroke='%2316a34a' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+
+.td-kpi-sparkline .td-kpi-value,
+.td-kpi-sparkline .td-kpi-top,
+.td-kpi-sparkline .td-kpi-hint,
+.td-kpi-sparkline .td-kpi-link {
+  position: relative;
+  z-index: 1;
+}
+
 /* --------------------------------------------------------------------------
    Readiness + funnel (equal card family)
    -------------------------------------------------------------------------- */
@@ -1163,6 +1254,36 @@ body:has(.td-dashboard) #page-content {
 
 .td-readiness-val.danger {
   color: #dc2626;
+}
+
+.td-readiness-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.td-readiness-pill.success {
+  background: var(--td-green-soft);
+  color: #166534;
+}
+
+.td-readiness-pill.warning {
+  background: var(--td-orange-soft);
+  color: #9a3412;
+}
+
+.td-readiness-pill.danger {
+  background: var(--td-red-soft);
+  color: #991b1b;
 }
 
 .td-readiness-footer {
@@ -1516,11 +1637,11 @@ body:has(.td-dashboard) #page-content {
 
 .td-stats-table thead th {
   padding: 8px 14px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--td-muted);
+  letter-spacing: 0.03em;
+  color: #4b5563;
   background: #f9fafb;
   border-bottom: 1px solid var(--td-border);
   text-align: left;
@@ -1601,13 +1722,13 @@ body:has(.td-dashboard) #page-content {
 .td-activity-table th {
   background: #f9fafb;
   font-weight: 600;
-  color: var(--td-muted);
+  color: #4b5563;
   padding: 9px 12px;
   text-align: left;
   border-bottom: 1px solid var(--td-border);
-  font-size: 11px;
+  font-size: 12px;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
 }
 
 .td-activity-table td {

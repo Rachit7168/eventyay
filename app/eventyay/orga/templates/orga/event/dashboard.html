@@ -12,7 +12,7 @@
         <link rel="stylesheet" href="{% static "orga/css/dashboard.css" %}">
     {% endcompress %}
     {# Cache-busted + outside compress so local redesign CSS always refreshes #}
-    <link rel="stylesheet" href="{% static "orga/css/talks_dashboard.css" %}?v=20260826-funnel5">
+    <link rel="stylesheet" href="{% static "orga/css/talks_dashboard.css" %}?v=20260826-polish2">
     <link rel="stylesheet" type="text/css" href="{% static "vendored/apexcharts/apexcharts.css" %}" />
 {% endblock stylesheets %}
 
@@ -20,7 +20,7 @@
     {% has_event_perm "base.orga_list_submission" request.user request request.event as can_view_submission_stats %}
     <script defer src="{% static "vendored/apexcharts/apexcharts.min.js" %}"></script>
     {% if can_view_submission_stats %}
-        <script defer src="{% static "orga/js/stats.js" %}?v=20260826-padrows"></script>
+        <script defer src="{% static "orga/js/stats.js" %}?v=20260826-polish2"></script>
     {% endif %}
     <script defer src="{% static "orga/js/talks_dashboard_charts.js" %}?v=20260826-padrows"></script>
 {% endblock scripts %}
@@ -124,13 +124,10 @@
                             </span>
                             <span class="td-action-title">{{ item.title }}</span>
                         </div>
-                        <p class="td-action-desc">
-                            {% if item.count %}
-                                <strong class="td-action-n">{{ item.count }}</strong> {{ item.desc }}
-                            {% else %}
-                                {{ item.desc }}
-                            {% endif %}
-                        </p>
+                        {% if item.count %}
+                            <div class="td-action-count">{{ item.count }}</div>
+                        {% endif %}
+                        <p class="td-action-desc">{{ item.desc }}</p>
                         {% if item.active %}
                             <a href="{{ item.url }}" class="td-action-btn">{{ item.btn }} <span aria-hidden="true">></span></a>
                         {% else %}
@@ -167,7 +164,7 @@
                 {% else %}
                     <p class="td-upcoming-empty">{% trans "No upcoming deadlines." %}</p>
                 {% endif %}
-                <a href="{{ request.event.orga_urls.base }}#timeline-steps" class="td-view-all-link">{% trans "View full timeline" %} <span aria-hidden="true">></span></a>
+                <a href="{{ request.event.orga_urls.base }}#timeline-steps" class="td-view-all-link">{% trans "View full deadlines" %} <span aria-hidden="true">></span></a>
             </aside>
         </div>
     </section>
@@ -175,7 +172,7 @@
     {# ─── Quick actions ────────────────────────────────────────────────── #}
     <section class="td-section td-quick-section" aria-labelledby="td-quick-title">
         <h2 id="td-quick-title" class="td-section-title td-section-title-inline">
-            <span class="fa fa-bolt" aria-hidden="true"></span>
+            <span class="fa fa-star" aria-hidden="true"></span>
             {% trans "Quick actions" %}
         </h2>
         <div class="td-quick-actions" role="toolbar" aria-label="{% trans "Quick actions" %}">
@@ -211,7 +208,7 @@
                 <div class="td-kpi-link">{{ kpi_cards.talk_status.link }} ></div>
             </a>
             {% for card in kpi_cards.primary %}
-                <a href="{{ card.url }}" class="td-kpi-card td-kpi-{{ card.color }}" id="kpi-card-{{ forloop.counter }}" title="{{ card.label }}">
+                <a href="{{ card.url }}" class="td-kpi-card td-kpi-{{ card.color }}{% if card.sparkline %} td-kpi-sparkline td-kpi-sparkline-{{ card.sparkline }}{% endif %}" id="kpi-card-{{ forloop.counter }}" title="{{ card.label }}">
                     <div class="td-kpi-top">
                         <span class="td-kpi-icon" aria-hidden="true"><span class="fa fa-{{ card.icon }}"></span></span>
                         <span class="td-kpi-label">{{ card.label }}</span>
@@ -222,7 +219,7 @@
                 </a>
             {% endfor %}
             {% for card in kpi_cards.secondary %}
-                <a href="{{ card.url }}" class="td-kpi-card td-kpi-{{ card.color }}" title="{{ card.label }}">
+                <a href="{{ card.url }}" class="td-kpi-card td-kpi-{{ card.color }}{% if card.sparkline %} td-kpi-sparkline td-kpi-sparkline-{{ card.sparkline }}{% endif %}" title="{{ card.label }}">
                     <div class="td-kpi-top">
                         <span class="td-kpi-icon" aria-hidden="true"><span class="fa fa-{{ card.icon }}"></span></span>
                         <span class="td-kpi-label">{{ card.label }}</span>
@@ -280,31 +277,31 @@
                     <table class="td-readiness-table no-hover">
                         <tr>
                             <td>{% trans "Confirmed sessions" %}</td>
-                            <td><span class="td-readiness-val">{{ session_readiness.confirmed }}</span></td>
+                            <td><span class="td-readiness-pill">{{ session_readiness.confirmed }}</span></td>
                         </tr>
                         <tr>
                             <td>{% trans "Scheduled sessions" %}</td>
-                            <td><span class="td-readiness-val success">{{ session_readiness.scheduled }}</span></td>
+                            <td><span class="td-readiness-pill success">{{ session_readiness.scheduled }}</span></td>
                         </tr>
                         <tr>
                             <td>{% trans "Unscheduled sessions" %}</td>
-                            <td><span class="td-readiness-val {% if session_readiness.unscheduled %}danger{% endif %}">{{ session_readiness.unscheduled }}</span></td>
+                            <td><span class="td-readiness-pill {% if session_readiness.unscheduled %}danger{% endif %}">{{ session_readiness.unscheduled }}</span></td>
                         </tr>
                         <tr>
                             <td>{% trans "Sessions missing room / time" %}</td>
-                            <td><span class="td-readiness-val {% if session_readiness.missing_room_or_time %}danger{% endif %}">{{ session_readiness.missing_room_or_time }}</span></td>
+                            <td><span class="td-readiness-pill {% if session_readiness.missing_room_or_time %}danger{% endif %}">{{ session_readiness.missing_room_or_time }}</span></td>
                         </tr>
                         <tr>
                             <td>{% trans "Sessions with conflicts" %}</td>
-                            <td><span class="td-readiness-val {% if session_readiness.conflicts %}danger{% endif %}">{{ session_readiness.conflicts }}</span></td>
+                            <td><span class="td-readiness-pill {% if session_readiness.conflicts %}warning{% endif %}">{{ session_readiness.conflicts }}</span></td>
                         </tr>
                         <tr>
                             <td>{% trans "Cancelled sessions" %}</td>
-                            <td><span class="td-readiness-val">{{ session_readiness.canceled }}</span></td>
+                            <td><span class="td-readiness-pill">{{ session_readiness.canceled }}</span></td>
                         </tr>
                     </table>
                     <div class="td-readiness-footer">
-                        <a href="{{ session_readiness.sessions_url }}" class="td-view-all-link">{% trans "Open session list" %} <span aria-hidden="true">></span></a>
+                        <a href="{{ session_readiness.sessions_url }}" class="td-view-all-link">{% trans "View all session list" %} <span aria-hidden="true">></span></a>
                     </div>
                 </div>
             </article>
@@ -318,27 +315,27 @@
                     <table class="td-readiness-table no-hover">
                         <tr>
                             <td>{% trans "Total speakers" %}</td>
-                            <td><span class="td-readiness-val">{{ speaker_readiness.total }}</span></td>
+                            <td><span class="td-readiness-pill">{{ speaker_readiness.total }}</span></td>
                         </tr>
                         <tr>
                             <td>{% trans "Confirmed speakers" %}</td>
-                            <td><span class="td-readiness-val success">{{ speaker_readiness.confirmed }}</span></td>
+                            <td><span class="td-readiness-pill success">{{ speaker_readiness.confirmed }}</span></td>
                         </tr>
                         <tr>
                             <td>{% trans "Missing biography" %}</td>
-                            <td><span class="td-readiness-val {% if speaker_readiness.missing_bio %}danger{% endif %}">{{ speaker_readiness.missing_bio }}</span></td>
+                            <td><span class="td-readiness-pill {% if speaker_readiness.missing_bio %}danger{% endif %}">{{ speaker_readiness.missing_bio }}</span></td>
                         </tr>
                         <tr>
                             <td>{% trans "Missing profile image" %}</td>
-                            <td><span class="td-readiness-val {% if speaker_readiness.missing_avatar %}danger{% endif %}">{{ speaker_readiness.missing_avatar }}</span></td>
+                            <td><span class="td-readiness-pill {% if speaker_readiness.missing_avatar %}danger{% endif %}">{{ speaker_readiness.missing_avatar }}</span></td>
                         </tr>
                         <tr>
                             <td>{% trans "Speakers without session" %}</td>
-                            <td><span class="td-readiness-val {% if speaker_readiness.speakers_without_session %}danger{% endif %}">{{ speaker_readiness.speakers_without_session }}</span></td>
+                            <td><span class="td-readiness-pill {% if speaker_readiness.speakers_without_session %}danger{% endif %}">{{ speaker_readiness.speakers_without_session }}</span></td>
                         </tr>
                     </table>
                     <div class="td-readiness-footer">
-                        <a href="{{ speaker_readiness.speakers_url }}" class="td-view-all-link">{% trans "Open speaker list" %} <span aria-hidden="true">></span></a>
+                        <a href="{{ speaker_readiness.speakers_url }}" class="td-view-all-link">{% trans "View speakers list" %} <span aria-hidden="true">></span></a>
                     </div>
                 </div>
             </article>
