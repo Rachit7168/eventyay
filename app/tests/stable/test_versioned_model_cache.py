@@ -3,6 +3,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from asgiref.sync import async_to_sync
 from django.core.cache import caches
 from django.test.utils import override_settings
 from django_scopes import scope
@@ -56,8 +57,7 @@ def test_process_cache_roundtrip_with_event_settings(room, event):
 @pytest.mark.parametrize('exc_cls', [EOFError, IndexError, ImportError, AttributeError])
 @pytest.mark.django_db
 @override_settings(CACHES=LOCMEM_PROCESS_CACHE)
-@pytest.mark.asyncio
-async def test_refresh_drops_unreadable_process_cache(room, event, exc_cls):
+def test_refresh_drops_unreadable_process_cache(room, event, exc_cls):
     assert exc_cls in _CACHE_LOAD_ERRORS
     with scope(event=event):
         room = Room.objects.get(pk=room.pk)
@@ -80,7 +80,7 @@ async def test_refresh_drops_unreadable_process_cache(room, event, exc_cls):
         ):
             caches_mock.__getitem__.return_value = process_cache
             room.version = original_version
-            await room.refresh_from_db_if_outdated()
+            async_to_sync(room.refresh_from_db_if_outdated)()
 
         process_cache.delete.assert_called_once_with(room._cachekey)
         refresh_from_db.assert_called_once()
@@ -88,8 +88,7 @@ async def test_refresh_drops_unreadable_process_cache(room, event, exc_cls):
 
 @pytest.mark.django_db
 @override_settings(CACHES=LOCMEM_PROCESS_CACHE)
-@pytest.mark.asyncio
-async def test_refresh_drops_cache_entry_without_version(room, event):
+def test_refresh_drops_cache_entry_without_version(room, event):
     with scope(event=event):
         room = Room.objects.get(pk=room.pk)
         original_version = room.version
@@ -107,7 +106,7 @@ async def test_refresh_drops_cache_entry_without_version(room, event):
             patch.object(room, 'refresh_from_db') as refresh_from_db,
         ):
             room.version = original_version
-            await room.refresh_from_db_if_outdated()
+            async_to_sync(room.refresh_from_db_if_outdated)()
 
         refresh_from_db.assert_called_once()
         cached = cache.get(room._cachekey)
