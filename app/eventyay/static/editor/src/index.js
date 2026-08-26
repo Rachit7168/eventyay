@@ -51,6 +51,7 @@ function mountEditor(textarea) {
     }
   })
 
+  textarea.__eventyayTiptapEditor = editor
   const toolbar = buildToolbar(editor, {
     profile,
     placeholders,

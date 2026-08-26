@@ -30,7 +30,6 @@ from eventyay.control.forms.global_settings import (
     UpdateSettingsForm,
     StartPageSettingsForm,
 )
-from eventyay.common.sanitizers import sanitize_page_rich_text
 from eventyay.control.permissions import (
     AdministratorPermissionRequiredMixin,
     StaffMemberRequiredMixin,

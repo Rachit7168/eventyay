@@ -1,6 +1,7 @@
 from django.db import migrations
 import markdown
 import re
+from eventyay.common.sanitizers import sanitize_page_rich_text
 
 def is_tiptap_html(text):
     if not text:
@@ -20,7 +21,7 @@ def convert_markdown_to_html(apps, schema_editor):
         ]
     )
     
-    for page in Page.objects.all():
+    for page in Page.objects.all().iterator():
         if page.text:
             text_data = page.text.data
             if isinstance(text_data, dict):
@@ -28,7 +29,8 @@ def convert_markdown_to_html(apps, schema_editor):
                 changed = False
                 for lang, text in text_data.items():
                     if text and not is_tiptap_html(text):
-                        new_data[lang] = md.reset().convert(str(text))
+                        raw_html = md.reset().convert(str(text))
+                        new_data[lang] = sanitize_page_rich_text(raw_html)
                         changed = True
                     else:
                         new_data[lang] = text
@@ -36,7 +38,8 @@ def convert_markdown_to_html(apps, schema_editor):
                     page.text.data = new_data
                     page.save(update_fields=['text'])
             elif isinstance(text_data, str) and text_data and not is_tiptap_html(text_data):
-                page.text.data = md.reset().convert(text_data)
+                raw_html = md.reset().convert(text_data)
+                page.text.data = sanitize_page_rich_text(raw_html)
                 page.save(update_fields=['text'])
 
 
