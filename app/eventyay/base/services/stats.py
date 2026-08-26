@@ -334,16 +334,38 @@ def group_overview_by_classification(
     products_by_category: List[Tuple[Any, List[Any]]],
 ) -> List[Tuple[Any, List[Any]]]:
     """
-    Regroup order overview rows by ticket/product classification.
+    Group order overview rows for the dashboard breakdown.
 
-    Admission products are grouped under Tickets, non-admission products under Products.
-    Payment fees are kept in their own group at the end. Items that cannot be classified
-    are placed in an Uncategorized group.
+    If the organizer has created custom product categories, keep those category
+    groups (and leave Fees at the end). Otherwise fall back to product type:
+    Admission → Tickets, Non-Admission → Products, unknown → Uncategorized.
     """
     fees_label = str(_('Fees'))
+    uncategorized_label = str(_('Uncategorized'))
     tickets_label = _('Tickets')
     products_label = _('Products')
-    uncategorized_label = _('Uncategorized')
+
+    fees_group = None
+    non_fee_groups = []
+    for category, items in products_by_category:
+        if str(category.name) == fees_label:
+            fees_group = (category, items)
+            continue
+        non_fee_groups.append((category, items))
+
+    def _is_custom_category(category) -> bool:
+        # Real organizer categories are persisted ProductCategory rows with an id.
+        # The synthetic "Uncategorized" bucket and Fees dummy object have no id.
+        if getattr(category, 'id', None) is None:
+            return False
+        return str(category.name) != uncategorized_label
+
+    has_custom_categories = any(_is_custom_category(category) for category, _items in non_fee_groups)
+    if has_custom_categories:
+        result = list(non_fee_groups)
+        if fees_group:
+            result.append(fees_group)
+        return result
 
     classification_groups = {
         'tickets': DummyObject(),
@@ -352,16 +374,10 @@ def group_overview_by_classification(
     }
     classification_groups['tickets'].name = tickets_label
     classification_groups['products'].name = products_label
-    classification_groups['uncategorized'].name = uncategorized_label
+    classification_groups['uncategorized'].name = _('Uncategorized')
 
     classified_items = {key: [] for key in classification_groups}
-    fees_group = None
-
-    for category, items in products_by_category:
-        if str(category.name) == fees_label:
-            fees_group = (category, items)
-            continue
-
+    for _category, items in non_fee_groups:
         for product in items:
             if getattr(product, 'admission', None) is True:
                 classified_items['tickets'].append(product)
