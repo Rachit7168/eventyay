@@ -142,14 +142,16 @@ def test_central_status_ticketing_mode_public_sales_with_delete_test_orders(orga
     event.live = True
     event.testmode = True
     event.save()
+    from django_scopes import scope
     from eventyay.base.models import Product, Quota, Order
-    product = Product.objects.create(event=event, name="Ticket", default_price=10)
-    quota = Quota.objects.create(event=event, name="Quota", size=100)
-    quota.products.add(product)
-    
-    Order.objects.create(event=event, status=Order.STATUS_PENDING, testmode=True, expires=timezone.now(), total=0)
-    Order.objects.create(event=event, status=Order.STATUS_PENDING, testmode=False, expires=timezone.now(), total=0)
-    
+    with scope(organizer=event.organizer):
+        product = Product.objects.create(event=event, name="Ticket", default_price=10)
+        quota = Quota.objects.create(event=event, name="Quota", size=100)
+        quota.products.add(product)
+
+        Order.objects.create(event=event, status=Order.STATUS_PENDING, testmode=True, expires=timezone.now(), total=0)
+        Order.objects.create(event=event, status=Order.STATUS_PENDING, testmode=False, expires=timezone.now(), total=0)
+
     central_url = reverse(
         'eventyay_common:event.live',
         kwargs={'organizer': event.organizer.slug, 'event': event.slug},
@@ -159,8 +161,9 @@ def test_central_status_ticketing_mode_public_sales_with_delete_test_orders(orga
     event.refresh_from_db()
     assert event.tickets_published is True
     assert event.testmode is False
-    assert Order.objects.filter(event=event, testmode=True).count() == 0
-    assert Order.objects.filter(event=event, testmode=False).count() == 1
+    with scope(organizer=event.organizer):
+        assert Order.objects.filter(event=event, testmode=True).count() == 0
+        assert Order.objects.filter(event=event, testmode=False).count() == 1
 
 
 @pytest.mark.django_db
@@ -170,13 +173,15 @@ def test_central_status_ticketing_mode_public_sales_without_delete_test_orders(o
     event.live = True
     event.testmode = True
     event.save()
+    from django_scopes import scope
     from eventyay.base.models import Product, Quota, Order
-    product = Product.objects.create(event=event, name="Ticket", default_price=10)
-    quota = Quota.objects.create(event=event, name="Quota", size=100)
-    quota.products.add(product)
-    
-    Order.objects.create(event=event, status=Order.STATUS_PENDING, testmode=True, expires=timezone.now(), total=0)
-    
+    with scope(organizer=event.organizer):
+        product = Product.objects.create(event=event, name="Ticket", default_price=10)
+        quota = Quota.objects.create(event=event, name="Quota", size=100)
+        quota.products.add(product)
+
+        Order.objects.create(event=event, status=Order.STATUS_PENDING, testmode=True, expires=timezone.now(), total=0)
+
     central_url = reverse(
         'eventyay_common:event.live',
         kwargs={'organizer': event.organizer.slug, 'event': event.slug},
@@ -186,4 +191,5 @@ def test_central_status_ticketing_mode_public_sales_without_delete_test_orders(o
     event.refresh_from_db()
     assert event.tickets_published is True
     assert event.testmode is False
-    assert Order.objects.filter(event=event, testmode=True).count() == 1
+    with scope(organizer=event.organizer):
+        assert Order.objects.filter(event=event, testmode=True).count() == 1

@@ -25,7 +25,15 @@
             <p>{{ setup_progress }} {% trans "of 4 core components ready" %}</p>
             <div class="row progress-row">
                 <div class="col-xs-2 text-center">
-                    <div class="progress-circle" style="color: {{ setup_progress_color }}; background: conic-gradient({{ setup_progress_color }} {{ setup_progress_percent }}%, #e9ecef {{ setup_progress_percent }}% 100%);"><span>{{ setup_progress_percent }}%</span></div>
+                    <div
+                        class="progress-circle"
+                        style="color: {{ setup_progress_color }}; background: conic-gradient({{ setup_progress_color }} {{ setup_progress_percent }}%, #e9ecef {{ setup_progress_percent }}% 100%);"
+                        role="progressbar"
+                        aria-valuenow="{{ setup_progress_percent }}"
+                        aria-valuemin="0"
+                        aria-valuemax="100"
+                        aria-label="{% trans "Overall readiness" %}"
+                    ><span>{{ setup_progress_percent }}%</span></div>
                     <div class="progress-label">{% trans "Overall readiness" %}</div>
                 </div>
                 <div class="col-xs-10 components-row">
@@ -125,7 +133,7 @@
                             {% endif %}
                         {% endif %}
                     </form>
-                    <a href="{{ request.event.urls.base }}" target="_blank" class="btn btn-default btn-custom">{% trans "Preview event page" %} <i class="fa fa-external-link"></i></a>
+                    <a href="{{ request.event.urls.base }}" target="_blank" rel="noopener noreferrer" class="btn btn-default btn-custom">{% trans "Preview event page" %} <i class="fa fa-external-link" aria-hidden="true"></i></a>
                 </div>
             </div>
         </div>
@@ -308,8 +316,8 @@
                         {% trans "Talk settings" %}
                     </a>
                     {% endif %}
-                    <a href="{{ request.event.urls.schedule }}" target="_blank" class="btn btn-default btn-custom">
-                        {% trans "Preview talks" %} <i class="fa fa-external-link"></i>
+                    <a href="{{ request.event.urls.schedule }}" target="_blank" rel="noopener noreferrer" class="btn btn-default btn-custom">
+                        {% trans "Preview talks" %} <i class="fa fa-external-link" aria-hidden="true"></i>
                     </a>
                 </div>
             </div>

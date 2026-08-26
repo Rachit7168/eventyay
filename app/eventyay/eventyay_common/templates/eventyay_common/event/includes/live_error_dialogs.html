@@ -23,7 +23,9 @@
         </p>
         <h3 id="unpublish-dialog-title">{% trans "Cannot unpublish event" %}</h3>
         <p id="unpublish-dialog-message" class="modal-card-stacked-permission__message">
-            {% if request.event.tickets_published %}
+            {% if request.event.tickets_published and request.event.talks_published %}
+                {% trans "You cannot unpublish the event while tickets and talks are published. Please switch both to private test mode first." %}
+            {% elif request.event.tickets_published %}
                 {% trans "You cannot unpublish the event while tickets are published. Please switch ticketing to private test mode first." %}
             {% elif request.event.talks_published %}
                 {% trans "You cannot unpublish the event while talks are published. Please switch talks to private test mode first." %}

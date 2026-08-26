@@ -1164,6 +1164,9 @@ class EventLive(TemplateView):
                     event.settings.talks_testmode = False
                     event.private_testmode = event.settings.get('private_testmode_tickets', False, as_type=bool)
                     messages.success(self.request, _('Talk pages are now published.'))
+                else:
+                    messages.error(self.request, _('Unknown talk mode.'))
+                    return redirect(self.request.path)
                 event.save()
                 if previous_private != event.private_testmode:
                     self.request.event.log_action(
