@@ -6,7 +6,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.db import transaction
 from django.db.models import Exists, OuterRef, Q, Subquery
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.utils.functional import cached_property
@@ -26,7 +26,7 @@ from eventyay.base.templatetags.rich_text import (
 )
 from eventyay.base.services.mail import expand_email_variable_chips
 from eventyay.common.mail import get_reply_to_address
-from eventyay.control.permissions import EventPermissionRequiredMixin
+from eventyay.control.permissions import EventPermissionRequiredMixin, event_permission_required
 from eventyay.control.views.event import EventSettingsFormView, EventSettingsViewMixin
 from eventyay.helpers.timezone import attach_timezone_to_naive_clock_time, get_browser_timezone, format_scheduled_datetime
 from eventyay.plugins.sendmail.forms import EmailQueueEditForm
@@ -37,8 +37,45 @@ from eventyay.plugins.sendmail.tasks import send_queued_mail
 from . import forms
 from .forms import MailContentSettingsForm, TeamMailForm
 
-
 logger = logging.getLogger(__name__)
+
+@event_permission_required('can_change_orders')
+def attendees_select2(request, **kwargs):
+    query = request.GET.get('query', '')
+    try:
+        page = int(request.GET.get('page', '1'))
+    except ValueError:
+        page = 1
+
+    qs = OrderPosition.objects.filter(
+        order__event=request.event,
+        canceled=False
+    ).select_related('order')
+
+    if query:
+        qs = qs.filter(
+            Q(attendee_name_cached__icontains=query) |
+            Q(attendee_email__icontains=query) |
+            Q(order__code__icontains=query)
+        )
+
+    qs = qs.order_by('attendee_name_cached', 'order__code')
+
+    total = qs.count()
+    pagesize = 20
+    offset = (page - 1) * pagesize
+
+    doc = {
+        'results': [
+            {
+                'id': op.pk,
+                'text': f"{op.attendee_name_cached or op.attendee_email or op.order.code} ({op.order.code})",
+            }
+            for op in qs[offset : offset + pagesize]
+        ],
+        'pagination': {'more': total >= (offset + pagesize)},
+    }
+    return JsonResponse(doc)
 
 
 class BulkReplyToMixin:
@@ -72,57 +109,97 @@ class SenderView(EventPermissionRequiredMixin, CopyDraftMixin, BulkReplyToMixin,
         return super().form_invalid(form)
 
     def form_valid(self, form):
-        qs = Order.objects.filter(event=self.request.event)
-        statusq = Q(status__in=form.cleaned_data['order_status'])
-        if 'overdue' in form.cleaned_data['order_status']:
-            statusq |= Q(status=Order.STATUS_PENDING, expires__lt=now())
-        if 'pa' in form.cleaned_data['order_status']:
-            statusq |= Q(status=Order.STATUS_PENDING, require_approval=True)
-        if 'na' in form.cleaned_data['order_status']:
-            statusq |= Q(status=Order.STATUS_PENDING, require_approval=False)
-        orders = qs.filter(statusq)
+        if self.request.POST.get('action') == 'test':
+            test_email = form.cleaned_data.get('test_email')
+            if not test_email:
+                messages.error(self.request, _('Please enter a test email address.'))
+                return self.get(self.request, *self.args, **self.kwargs)
 
-        opq = OrderPosition.objects.filter(
-            order=OuterRef('pk'),
-            canceled=False,
-            product_id__in=[p.pk for p in form.cleaned_data.get('products')],
-        )
-
-        if form.cleaned_data.get('has_filter_checkins'):
-            ql = []
-            if form.cleaned_data.get('not_checked_in'):
-                ql.append(Q(checkins__list_id=None))
-            if form.cleaned_data.get('checkin_lists'):
-                ql.append(
-                    Q(
-                        checkins__list_id__in=[i.pk for i in form.cleaned_data.get('checkin_lists', [])],
-                    )
+            try:
+                from eventyay.base.services.mail import mail
+                context_dict = build_email_preview_context(
+                    self.request.event, ['event', 'order', 'position_or_address']
                 )
-            if len(ql) == 2:
-                opq = opq.filter(ql[0] | ql[1])
-            elif ql:
-                opq = opq.filter(ql[0])
-            else:
-                opq = opq.none()
+                
+                mail(
+                    email=test_email,
+                    subject=form.cleaned_data['subject'].data,
+                    template=form.cleaned_data['message'].data,
+                    context=context_dict,
+                    event=self.request.event,
+                    locale=self.request.event.settings.locale,
+                    sender=self._get_reply_to_for_bulk_email() or self.request.event.settings.get('mail_from'),
+                    event_bcc=self.request.event.settings.get('mail_bcc'),
+                    user=self.request.user,
+                    auto_email=False,
+                    sync_send=True,
+                )
+                messages.success(self.request, _('Test email sent successfully to {email}.').format(email=test_email))
+            except Exception as e:
+                logger.exception("Failed to send test email")
+                messages.error(self.request, _('Failed to send test email: {error}').format(error=str(e)))
+                
+            return self.get(self.request, *self.args, **self.kwargs)
 
-        if form.cleaned_data.get('subevent'):
-            opq = opq.filter(subevent=form.cleaned_data.get('subevent'))
-        if form.cleaned_data.get('subevents_from'):
-            opq = opq.filter(subevent__date_from__gte=form.cleaned_data.get('subevents_from'))
-        if form.cleaned_data.get('subevents_to'):
-            opq = opq.filter(subevent__date_from__lt=form.cleaned_data.get('subevents_to'))
-        if form.cleaned_data.get('order_created_from') or form.cleaned_data.get('order_created_to'):
-            browser_tz = get_browser_timezone(form.cleaned_data.get('browser_timezone'))
+        if form.cleaned_data.get('recipients') == 'individual':
+            individual_attendees = form.cleaned_data.get('individual_attendees')
+            if not individual_attendees:
+                messages.error(self.request, _('Please select at least one attendee.'))
+                return self.get(self.request, *self.args, **self.kwargs)
+            opq = individual_attendees
+            orders = Order.objects.filter(event=self.request.event, positions__in=opq).distinct()
+        else:
+            qs = Order.objects.filter(event=self.request.event)
+            statusq = Q(status__in=form.cleaned_data['order_status'])
+            if 'overdue' in form.cleaned_data['order_status']:
+                statusq |= Q(status=Order.STATUS_PENDING, expires__lt=now())
+            if 'pa' in form.cleaned_data['order_status']:
+                statusq |= Q(status=Order.STATUS_PENDING, require_approval=True)
+            if 'na' in form.cleaned_data['order_status']:
+                statusq |= Q(status=Order.STATUS_PENDING, require_approval=False)
+            orders = qs.filter(statusq)
 
-            def attach_timezone(dt_value):
-                return attach_timezone_to_naive_clock_time(dt_value, browser_tz)
+            opq = OrderPosition.objects.filter(
+                order=OuterRef('pk'),
+                canceled=False,
+                product_id__in=[p.pk for p in form.cleaned_data.get('products')],
+            )
 
-            if form.cleaned_data.get('order_created_from'):
-                opq = opq.filter(order__datetime__gte=attach_timezone(form.cleaned_data['order_created_from']))
-            if form.cleaned_data.get('order_created_to'):
-                opq = opq.filter(order__datetime__lt=attach_timezone(form.cleaned_data['order_created_to']))
+            if form.cleaned_data.get('has_filter_checkins'):
+                ql = []
+                if form.cleaned_data.get('not_checked_in'):
+                    ql.append(Q(checkins__list_id=None))
+                if form.cleaned_data.get('checkin_lists'):
+                    ql.append(
+                        Q(
+                            checkins__list_id__in=[i.pk for i in form.cleaned_data.get('checkin_lists', [])],
+                        )
+                    )
+                if len(ql) == 2:
+                    opq = opq.filter(ql[0] | ql[1])
+                elif ql:
+                    opq = opq.filter(ql[0])
+                else:
+                    opq = opq.none()
 
-        orders = orders.annotate(match_pos=Exists(opq)).filter(match_pos=True).distinct()
+            if form.cleaned_data.get('subevent'):
+                opq = opq.filter(subevent=form.cleaned_data.get('subevent'))
+            if form.cleaned_data.get('subevents_from'):
+                opq = opq.filter(subevent__date_from__gte=form.cleaned_data.get('subevents_from'))
+            if form.cleaned_data.get('subevents_to'):
+                opq = opq.filter(subevent__date_from__lt=form.cleaned_data.get('subevents_to'))
+            if form.cleaned_data.get('order_created_from') or form.cleaned_data.get('order_created_to'):
+                browser_tz = get_browser_timezone(form.cleaned_data.get('browser_timezone'))
+
+                def attach_timezone(dt_value):
+                    return attach_timezone_to_naive_clock_time(dt_value, browser_tz)
+
+                if form.cleaned_data.get('order_created_from'):
+                    opq = opq.filter(order__datetime__gte=attach_timezone(form.cleaned_data['order_created_from']))
+                if form.cleaned_data.get('order_created_to'):
+                    opq = opq.filter(order__datetime__lt=attach_timezone(form.cleaned_data['order_created_to']))
+
+            orders = orders.annotate(match_pos=Exists(opq)).filter(match_pos=True).distinct()
 
         if not orders:
             messages.error(self.request, _('There are no orders matching this selection.'))
@@ -178,6 +255,7 @@ class SenderView(EventPermissionRequiredMixin, CopyDraftMixin, BulkReplyToMixin,
             subevents_to=form.cleaned_data.get('subevents_to'),
             order_created_from=form.cleaned_data.get('order_created_from'),
             order_created_to=form.cleaned_data.get('order_created_to'),
+            individual_attendees=[a.pk for a in form.cleaned_data.get('individual_attendees')] if form.cleaned_data.get('individual_attendees') else []
         )
 
         qm.populate_to_users()

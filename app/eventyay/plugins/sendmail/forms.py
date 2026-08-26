@@ -20,7 +20,7 @@ from eventyay.base.models.checkin import CheckinList
 from eventyay.base.models.event import SubEvent
 from eventyay.base.models.product import Product
 from eventyay.base.models.organizer import Team
-from eventyay.base.models.orders import Order
+from eventyay.base.models.orders import Order, OrderPosition
 from eventyay.common.forms.mixins import ScheduledAtValidationMixin
 from eventyay.consts import SizeKey
 from eventyay.control.forms import CachedFileField
@@ -114,6 +114,13 @@ class MailForm(ScheduledAtValidationMixin, forms.Form):
         required=False,
         help_text=_('Leave empty to send immediately. If set, the email will be sent at this time. Time is interpreted in the event timezone.'),
     )
+    test_email = forms.EmailField(
+        label=_('Test email address'),
+        required=False,
+    )
+    individual_attendees = SafeModelMultipleChoiceField(
+        queryset=Product.objects.none(), required=False
+    )
     browser_timezone = forms.CharField(
         widget=forms.HiddenInput(attrs={'class': 'browser-timezone-field'}),
         required=False,
@@ -163,6 +170,7 @@ class MailForm(ScheduledAtValidationMixin, forms.Form):
                     _('Both (all order contact addresses and all attendee email addresses)'),
                 ),
             ]
+        recp_choices.append(('individual', _('Specific attendees')))
         self.fields['recipients'].choices = recp_choices
 
         self.fields['subject'] = I18nFormField(
@@ -189,7 +197,10 @@ class MailForm(ScheduledAtValidationMixin, forms.Form):
             choices.append(('overdue', _('pending with payment overdue')))
         self.fields['order_status'] = forms.MultipleChoiceField(
             label=_('Send to customers with order status'),
-            widget=forms.CheckboxSelectMultiple(attrs={'class': 'scrolling-multiple-choice'}),
+            widget=forms.CheckboxSelectMultiple(attrs={
+                'class': 'scrolling-multiple-choice',
+                'data-display-dependency': 'input[name=recipients][value!=individual]'
+            }),
             choices=choices,
         )
         if not self.initial.get('order_status'):
@@ -199,6 +210,7 @@ class MailForm(ScheduledAtValidationMixin, forms.Form):
             self.initial['order_status'].append('na')
 
         self.fields['products'].queryset = event.products.all()
+        self.fields['products'].widget.attrs['data-display-dependency'] = 'input[name=recipients][value!=individual]'
         if not self.initial.get('products'):
             self.initial['products'] = event.products.all()
 
@@ -214,10 +226,13 @@ class MailForm(ScheduledAtValidationMixin, forms.Form):
                     },
                 ),
                 'data-placeholder': _('Send to customers checked in on list'),
+                'data-display-dependency': 'input[name=recipients][value!=individual]',
             }
         )
         self.fields['checkin_lists'].widget.choices = self.fields['checkin_lists'].choices
         self.fields['checkin_lists'].label = _('Send to customers checked in on list')
+        self.fields['has_filter_checkins'].widget.attrs['data-display-dependency'] = 'input[name=recipients][value!=individual]'
+        self.fields['not_checked_in'].widget.attrs['data-display-dependency'] = 'input[name=recipients][value!=individual]'
 
         if event.has_subevents:
             self.fields['subevent'].queryset = event.subevents.all()
@@ -232,13 +247,37 @@ class MailForm(ScheduledAtValidationMixin, forms.Form):
                         },
                     ),
                     'data-placeholder': pgettext_lazy('subevent', 'Date'),
+                    'data-display-dependency': 'input[name=recipients][value!=individual]',
                 }
             )
             self.fields['subevent'].widget.choices = self.fields['subevent'].choices
+            self.fields['subevents_from'].widget.attrs['data-display-dependency'] = 'input[name=recipients][value!=individual]'
+            self.fields['subevents_to'].widget.attrs['data-display-dependency'] = 'input[name=recipients][value!=individual]'
         else:
             del self.fields['subevent']
             del self.fields['subevents_from']
             del self.fields['subevents_to']
+
+        self.fields['order_created_from'].widget.attrs['data-display-dependency'] = 'input[name=recipients][value!=individual]'
+        self.fields['order_created_to'].widget.attrs['data-display-dependency'] = 'input[name=recipients][value!=individual]'
+
+        self.fields['individual_attendees'].queryset = OrderPosition.objects.filter(order__event=event)
+        self.fields['individual_attendees'].widget = Select2Multiple(
+            attrs={
+                'data-model-select2': 'generic',
+                'data-select2-url': reverse(
+                    'control:event.mail.attendees.select2',
+                    kwargs={
+                        'event': event.slug,
+                        'organizer': event.organizer.slug,
+                    },
+                ),
+                'data-placeholder': _('Search for attendees (name, email, or order code)'),
+                'data-display-dependency': 'input[name=recipients][value=individual]',
+            }
+        )
+        self.fields['individual_attendees'].label = _('Select specific attendees')
+        self.fields['individual_attendees'].widget.choices = self.fields['individual_attendees'].choices
 
 
 class MailContentSettingsForm(SettingsForm):
