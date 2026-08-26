@@ -14,7 +14,7 @@ from eventyay.common.forms.widgets import (
     ClearableBasenameFileInput,
     EmailEditorWidget,
     I18nEmailEditorWidget,
-    I18nRichTextEditorWidget,
+    I18nRichTextWidget,
     ImageInput,
     PasswordConfirmationInput,
     PasswordStrengthInput,
@@ -149,11 +149,11 @@ class I18nRichTextFormField(I18nFormField):
     after validation.
     """
 
-    widget = I18nRichTextEditorWidget
+    widget = I18nRichTextWidget
 
     def __init__(self, *args, sanitizer=None, **kwargs):
         self.sanitizer = sanitizer or sanitize_rich_text
-        kwargs.setdefault('widget', I18nRichTextEditorWidget)
+        kwargs.setdefault('widget', I18nRichTextWidget)
         super().__init__(*args, **kwargs)
 
     def clean(self, value):

@@ -1,7 +1,50 @@
 from django.db import migrations
 import markdown
+import nh3
 import re
-from eventyay.common.sanitizers import sanitize_page_rich_text
+
+
+# Migration-local sanitizer snapshot. Do not import the live
+# ``sanitize_page_rich_text`` helper — later allowlist changes must not change
+# historical conversion results for installs that apply this migration later.
+_PAGE_TAGS = frozenset({
+    'p', 'br', 'strong', 'b', 'em', 'i', 'u',
+    'ul', 'ol', 'li', 'a', 'blockquote', 'img',
+})
+_PAGE_ATTRIBUTES = {
+    'a': {'href', 'rel'},
+    'img': {'src', 'alt', 'width', 'height', 'title'},
+}
+_URL_SCHEMES = frozenset({'http', 'https', 'mailto', 'tel', 'data'})
+
+
+def _attribute_filter(tag, attr, value):
+    if attr not in _PAGE_ATTRIBUTES.get(tag, ()):
+        return None
+
+    normalized = value.lstrip().lower()
+    if normalized.startswith('data:'):
+        if not (tag == 'img' and attr == 'src' and normalized.startswith('data:image/')):
+            return None
+
+    if tag == 'img' and attr == 'src':
+        if not normalized.startswith(('data:image/', 'http://', 'https://', '/')):
+            return None
+    return value
+
+
+def sanitize_page_rich_text_historical(html):
+    if not html:
+        return html
+    return nh3.clean(
+        html,
+        tags=_PAGE_TAGS,
+        attributes=_PAGE_ATTRIBUTES,
+        attribute_filter=_attribute_filter,
+        url_schemes=_URL_SCHEMES,
+        link_rel='noopener noreferrer',
+    )
+
 
 def is_tiptap_html(text):
     if not text:
@@ -9,9 +52,10 @@ def is_tiptap_html(text):
     text_str = str(text).strip()
     return bool(re.match(r'^\s*<(p|ul|ol|blockquote|h[1-6])(\s|>)', text_str, re.IGNORECASE))
 
+
 def convert_markdown_to_html(apps, schema_editor):
     Page = apps.get_model('base', 'Page')
-    
+
     md = markdown.Markdown(
         extensions=[
             'markdown.extensions.nl2br',
@@ -20,7 +64,7 @@ def convert_markdown_to_html(apps, schema_editor):
             'markdown.extensions.fenced_code',
         ]
     )
-    
+
     for page in Page.objects.all().iterator():
         if page.text:
             text_data = page.text.data
@@ -30,7 +74,7 @@ def convert_markdown_to_html(apps, schema_editor):
                 for lang, text in text_data.items():
                     if text and not is_tiptap_html(text):
                         raw_html = md.reset().convert(str(text))
-                        new_data[lang] = sanitize_page_rich_text(raw_html)
+                        new_data[lang] = sanitize_page_rich_text_historical(raw_html)
                         changed = True
                     else:
                         new_data[lang] = text
@@ -39,7 +83,7 @@ def convert_markdown_to_html(apps, schema_editor):
                     page.save(update_fields=['text'])
             elif isinstance(text_data, str) and text_data and not is_tiptap_html(text_data):
                 raw_html = md.reset().convert(text_data)
-                page.text.data = sanitize_page_rich_text(raw_html)
+                page.text.data = sanitize_page_rich_text_historical(raw_html)
                 page.save(update_fields=['text'])
 
 

@@ -1,11 +1,11 @@
 from django import forms
 
-from eventyay.common.forms.widgets import I18nEmailEditorWidget, I18nRichTextEditorWidget
+from eventyay.common.forms.widgets import I18nEmailEditorWidget, I18nRichTextWidget
 
 
 def test_i18n_richtext_editor_widget_wraps_each_locale():
     field = forms.CharField()
-    widget = I18nRichTextEditorWidget(locales=['en', 'de'], field=field)
+    widget = I18nRichTextWidget(locales=['en', 'de'], field=field)
     html = widget.render('field', None, attrs={'id': 'id_field'})
 
     assert 'data-tiptap-wrapper="true"' in html
