@@ -1,5 +1,7 @@
+import copy
 import logging
 import os
+import pickle
 import random
 import time
 
@@ -8,6 +10,11 @@ from django.core.cache import caches
 from django.db import models, transaction
 
 from eventyay.core.utils.redis import aredis, sredis
+
+# Django's RedisCache may raise these when a stored model blob cannot be unpickled
+# (e.g. Room pickled with Event.settings / Hierarkey + Twisted method reducers).
+_CACHE_LOAD_ERRORS = (AttributeError, TypeError, ValueError, pickle.UnpicklingError)
+_CACHE_STORE_ERRORS = (AttributeError, TypeError, pickle.PicklingError)
 
 SETIFHIGHER = """local c = tonumber(redis.call('get', KEYS[1]));
 if c then
@@ -55,6 +62,16 @@ class VersionedModel(models.Model):
         self.save(update_fields=["version"])
         self.clear_caches()
 
+    def __getstate__(self):
+        # Process-cache only needs concrete fields. Related objects (e.g. Room.event
+        # with Hierarkey settings) can embed callables that Twisted fails to unpickle,
+        # which then crashes live WebSocket consumers with a fatal server error.
+        state = super().__getstate__()
+        state["_state"] = copy.copy(state["_state"])
+        state["_state"].fields_cache = {}
+        state.pop("_prefetched_objects_cache", None)
+        return state
+
     async def refresh_from_db_if_outdated(self, allowed_age=0):
         if allowed_age:
             # In some places, we allow the cache to be a little outdated to avoid thousands
@@ -83,13 +100,28 @@ class VersionedModel(models.Model):
             return
 
         cache = caches["process"]
-        cached_instance = cache.get(self._cachekey)
+        try:
+            cached_instance = cache.get(self._cachekey)
+        except _CACHE_LOAD_ERRORS:
+            logger.warning(
+                "VersionedModel.refresh_from_db_if_outdated: dropping unreadable cache for %s",
+                self._cachekey,
+            )
+            cache.delete(self._cachekey)
+            cached_instance = None
         if cached_instance and cached_instance.version == latest_version:
             self._refresh_from_cache(cached_instance)
             return
 
         await database_sync_to_async(self.refresh_from_db)()
-        cache.set(self._cachekey, self, timeout=600)
+        try:
+            cache.set(self._cachekey, self, timeout=600)
+        except _CACHE_STORE_ERRORS:
+            logger.debug(
+                "VersionedModel.refresh_from_db_if_outdated: skipping unpicklable %s pk=%s",
+                self.__class__.__name__,
+                self.pk,
+            )
         if latest_version < self.version:
             await self._set_cache_version_async()
 
@@ -150,7 +182,7 @@ class VersionedModel(models.Model):
         cache = caches["process"]
         try:
             cache.set(self._cachekey, self, timeout=600)
-        except (TypeError, AttributeError):
+        except _CACHE_STORE_ERRORS:
             logger.debug(
                 "VersionedModel._cache_post_update: skipping unpicklable %s pk=%s",
                 self.__class__.__name__,
