@@ -183,6 +183,10 @@ dependencies = [
     "rpds-py>=2026.6.3",
     "rules>=3.5",
     "sendgrid>=6.12.5",
+
+    "google-api-python-client>=2.160.0",
+    "google-auth-httplib2>=0.2.0",
+    "google-auth-oauthlib>=1.2.0",
     "sentry-sdk>=2.68.0",
     "sepaxml>=2.7.0",
     "service-identity>=26.1.0",
@@ -290,6 +294,7 @@ packages = ["eventyay"]
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "tests.tickets.settings"
 testpaths = ["tests"]
+norecursedirs = ["tests/video", "tests/talk"]
 asyncio_mode = "strict"
 asyncio_default_fixture_loop_scope = "function"
 filterwarnings = [
