@@ -424,7 +424,7 @@
                 {% trans "Internal note" %}
             </div>
             <div class="td-section-card-body">
-                <form method="post" action="">
+                <form method="post" action="" id="internal-note-form">
                     {% csrf_token %}
                     <label class="visually-hidden" for="internal-note-textarea">{% trans "Internal note" %}</label>
                     <textarea
@@ -436,7 +436,7 @@
                         data-note-counter="#note-char-count">{{ event_comment }}</textarea>
                     <div class="td-note-footer">
                         <span class="td-note-counter" id="note-char-count">{{ event_comment|length }}/1000</span>
-                        <button type="submit" name="internal_note" class="td-note-save-btn">{% trans "Save note" %}</button>
+                        <button type="submit" name="save_internal_note" value="1" class="td-note-save-btn">{% trans "Save note" %}</button>
                     </div>
                 </form>
             </div>

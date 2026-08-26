@@ -961,7 +961,7 @@ class EventDashboardView(EventPermissionRequired, SubmissionStatsMixin, Template
         result['go_to_target'] = 'schedule' if stages['REVIEW']['phase'] == 'done' else 'cfp'
         _now = now()
         today = _now
-        can_change_settings = self.request.user.has_perm('base.change_settings.event', event)
+        can_change_settings = self.request.user.has_perm('base.update_event', event)
         can_change_submissions = self.request.user.has_perm('base.orga_update_submission', event)
         result['tiles'] = self.get_cfp_tiles(_now, can_change_submissions=can_change_submissions)
         if today < event.date_from:
@@ -1130,10 +1130,14 @@ class EventDashboardView(EventPermissionRequired, SubmissionStatsMixin, Template
 
     def post(self, request, *args, **kwargs):
         """Handle internal note save from the talks dashboard."""
-        if not request.user.has_perm('base.change_settings.event', request.event):
+        if 'save_internal_note' not in request.POST and 'internal_note' not in request.POST:
+            return redirect(request.event.orga_urls.base)
+        if not request.user.has_perm('base.update_event', request.event):
             messages.error(request, _('You do not have permission to change event settings.'))
-        elif 'internal_note' in request.POST:
-            note = request.POST.get('internal_note', '')
+        else:
+            # Prefer the textarea value; ignore a colliding submit-button value if present.
+            note_values = request.POST.getlist('internal_note')
+            note = (note_values[0] if note_values else '')[:1000]
             request.event.comment = note
             request.event.save(update_fields=['comment'])
             request.event.log_action('eventyay.event.comment', person=request.user, orga=True)
