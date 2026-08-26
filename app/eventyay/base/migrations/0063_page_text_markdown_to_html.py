@@ -45,7 +45,7 @@ def convert_markdown_to_html(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('base', '0061_price_max_digits_currency_support'),
+        ('base', '0062_attendee_feedback_redesign'),
     ]
 
     operations = [
