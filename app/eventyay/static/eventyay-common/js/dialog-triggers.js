@@ -1,29 +1,50 @@
-document.addEventListener('DOMContentLoaded', function() {
-    var dialogTriggers = document.querySelectorAll('[data-toggle="dialog"]');
-    for (var i = 0; i < dialogTriggers.length; i++) {
-        dialogTriggers[i].addEventListener('click', function(e) {
-            e.preventDefault();
-            var targetId = this.getAttribute('data-target') || this.getAttribute('data-dialog-target');
-            if (targetId) {
-                var dialog = document.querySelector(targetId);
-                if (dialog && typeof dialog.showModal === 'function') {
-                    dialog.showModal();
-                } else if (dialog) {
-                    dialog.setAttribute('open', '');
-                }
-            }
-        });
+/**
+ * Open native <dialog> elements from buttons with data-toggle="dialog".
+ */
+export function initDialogTriggers(root = document) {
+  const dialogTriggers = root.querySelectorAll('[data-toggle="dialog"]');
+  for (const trigger of dialogTriggers) {
+    if (trigger.dataset.dialogTriggerInit === 'true') {
+      continue;
     }
+    trigger.dataset.dialogTriggerInit = 'true';
+    trigger.addEventListener('click', (event) => {
+      event.preventDefault();
+      const targetId =
+        trigger.getAttribute('data-target') || trigger.getAttribute('data-dialog-target');
+      if (!targetId) {
+        return;
+      }
+      const dialog = root.querySelector(targetId);
+      if (!dialog) {
+        return;
+      }
+      if (typeof dialog.showModal === 'function') {
+        dialog.showModal();
+      } else {
+        dialog.setAttribute('open', '');
+      }
+    });
+  }
 
-    // Handle closing the dialog gracefully if fallback was used
-    var dialogForms = document.querySelectorAll('dialog form[method="dialog"]');
-    for (var j = 0; j < dialogForms.length; j++) {
-        dialogForms[j].addEventListener('submit', function(e) {
-            var parentDialog = this.closest('dialog');
-            if (parentDialog && typeof parentDialog.close !== 'function') {
-                e.preventDefault();
-                parentDialog.removeAttribute('open');
-            }
-        });
+  const dialogForms = root.querySelectorAll('dialog form[method="dialog"]');
+  for (const form of dialogForms) {
+    if (form.dataset.dialogFormInit === 'true') {
+      continue;
     }
-});
+    form.dataset.dialogFormInit = 'true';
+    form.addEventListener('submit', (event) => {
+      const parentDialog = form.closest('dialog');
+      if (parentDialog && typeof parentDialog.close !== 'function') {
+        event.preventDefault();
+        parentDialog.removeAttribute('open');
+      }
+    });
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => initDialogTriggers());
+} else {
+  initDialogTriggers();
+}

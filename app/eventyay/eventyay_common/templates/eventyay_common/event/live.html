@@ -4,7 +4,7 @@
 {% block custom_header %}
     {{ block.super }}
     {% load static %}
-    <script type="text/javascript" src="{% static 'eventyay-common/js/dialog-triggers.js' %}"></script>
+    <script type="module" src="{% static 'eventyay-common/js/dialog-triggers.js' %}"></script>
 {% endblock %}
 
 {% block content %}
@@ -299,9 +299,15 @@
                     </div>
                 </div>
                 <div class="card-action-col">
-                    <a href="{% url 'eventyay_common:event.update' organizer=request.organizer.slug event=request.event.slug %}#cfp" class="btn btn-primary btn-custom-margin">
+                    {% if warnings %}
+                    <a href="{{ warnings.0.url }}" class="btn btn-primary btn-custom-margin">
                         {% trans "Fix issues" %}
                     </a>
+                    {% elif request.event.cfp %}
+                    <a href="{{ request.event.cfp.urls.text }}" class="btn btn-default btn-custom-margin">
+                        {% trans "Talk settings" %}
+                    </a>
+                    {% endif %}
                     <a href="{{ request.event.urls.schedule }}" target="_blank" class="btn btn-default btn-custom">
                         {% trans "Preview talks" %} <i class="fa fa-external-link"></i>
                     </a>
@@ -313,7 +319,13 @@
                 <div class="row">
                     {% if warnings %}
                     <div class="col-xs-6">
-                        <strong class="warning-heading"><i class="fa fa-warning"></i> {% trans "Not ready for release" %}</strong>
+                        <strong class="warning-heading"><i class="fa fa-warning"></i>
+                            {% if request.event.talks_published %}
+                                {% trans "Attention required" %}
+                            {% else %}
+                                {% trans "Not ready for release" %}
+                            {% endif %}
+                        </strong>
                         <ul class="warning-list">
                             {% for warning in warnings %}
                                 <li class="warning-item">{{ warning.text }} <a href="{{ warning.url }}" class="warning-link">{% trans "Fix" %}</a></li>
