@@ -1,5 +1,3 @@
-# Generated manually
-
 from django.db import migrations
 import markdown
 import re
@@ -45,7 +43,7 @@ def convert_markdown_to_html(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('base', '0062_attendee_feedback_redesign'),
+        ('base', '0063_jitsi_video_moderator_permissions'),
     ]
 
     operations = [
