@@ -39,6 +39,7 @@ from eventyay.base.services.room import (
 from eventyay.base.services.room_creation_gate import (
     newly_added_server_backed_room_modules,
     user_can_create_server_backed_room_during_development,
+    user_has_all_server_backed_room_create_permissions,
 )
 from eventyay.core.permissions import Permission
 from eventyay.core.utils.redis import aredis
@@ -562,6 +563,13 @@ class RoomModule(BaseModule):
         if "module_config" in body and newly_added_server_modules:
             if not await user_can_create_server_backed_room_during_development(
                 self.consumer.user
+            ):
+                await self.consumer.send_error(code="config.denied")
+                return
+            if not await user_has_all_server_backed_room_create_permissions(
+                self.consumer.event,
+                self.consumer.user,
+                newly_added_server_modules,
             ):
                 await self.consumer.send_error(code="config.denied")
                 return

@@ -70,3 +70,29 @@ def server_backed_room_create_permissions(module_config):
         and module.get("type") in SERVER_BACKED_ROOM_CREATE_PERMISSIONS
     }
     return sorted(permissions, key=lambda permission: permission.value)
+
+
+def has_all_server_backed_room_create_permissions(event, *, traits, module_config):
+    """Require every distinct create permission for the given modules (AND).
+
+    ``Event.has_permission_implicit`` treats a permission list as OR, so callers
+    that need each server-backed type authorized must check permissions one by one.
+    """
+    permissions = server_backed_room_create_permissions(module_config)
+    if not permissions:
+        return False
+    return all(
+        event.has_permission_implicit(traits=traits, permissions=[permission])
+        for permission in permissions
+    )
+
+
+async def user_has_all_server_backed_room_create_permissions(event, user, module_config):
+    permissions = server_backed_room_create_permissions(module_config)
+    if not permissions:
+        return False
+    for permission in permissions:
+        if not await event.has_permission_async(user=user, permission=permission):
+            return False
+    return True
+
