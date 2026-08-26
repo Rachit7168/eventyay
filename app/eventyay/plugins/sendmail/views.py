@@ -133,6 +133,7 @@ class SenderView(EventPermissionRequiredMixin, CopyDraftMixin, BulkReplyToMixin,
                     user=self.request.user,
                     auto_email=False,
                     sync_send=True,
+                    attach_cached_files=[form.cleaned_data['attachment'].id] if form.cleaned_data.get('attachment') else [],
                 )
                 messages.success(self.request, _('Test email sent successfully to {email}.').format(email=test_email))
             except Exception as e:

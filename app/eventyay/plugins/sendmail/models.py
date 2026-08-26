@@ -268,8 +268,11 @@ class EmailQueue(models.Model):
         for order in orders_qs:
             order_fallback_needed = False
             attendee_found = False
+            individual_positions = set(filters.individual_attendees) if recipients_mode == "individual" else None
 
             for pos in order.positions.all():
+                if individual_positions is not None and pos.pk not in individual_positions:
+                    continue
                 if pos.attendee_email:
                     attendee_found = True
                     email = pos.attendee_email.strip().lower()
