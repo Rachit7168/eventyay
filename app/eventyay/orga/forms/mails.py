@@ -10,6 +10,7 @@ from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.html import escape
 from django.utils.translation import gettext_lazy as _
+from django.urls import reverse
 from i18nfield.forms import I18nModelForm
 
 from eventyay.base.forms.widgets import SplitDateTimePickerWidget
@@ -55,11 +56,20 @@ class MailTemplateForm(ReadOnlyFlag, I18nHelpText, I18nModelForm):
         self.fields['subject'].required = True
         text_field = self.fields['text']
         placeholder_names = sorted(self.valid_placeholders.keys())
+        preview_url = ''
+        if self.event and hasattr(self.event, 'slug') and self.event.slug:
+            try:
+                preview_url = reverse(
+                    'orga:mails.compose.preview',
+                    kwargs={'event': self.event.slug, 'organizer': self.event.organizer.slug}
+                )
+            except Exception:
+                pass
         self.fields['text'] = I18nEmailBodyFormField(
             label=text_field.label,
             help_text=text_field.help_text,
             widget=I18nEmailEditorWidget,
-            widget_kwargs={'placeholders': placeholder_names},
+            widget_kwargs={'placeholders': placeholder_names, 'preview_url': preview_url},
             required=True,
             locales=self.event.locales,
         )

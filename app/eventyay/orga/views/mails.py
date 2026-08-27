@@ -388,6 +388,43 @@ class MailPreview(PermissionRequired, View):
         return HttpResponse(mail.make_html())
 
 
+import json
+from django.http import JsonResponse
+from eventyay.base.templatetags.rich_text import compile_email_body
+from eventyay.mail.context import get_available_placeholders
+
+class ComposeMailPreview(EventPermissionRequired, View):
+    """Provides a live preview endpoint for the Tiptap email editor."""
+
+    permission_required = 'base.send_queuedmail'
+
+    def post(self, request, *args, **kwargs):
+        try:
+            data = json.loads(request.body)
+            html = data.get('html', '')
+            locale = data.get('locale', request.event.locale)
+
+            with language(locale):
+                placeholders = get_available_placeholders(
+                    event=request.event,
+                    kwargs=['event', 'submission', 'user', 'position_or_address', 'order', 'team']
+                )
+                context_dict = TolerantDict()
+                for key, value in placeholders.items():
+                    context_dict[key] = '<span class="placeholder" title="{title}">{content}</span>'.format(
+                        title=_('This value will be replaced based on dynamic parameters.'),
+                        content=escape(value.render_sample(request.event)),
+                    )
+                try:
+                    html = html.format_map(context_dict)
+                except (KeyError, ValueError):
+                    pass
+                preview_text = compile_email_body(html)
+                return JsonResponse({'html': preview_text})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+
+
 class ComposeMailChoice(EventPermissionRequired, TemplateView):
     template_name = 'orga/mails/compose_choice.html'
     permission_required = 'base.send_queuedmail'
@@ -432,9 +469,9 @@ class ComposeMailBaseView(EventPermissionRequired, FormView):
     def send_test_email(self, form):
         address = form.cleaned_data.get('test_email')
         if not address:
-            messages.error(
-                self.request,
-                _('Please enter an email address to send the test email to.'),
+            form.add_error(
+                'test_email',
+                _('Please enter an email address to send the test email to.')
             )
             return self.render_to_response(self.get_context_data(form=form))
 
@@ -488,13 +525,9 @@ class ComposeMailBaseView(EventPermissionRequired, FormView):
             # Only approximate, good enough. Doesn't run deduplication, so it doesn't have to
             # run rendering for all placeholders for all people, either.
             result = form.get_recipients()
-            if not result:
-                messages.error(
-                    self.request,
-                    _('There are no recipients matching this selection.'),
-                )
-                return self.get(self.request, *self.args, **self.kwargs)
+            
             from eventyay.base.templatetags.rich_text import compile_email_body
+
 
             for locale in self.request.event.locales:
                 with language(locale):
@@ -514,7 +547,12 @@ class ComposeMailBaseView(EventPermissionRequired, FormView):
                         'html': preview_text,
                     }
                     # Very rough method to deduplicate recipients, but good enough for a preview
-                    self.mail_count = len({str(res) for res in result})
+                    self.mail_count = len({str(res) for res in result}) if result else 0
+                    if not result:
+                        messages.warning(
+                            self.request,
+                            _('Preview generated with sample recipient data because no recipient is currently selected.')
+                        )
             return self.get(self.request, *self.args, **self.kwargs)
 
         with transaction.atomic():
