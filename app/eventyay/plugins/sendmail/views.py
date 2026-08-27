@@ -131,7 +131,12 @@ class SenderView(EventPermissionRequiredMixin, CopyDraftMixin, BulkReplyToMixin,
         return kwargs
 
     def form_valid(self, form):
-        if self.request.POST.get('action') == 'test':
+        action = self.request.POST.get('action')
+        if action == 'draft':
+            messages.error(self.request, _('This kind of email cannot be saved as a draft.'))
+            return self.render_to_response(self.get_context_data(form=form))
+
+        if action == 'test':
             test_email = form.cleaned_data.get('test_email')
             if not test_email:
                 form.add_error('test_email', _('Please enter a test email address.'))
@@ -144,8 +149,8 @@ class SenderView(EventPermissionRequiredMixin, CopyDraftMixin, BulkReplyToMixin,
 
                 mail(
                     email=test_email,
-                    subject=form.cleaned_data['subject'].data,
-                    template=form.cleaned_data['text'].data,
+                    subject=form.cleaned_data['subject'],
+                    template=form.cleaned_data['text'],
                     context=context_dict,
                     event=self.request.event,
                     locale=self.request.event.settings.locale,
@@ -176,7 +181,7 @@ class SenderView(EventPermissionRequiredMixin, CopyDraftMixin, BulkReplyToMixin,
             messages.error(self.request, _('There are no orders matching this selection.'))
             return self.get(self.request, *self.args, **self.kwargs)
 
-        if self.request.POST.get('action') == 'preview':
+        if action == 'preview':
             self.output = {}
             for l in self.request.event.settings.locales:
                 with language(l, self.request.event.settings.region):
