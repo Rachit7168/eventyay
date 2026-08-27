@@ -3,6 +3,9 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
+from collections import defaultdict
+from django.utils.functional import cached_property
+from django.utils.html import escape
 from django.utils.translation import pgettext_lazy
 from django_scopes.forms import SafeModelMultipleChoiceField
 from i18nfield.forms import I18nFormField, I18nTextarea, I18nTextInput
@@ -38,7 +41,19 @@ class MailForm(ScheduledAtValidationMixin, forms.Form):
     recipients = forms.ChoiceField(label=_('Send email to'), widget=forms.RadioSelect, initial='orders', choices=[])
     order_status = forms.MultipleChoiceField()  # overridden later
     subject = forms.CharField(label=_('Subject'))
-    message = forms.CharField(label=_('Message'))
+    text = forms.CharField(label=_('Message'))
+    reply_to = forms.CharField(
+        label=_('Reply-To'),
+        required=False,
+        help_text=_('Change the Reply-To address if you do not want to use the default organiser address'),
+        widget=forms.EmailInput(attrs={'placeholder': _('Reply-To')})
+    )
+    bcc = forms.CharField(
+        label=_('BCC'),
+        required=False,
+        help_text=_('Enter comma-separated BCC addresses'),
+        widget=forms.TextInput(attrs={'placeholder': _('BCC')})
+    )
     attachment = CachedFileField(
         label=_('Attachment'),
         required=False,
@@ -127,6 +142,28 @@ class MailForm(ScheduledAtValidationMixin, forms.Form):
         initial='UTC',
     )
 
+    @cached_property
+    def valid_placeholders(self):
+        message_placeholders = ['event', 'order', 'position_or_address']
+        return get_available_placeholders(self.event, message_placeholders)
+
+    @cached_property
+    def grouped_placeholders(self):
+        placeholders = self.valid_placeholders
+        grouped = defaultdict(list)
+        specificity = ['slot', 'submission', 'user', 'event', 'other']
+        for placeholder in placeholders.values():
+            if getattr(placeholder, 'is_visible', True) is False:
+                continue
+            placeholder.rendered_sample = escape(placeholder.render_sample(self.event))
+            for arg in specificity:
+                if arg in placeholder.required_context:
+                    grouped[arg].append(placeholder)
+                    break
+            else:
+                grouped['other'].append(placeholder)
+        return grouped
+
     def clean(self):
         d = super().clean()
         if d.get('subevent') and (d.get('subevents_from') or d.get('subevents_to')):
@@ -181,7 +218,7 @@ class MailForm(ScheduledAtValidationMixin, forms.Form):
         )
         message_placeholders = ['event', 'order', 'position_or_address']
         placeholder_names = sorted(get_available_placeholders(self.event, message_placeholders).keys())
-        self.fields['message'] = I18nEmailBodyFormField(
+        self.fields['text'] = I18nEmailBodyFormField(
             label=_('Message'),
             widget=I18nEmailEditorWidget,
             widget_kwargs={'placeholders': placeholder_names},
@@ -189,7 +226,7 @@ class MailForm(ScheduledAtValidationMixin, forms.Form):
             locales=event.settings.get('locales'),
         )
         self._set_field_placeholders('subject', message_placeholders)
-        self._set_field_placeholders('message', message_placeholders)
+        self._set_field_placeholders('text', message_placeholders)
         choices = [(e, l) for e, l in Order.STATUS_CHOICE if e != 'n']
         choices.insert(0, ('na', _('payment pending (except unapproved)')))
         choices.insert(0, ('pa', _('approval pending')))

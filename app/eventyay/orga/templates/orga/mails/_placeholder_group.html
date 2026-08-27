@@ -8,8 +8,14 @@
           {{ phrases.schedule.sessions }}
         {% elif tag == "slot" %}
           {{ phrases.schedule.schedule }}
-        {% elif tag == "user" %}
+        {% elif tag == "user" or tag == "recipient" %}
           {% translate "Recipient" %}
+        {% elif tag == "order" %}
+          {% translate "Order" %}
+        {% elif tag == "ticket" %}
+          {% translate "Ticket / attendee" %}
+        {% elif tag == "invoice" %}
+          {% translate "Invoice / payment" %}
         {% elif tag == "event" %}
           {% translate "Event" %}
         {% elif tag == "other" %}

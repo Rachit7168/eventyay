@@ -24,7 +24,7 @@ from eventyay.base.templatetags.rich_text import (
     build_email_preview_context,
     compile_email_body,
 )
-from eventyay.base.services.mail import expand_email_variable_chips
+from eventyay.base.services.mail import mail, expand_email_variable_chips
 from eventyay.common.mail import get_reply_to_address
 from eventyay.control.permissions import EventPermissionRequiredMixin, event_permission_required
 from eventyay.control.views.event import EventSettingsFormView, EventSettingsViewMixin
@@ -112,11 +112,10 @@ class SenderView(EventPermissionRequiredMixin, CopyDraftMixin, BulkReplyToMixin,
         if self.request.POST.get('action') == 'test':
             test_email = form.cleaned_data.get('test_email')
             if not test_email:
-                messages.error(self.request, _('Please enter a test email address.'))
-                return self.get(self.request, *self.args, **self.kwargs)
+                form.add_error('test_email', _('Please enter a test email address.'))
+                return self.form_invalid(form)
 
             try:
-                from eventyay.base.services.mail import mail
                 context_dict = build_email_preview_context(
                     self.request.event, ['event', 'order', 'position_or_address']
                 )
@@ -124,7 +123,7 @@ class SenderView(EventPermissionRequiredMixin, CopyDraftMixin, BulkReplyToMixin,
                 mail(
                     email=test_email,
                     subject=form.cleaned_data['subject'].data,
-                    template=form.cleaned_data['message'].data,
+                    template=form.cleaned_data['text'].data,
                     context=context_dict,
                     event=self.request.event,
                     locale=self.request.event.settings.locale,
@@ -140,13 +139,13 @@ class SenderView(EventPermissionRequiredMixin, CopyDraftMixin, BulkReplyToMixin,
                 logger.exception("Failed to send test email")
                 messages.error(self.request, _('Failed to send test email: {error}').format(error=str(e)))
                 
-            return self.get(self.request, *self.args, **self.kwargs)
+            return self.render_to_response(self.get_context_data(form=form))
 
         if form.cleaned_data.get('recipients') == 'individual':
             individual_attendees = form.cleaned_data.get('individual_attendees')
             if not individual_attendees:
-                messages.error(self.request, _('Please select at least one attendee.'))
-                return self.get(self.request, *self.args, **self.kwargs)
+                form.add_error('individual_attendees', _('Please select at least one attendee.'))
+                return self.form_invalid(form)
             opq = individual_attendees
             orders = Order.objects.filter(event=self.request.event, positions__in=opq).distinct()
         else:
@@ -215,7 +214,7 @@ class SenderView(EventPermissionRequiredMixin, CopyDraftMixin, BulkReplyToMixin,
                     )
                     subject = nh3.clean(form.cleaned_data['subject'].localize(l), tags=set())
                     preview_subject = nh3.clean(subject.format_map(context_dict), tags=set())
-                    message = form.cleaned_data['message'].localize(l)
+                    message = form.cleaned_data['text'].localize(l)
                     message_preview = expand_email_variable_chips(
                         message.format_map(context_dict), dict(context_dict)
                     )
@@ -233,11 +232,11 @@ class SenderView(EventPermissionRequiredMixin, CopyDraftMixin, BulkReplyToMixin,
             event=self.request.event,
             user=self.request.user,
             subject=form.cleaned_data['subject'].data,
-            message=form.cleaned_data['message'].data,
+            message=form.cleaned_data['text'].data,
             attachments=[form.cleaned_data['attachment'].id] if form.cleaned_data.get('attachment') else [],
             locale=self.request.event.settings.locale,
-            reply_to=self._get_reply_to_for_bulk_email() or '',
-            bcc=self.request.event.settings.get('mail_bcc'),
+            reply_to=form.cleaned_data.get('reply_to') or self._get_reply_to_for_bulk_email() or '',
+            bcc=form.cleaned_data.get('bcc') or self.request.event.settings.get('mail_bcc') or '',
             composing_for=ComposingFor.ATTENDEES,
             scheduled_at=scheduled_at,
         )

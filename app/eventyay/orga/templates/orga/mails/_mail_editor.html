@@ -64,6 +64,8 @@
             </div>
         </section>
 
+        {% block after_message %}{% endblock after_message %}
+
         {% if form.scheduled_at %}
             <section class="card mb-3">
                 <div class="card-header"><strong>{% translate "Delivery" %}</strong></div>
