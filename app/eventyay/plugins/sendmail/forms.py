@@ -539,10 +539,19 @@ class EmailQueueEditForm(ScheduledAtValidationMixin, forms.ModelForm):
             initial=self.instance.subject
         )
         placeholder_names = sorted(get_available_placeholders(self.event, base_placeholders).keys())
+        preview_url = ''
+        if self.event and hasattr(self.event, 'slug') and self.event.slug:
+            try:
+                preview_url = reverse(
+                    'orga:mails.compose.preview',
+                    kwargs={'event': self.event.slug, 'organizer': self.event.organizer.slug}
+                )
+            except Exception:
+                pass
         self.fields['message'] = I18nEmailBodyFormField(
             label=_('Message'),
             widget=I18nEmailEditorWidget,
-            widget_kwargs={'placeholders': placeholder_names},
+            widget_kwargs={'placeholders': placeholder_names, 'preview_url': preview_url},
             required=False,
             locales=list(allowed_locales),
             initial=self.instance.message,
@@ -640,10 +649,19 @@ class TeamMailForm(ScheduledAtValidationMixin, forms.Form):
             locales=locales,
             help_text=placeholder_text
         )
+        preview_url = ''
+        if self.event and hasattr(self.event, 'slug') and self.event.slug:
+            try:
+                preview_url = reverse(
+                    'orga:mails.compose.preview',
+                    kwargs={'event': self.event.slug, 'organizer': self.event.organizer.slug}
+                )
+            except Exception:
+                pass
         self.fields['message'] = I18nEmailBodyFormField(
             label=_('Message'),
             widget=I18nEmailEditorWidget,
-            widget_kwargs={'placeholders': placeholder_names},
+            widget_kwargs={'placeholders': placeholder_names, 'preview_url': preview_url},
             required=True,
             locales=locales,
             help_text=placeholder_text,
