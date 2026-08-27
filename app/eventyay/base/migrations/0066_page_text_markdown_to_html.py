@@ -93,7 +93,7 @@ def convert_markdown_to_html(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('base', '0064_gmailoauthcredential'),
+        ('base', '0065_queuedmail_is_draft'),
     ]
 
     operations = [
