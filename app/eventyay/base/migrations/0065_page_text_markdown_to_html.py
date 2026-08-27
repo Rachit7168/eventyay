@@ -10,6 +10,7 @@ import re
 _PAGE_TAGS = frozenset({
     'p', 'br', 'strong', 'b', 'em', 'i', 'u',
     'ul', 'ol', 'li', 'a', 'blockquote', 'img',
+    'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
 })
 _PAGE_ATTRIBUTES = {
     'a': {'href', 'rel'},
@@ -73,7 +74,8 @@ def convert_markdown_to_html(apps, schema_editor):
                 changed = False
                 for lang, text in text_data.items():
                     if text and not is_tiptap_html(text):
-                        raw_html = md.reset().convert(str(text))
+                        md.reset()
+                        raw_html = md.convert(str(text))
                         new_data[lang] = sanitize_page_rich_text_historical(raw_html)
                         changed = True
                     else:
@@ -82,7 +84,8 @@ def convert_markdown_to_html(apps, schema_editor):
                     page.text.data = new_data
                     page.save(update_fields=['text'])
             elif isinstance(text_data, str) and text_data and not is_tiptap_html(text_data):
-                raw_html = md.reset().convert(text_data)
+                md.reset()
+                raw_html = md.convert(text_data)
                 page.text.data = sanitize_page_rich_text_historical(raw_html)
                 page.save(update_fields=['text'])
 
