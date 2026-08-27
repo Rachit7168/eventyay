@@ -1,16 +1,14 @@
 import logging
 
 import nh3
-import uuid
 from django.conf import settings
 from django.contrib import messages
 from django.db import transaction
-from django.db.models import Exists, OuterRef, Q, Subquery
+from django.db.models import OuterRef, Q, Subquery
 from django.http import HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.utils.functional import cached_property
-from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 from django.utils.translation import ngettext_lazy
 from django.views.generic import FormView, ListView, TemplateView, UpdateView, View
@@ -19,23 +17,24 @@ from eventyay.base.i18n import language
 from eventyay.base.meetup import is_meetup_event
 from eventyay.base.models.base import CachedFile
 from eventyay.base.models.event import Event
-from eventyay.base.models.orders import Order, OrderPosition
+from eventyay.base.models.orders import OrderPosition
+from eventyay.base.services.mail import expand_email_variable_chips, mail
 from eventyay.base.templatetags.rich_text import (
     build_email_preview_context,
     compile_email_body,
 )
-from eventyay.base.services.mail import mail, expand_email_variable_chips
 from eventyay.common.mail import get_reply_to_address
 from eventyay.control.permissions import EventPermissionRequiredMixin, event_permission_required
 from eventyay.control.views.event import EventSettingsFormView, EventSettingsViewMixin
-from eventyay.helpers.timezone import attach_timezone_to_naive_clock_time, get_browser_timezone, format_scheduled_datetime
+from eventyay.helpers.timezone import format_scheduled_datetime
 from eventyay.plugins.sendmail.forms import EmailQueueEditForm
 from eventyay.plugins.sendmail.mixins import CopyDraftMixin, QueryFilterOrderingMixin
 from eventyay.plugins.sendmail.models import ComposingFor, EmailQueue, EmailQueueFilter, EmailQueueToUser
 from eventyay.plugins.sendmail.tasks import send_queued_mail
 
 from . import forms
-from .forms import MailContentSettingsForm, TeamMailForm
+from .forms import MailContentSettingsForm, TeamMailForm, TicketMailRecipientsForm
+
 
 logger = logging.getLogger(__name__)
 
@@ -78,6 +77,33 @@ def attendees_select2(request, **kwargs):
     return JsonResponse(doc)
 
 
+class TicketMailRecipients(EventPermissionRequiredMixin, View):
+    """Returns the audience matching the ticket mail filters in the query string."""
+
+    permission = 'can_change_orders'
+
+    def get(self, request, *args, **kwargs):
+        form = TicketMailRecipientsForm(event=request.event, data=request.GET)
+        if not form.is_valid():
+            return JsonResponse({'error': form.errors, 'count': 0, 'recipients': []}, status=400)
+
+        try:
+            recipients = form.get_recipient_preview()
+        except Exception:
+            logger.exception('Failed to build ticket mail recipient preview')
+            return JsonResponse(
+                {'error': 'preview_failed', 'count': 0, 'recipients': []},
+                status=500,
+            )
+
+        return JsonResponse(
+            {
+                'count': len(recipients),
+                'recipients': recipients,
+            }
+        )
+
+
 class BulkReplyToMixin:
     """Mixin for bulk email views to resolve Reply-To address."""
 
@@ -104,10 +130,6 @@ class SenderView(EventPermissionRequiredMixin, CopyDraftMixin, BulkReplyToMixin,
         self.load_copy_draft(self.request, kwargs)
         return kwargs
 
-    def form_invalid(self, form):
-        messages.error(self.request, _('We could not queue the email. See below for details.'))
-        return super().form_invalid(form)
-
     def form_valid(self, form):
         if self.request.POST.get('action') == 'test':
             test_email = form.cleaned_data.get('test_email')
@@ -119,7 +141,7 @@ class SenderView(EventPermissionRequiredMixin, CopyDraftMixin, BulkReplyToMixin,
                 context_dict = build_email_preview_context(
                     self.request.event, ['event', 'order', 'position_or_address']
                 )
-                
+
                 mail(
                     email=test_email,
                     subject=form.cleaned_data['subject'].data,
@@ -138,7 +160,7 @@ class SenderView(EventPermissionRequiredMixin, CopyDraftMixin, BulkReplyToMixin,
             except Exception as e:
                 logger.exception("Failed to send test email")
                 messages.error(self.request, _('Failed to send test email: {error}').format(error=str(e)))
-                
+
             return self.render_to_response(self.get_context_data(form=form))
 
         if form.cleaned_data.get('recipients') == 'individual':
@@ -146,60 +168,9 @@ class SenderView(EventPermissionRequiredMixin, CopyDraftMixin, BulkReplyToMixin,
             if not individual_attendees:
                 form.add_error('individual_attendees', _('Please select at least one attendee.'))
                 return self.form_invalid(form)
-            opq = individual_attendees
-            orders = Order.objects.filter(event=self.request.event, positions__in=opq).distinct()
+            orders = form.resolve_orders()
         else:
-            qs = Order.objects.filter(event=self.request.event)
-            statusq = Q(status__in=form.cleaned_data['order_status'])
-            if 'overdue' in form.cleaned_data['order_status']:
-                statusq |= Q(status=Order.STATUS_PENDING, expires__lt=now())
-            if 'pa' in form.cleaned_data['order_status']:
-                statusq |= Q(status=Order.STATUS_PENDING, require_approval=True)
-            if 'na' in form.cleaned_data['order_status']:
-                statusq |= Q(status=Order.STATUS_PENDING, require_approval=False)
-            orders = qs.filter(statusq)
-
-            opq = OrderPosition.objects.filter(
-                order=OuterRef('pk'),
-                canceled=False,
-                product_id__in=[p.pk for p in form.cleaned_data.get('products')],
-            )
-
-            if form.cleaned_data.get('has_filter_checkins'):
-                ql = []
-                if form.cleaned_data.get('not_checked_in'):
-                    ql.append(Q(checkins__list_id=None))
-                if form.cleaned_data.get('checkin_lists'):
-                    ql.append(
-                        Q(
-                            checkins__list_id__in=[i.pk for i in form.cleaned_data.get('checkin_lists', [])],
-                        )
-                    )
-                if len(ql) == 2:
-                    opq = opq.filter(ql[0] | ql[1])
-                elif ql:
-                    opq = opq.filter(ql[0])
-                else:
-                    opq = opq.none()
-
-            if form.cleaned_data.get('subevent'):
-                opq = opq.filter(subevent=form.cleaned_data.get('subevent'))
-            if form.cleaned_data.get('subevents_from'):
-                opq = opq.filter(subevent__date_from__gte=form.cleaned_data.get('subevents_from'))
-            if form.cleaned_data.get('subevents_to'):
-                opq = opq.filter(subevent__date_from__lt=form.cleaned_data.get('subevents_to'))
-            if form.cleaned_data.get('order_created_from') or form.cleaned_data.get('order_created_to'):
-                browser_tz = get_browser_timezone(form.cleaned_data.get('browser_timezone'))
-
-                def attach_timezone(dt_value):
-                    return attach_timezone_to_naive_clock_time(dt_value, browser_tz)
-
-                if form.cleaned_data.get('order_created_from'):
-                    opq = opq.filter(order__datetime__gte=attach_timezone(form.cleaned_data['order_created_from']))
-                if form.cleaned_data.get('order_created_to'):
-                    opq = opq.filter(order__datetime__lt=attach_timezone(form.cleaned_data['order_created_to']))
-
-            orders = orders.annotate(match_pos=Exists(opq)).filter(match_pos=True).distinct()
+            orders = form.resolve_orders()
 
         if not orders:
             messages.error(self.request, _('There are no orders matching this selection.'))

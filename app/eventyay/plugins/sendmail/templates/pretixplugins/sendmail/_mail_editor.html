@@ -1,11 +1,22 @@
-{% extends "orga/mails/base.html" %}
+{% extends "pretixcontrol/event/base.html" %}
 
 {% load i18n %}
 {% load static %}
 
-{% block extra_title %}{% translate "Compose email" %} :: {% endblock extra_title %}
+{% block title %}{% translate "Compose email" %} :: {{ request.event.name }}{% endblock title %}
 
-{% block mail_content %}
+{% block custom_header %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'common/css/_fonts.css' %}">
+<link rel="stylesheet" href="{% static 'common/css/base.css' %}">
+<link rel="stylesheet" href="{% static 'vendored/choices/choices.min.css' %}">
+<link rel="stylesheet" href="{% static 'common/css/_forms.css' %}">
+<link rel="stylesheet" href="{% static 'common/css/_composer.css' %}">
+<link rel="stylesheet" href="{% static 'pretixplugins/sendmail/tickets_email.css' %}">
+<script src="{% static 'vendored/choices/choices.min.js' %}"></script>
+{% endblock custom_header %}
+
+{% block content %}
     <form method="post" class="form-with-placeholder mail-composer">
         {% csrf_token %}
         {% include "common/forms/errors.html" %}
@@ -132,9 +143,9 @@
             <input type="search" id="placeholder-search" class="form-control" placeholder="{% translate 'Search placeholders' %}" autocomplete="off">
             <p class="text-muted d-none" id="placeholder-empty">{% translate "No placeholders match your search." %}</p>
 
-            {% include "orga/mails/_placeholder_group.html" with placeholders=form.grouped_placeholders.user tag="user" %}
-            {% include "orga/mails/_placeholder_group.html" with placeholders=form.grouped_placeholders.submission tag="submission" %}
-            {% include "orga/mails/_placeholder_group.html" with placeholders=form.grouped_placeholders.slot tag="slot" %}
+            {% include "orga/mails/_placeholder_group.html" with placeholders=form.grouped_placeholders.order tag="order" %}
+            {% include "orga/mails/_placeholder_group.html" with placeholders=form.grouped_placeholders.ticket tag="ticket" %}
+            {% include "orga/mails/_placeholder_group.html" with placeholders=form.grouped_placeholders.invoice tag="invoice" %}
             {% include "orga/mails/_placeholder_group.html" with placeholders=form.grouped_placeholders.event tag="event" %}
             {% include "orga/mails/_placeholder_group.html" with placeholders=form.grouped_placeholders.other tag="other" %}
         </div>
@@ -254,4 +265,4 @@
     <script type="module" src="{% static 'orga/js/mail-language-tabs.js' %}"></script>
     <script type="module" src="{% static 'orga/js/mail-delivery.js' %}"></script>
     <script type="module" src="{% static 'orga/js/mail-confirm.js' %}"></script>
-{% endblock mail_content %}
+{% endblock content %}

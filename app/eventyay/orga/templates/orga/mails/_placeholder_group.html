@@ -29,7 +29,7 @@
       </span>
     </div>
     <ul class="list-group list-group-flush">
-      {% for placeholder in placeholders %}{% if placeholder.is_visible %}
+      {% for placeholder in placeholders %}{% if placeholder.is_visible != False %}
         <li class="list-group-item list-group-item-action placeholder" data-placeholder="{{ placeholder.identifier }}">
           <div class="placeholder-content">
             <span class="placeholder-text">
@@ -40,7 +40,7 @@
             </span>
           </div>
           <small class="text-muted collapse" id="collapse{{ placeholder.identifier }}" data-parent="#placeholder-{{ tag }}">
-            {{ placeholder.explanation }}, {% translate "e.g." %} {{ placeholder.rendered_sample|rich_text }}
+            {% if placeholder.explanation %}{{ placeholder.explanation }}, {% endif %}{% translate "e.g." %} {{ placeholder.rendered_sample|rich_text }}
           </small>
         </li>
       {% endif %}{% endfor %}
