@@ -142,22 +142,3 @@ if (document.readyState === "loading") {
 } else {
     initSendConfirm()
 }
-
-const updateSendButtonText = () => {
-    const skipQueue = document.querySelector("#id_skip_queue")
-    const btnText = document.querySelector(".send-btn-text")
-    if (!btnText || !skipQueue) return
-    if (skipQueue.checked) {
-        btnText.textContent = "Send immediately"
-    } else {
-        btnText.textContent = "Send to outbox"
-    }
-}
-
-document.addEventListener("DOMContentLoaded", () => {
-    const skipQueue = document.querySelector("#id_skip_queue")
-    if (skipQueue) {
-        skipQueue.addEventListener("change", updateSendButtonText)
-        updateSendButtonText()
-    }
-})

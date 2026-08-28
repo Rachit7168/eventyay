@@ -1,7 +1,7 @@
 from django import forms
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.urls import reverse
+from django.urls import reverse, NoReverseMatch
 from django.utils.translation import gettext_lazy as _
 from django.utils.translation import pgettext_lazy
 from django_scopes.forms import SafeModelMultipleChoiceField
@@ -543,10 +543,10 @@ class EmailQueueEditForm(ScheduledAtValidationMixin, forms.ModelForm):
         if self.event and hasattr(self.event, 'slug') and self.event.slug:
             try:
                 preview_url = reverse(
-                    'orga:mails.compose.preview',
+                    'control:event.editor.email.preview',
                     kwargs={'event': self.event.slug, 'organizer': self.event.organizer.slug}
                 )
-            except Exception:
+            except NoReverseMatch:
                 pass
         self.fields['message'] = I18nEmailBodyFormField(
             label=_('Message'),
@@ -653,10 +653,10 @@ class TeamMailForm(ScheduledAtValidationMixin, forms.Form):
         if self.event and hasattr(self.event, 'slug') and self.event.slug:
             try:
                 preview_url = reverse(
-                    'orga:mails.compose.preview',
+                    'control:event.editor.email.preview',
                     kwargs={'event': self.event.slug, 'organizer': self.event.organizer.slug}
                 )
-            except Exception:
+            except NoReverseMatch:
                 pass
         self.fields['message'] = I18nEmailBodyFormField(
             label=_('Message'),

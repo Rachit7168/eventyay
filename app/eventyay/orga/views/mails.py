@@ -403,37 +403,26 @@ class ComposeMailPreview(EventPermissionRequired, View):
         except (json.JSONDecodeError, UnicodeDecodeError):
             return JsonResponse({'error': 'Invalid JSON body'}, status=400)
 
-        html = data.get('html', '')
-        if not isinstance(html, str):
+        html_body = data.get('html', '')
+        if not isinstance(html_body, str):
             return JsonResponse({'error': 'html must be a string'}, status=400)
 
         locale = data.get('locale') or request.event.locale
 
-        try:
-            with language(locale):
-                placeholders = get_available_placeholders(
-                    event=request.event,
-                    kwargs=['event', 'submission', 'user', 'slot'],
-                )
-                context_dict = TolerantDict()
-                title = _('This value will be replaced based on dynamic parameters.')
-                for key, value in placeholders.items():
-                    try:
-                        sample = escape(value.render_sample(request.event))
-                    except Exception:
-                        sample = escape(f'{{{key}}}')
-                    context_dict[key] = '<span class="placeholder" title="{title}">{content}</span>'.format(
-                        title=title,
-                        content=sample,
-                    )
-                try:
-                    html = html.format_map(context_dict)
-                except (KeyError, ValueError):
-                    pass
-                preview_text = compile_email_body(html)
-                return JsonResponse({'html': preview_text})
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=400)
+        from eventyay.common.sanitizers import sanitize_email_html
+        from eventyay.base.templatetags.rich_text import build_email_preview_context
+        from eventyay.base.services.mail import expand_email_variable_chips
+
+        safe_html = sanitize_email_html(html_body)
+
+        with language(locale):
+            context_dict = build_email_preview_context(
+                request.event,
+                ['event', 'submission', 'user', 'slot'],
+            )
+            expanded = safe_html.format_map(context_dict)
+            preview_html = expand_email_variable_chips(expanded, dict(context_dict))
+            return JsonResponse({'html': preview_html})
 
 
 class ComposeMailChoice(EventPermissionRequired, TemplateView):
@@ -540,6 +529,14 @@ class ComposeMailBaseView(EventPermissionRequired, FormView):
             from eventyay.base.templatetags.rich_text import compile_email_body
 
 
+            # Very rough method to deduplicate recipients, but good enough for a preview
+            self.mail_count = len({str(res) for res in result}) if result else 0
+            if not result:
+                messages.warning(
+                    self.request,
+                    _('Preview generated with sample recipient data because no recipient is currently selected.')
+                )
+
             for locale in self.request.event.locales:
                 with language(locale):
                     context_dict = TolerantDict()
@@ -557,13 +554,6 @@ class ComposeMailBaseView(EventPermissionRequired, FormView):
                         'subject': _('Subject: {subject}').format(subject=preview_subject),
                         'html': preview_text,
                     }
-                    # Very rough method to deduplicate recipients, but good enough for a preview
-                    self.mail_count = len({str(res) for res in result}) if result else 0
-                    if not result:
-                        messages.warning(
-                            self.request,
-                            _('Preview generated with sample recipient data because no recipient is currently selected.')
-                        )
             return self.get(self.request, *self.args, **self.kwargs)
 
         with transaction.atomic():
