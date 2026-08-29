@@ -414,14 +414,18 @@ class ComposeMailPreview(EventPermissionRequired, View):
         from eventyay.base.services.mail import expand_email_variable_chips
 
         safe_html = sanitize_email_html(html_body)
+        print("SAFE HTML:", safe_html)
 
         with language(locale):
             context_dict = build_email_preview_context(
                 request.event,
                 ['event', 'submission', 'user', 'slot'],
             )
+            print("CONTEXT KEYS:", context_dict.keys())
             expanded = safe_html.format_map(context_dict)
+            print("EXPANDED HTML:", expanded)
             preview_html = expand_email_variable_chips(expanded, dict(context_dict))
+            print("PREVIEW HTML:", preview_html)
             return JsonResponse({'html': preview_html})
 
 
