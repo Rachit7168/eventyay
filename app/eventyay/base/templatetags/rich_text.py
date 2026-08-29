@@ -256,10 +256,7 @@ def build_email_preview_context(event, base_parameters: list[str]):
     base_placeholders = get_base_placeholders(event, list(base_parameters))
     
     # Get placeholders from talk module
-    try:
-        talk_placeholders = get_talk_placeholders(event, list(base_parameters))
-    except Exception:
-        talk_placeholders = {}
+    talk_placeholders = get_talk_placeholders(event, list(base_parameters))
         
     all_placeholders = {**base_placeholders, **talk_placeholders}
 
