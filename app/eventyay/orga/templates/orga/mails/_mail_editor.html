@@ -82,7 +82,7 @@
                         <div id="mail-message-preview" class="mail-message-preview-panel" role="tabpanel" aria-hidden="true" hidden>
                             <div class="mail-preview-group">
                                 {% for locale in request.event.locales %}
-                                    <div lang="{{ locale }}" class="mail-preview"></div>
+                                    <div lang="{{ locale }}" class="mail-preview tiptap-inline-preview tiptap-prosemirror"></div>
                                 {% endfor %}
                             </div>
                         </div>

@@ -82,6 +82,7 @@
   direction: ltr;
   text-align: start;
   unicode-bidi: isolate;
+  box-sizing: border-box;
 }
 
 .tiptap-prosemirror[dir='rtl'] {
@@ -262,14 +263,19 @@
   font-size: 14px;
   line-height: 1.6;
   color: #212529;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  box-sizing: border-box;
 }
 
 .tiptap-inline-preview .placeholder {
-  display: inline-block;
+  display: inline;
   padding: 1px 6px;
   border-radius: 3px;
   background: #e8f0fe;
   border: 1px solid #aac4f5;
   color: #1a56db;
   font-size: 0.9em;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
