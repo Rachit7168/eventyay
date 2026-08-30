@@ -7,6 +7,7 @@ import stripe
 from django import forms
 from django.conf import settings as django_settings
 from django.contrib import messages
+from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.http import Http404
 from django.shortcuts import redirect
@@ -59,6 +60,9 @@ class MeetupRsvpView(EventViewMixin, View):
         if not is_meetup_event(request.event):
             raise Http404
 
+        if not request.event.user_can_view_tickets(request.user, request=request):
+            raise PermissionDenied(_('Registration is currently not available.'))
+
         product, quota = get_rsvp_product_and_quota(request.event)
         if product is None or quota is None:
             raise Http404
@@ -106,6 +110,7 @@ class MeetupRsvpView(EventViewMixin, View):
                         messages.error(request, _('Sorry, this event is already full.'))
                         return self._redirect_to_index(request)
 
+                effective_testmode = request.event.testmode or request.event.private_testmode_tickets_enabled
                 order = Order(
                     status=Order.STATUS_PENDING,
                     event=request.event,
@@ -115,7 +120,7 @@ class MeetupRsvpView(EventViewMixin, View):
                     datetime=now(),
                     sales_channel='web',
                     require_approval=False,
-                    testmode=request.event.testmode,
+                    testmode=effective_testmode,
                     meta_info='{}',
                 )
                 order.set_expires(now(), [])
