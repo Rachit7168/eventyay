@@ -190,6 +190,14 @@
             <legend>{% trans "Registration limit" %}</legend>
             {% bootstrap_field sform.registration_limit layout="control" %}
         </fieldset>
+        <fieldset>
+            <legend>{% trans "Registration fee & Payment" %}</legend>
+            {% bootstrap_field sform.registration_fee layout="control" %}
+            {% bootstrap_field sform.payment_stripe__enabled layout="control" %}
+            {% bootstrap_field sform.payment_stripe_publishable_key layout="control" %}
+            {% bootstrap_field sform.payment_stripe_secret_key layout="control" %}
+            {% bootstrap_field sform.payment_stripe_merchant_country layout="control" %}
+        </fieldset>
         {% endif %}
 
         <fieldset>
@@ -415,10 +423,17 @@
             </div>
         </fieldset>
     </div>
-    <div class="form-group submit-group">
+    <div class="form-group submit-group event-settings-submit">
         <button type="submit" class="btn btn-primary btn-save">
             {% trans "Save" %}
         </button>
+        <div class="pull-left event-settings-danger-actions">
+            <a href="{% url "eventyay_common:event.clone" organizer=request.event.organizer.slug event=request.event.slug %}"
+               class="btn btn-default btn-lg">
+                <span class="fa fa-copy"></span>
+                {% trans "Clone event" %}
+            </a>
+        </div>
     </div>
 
     {% comment %}

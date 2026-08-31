@@ -38,6 +38,7 @@
 			:userTimezone="userTimezone",
 			:days="allDays",
 			:currentDay="currentDay",
+			:now="now",
 			:sessionsMode="sessionsMode",
 			:timeDensityMinutes="timeDensityMinutes",
 			v-model:searchQuery="searchQuery",
@@ -54,8 +55,9 @@
 			@resetFilters="onlyFavs = false; resetAllFilters()",
 			@saveTimezone="saveTimezone",
 			@toggleSessionsMode="sessionsMode = !sessionsMode",
-			@setTimeDensityMinutes="setTimeDensityMinutes($event)")
-		grid-schedule-wrapper(v-if="showGrid && !sessionsMode",
+			@setTimeDensityMinutes="setTimeDensityMinutes($event)",
+			@goToNow="goToNow")
+		grid-schedule-wrapper(ref="scheduleDisplay", v-if="showGrid && !sessionsMode",
 			:sessions="sessions",
 			:rooms="rooms",
 			:days="days",
@@ -75,7 +77,7 @@
 			@changeDay="setCurrentDay($event)",
 			@fav="fav($event)",
 			@unfav="unfav($event)")
-		linear-schedule(v-else,
+		linear-schedule(ref="scheduleDisplay", v-else,
 			:sessions="sessionsMode ? properSessions : sessions",
 			:rooms="rooms",
 			:currentDay="currentDay",
@@ -137,6 +139,7 @@ const SpeakerDetail = defineAsyncComponent(() => import('~/components/SpeakerDet
 const TalkDetail = defineAsyncComponent(() => import('~/components/TalkDetail'))
 import { findScrollParent, getLocalizedString, getSessionTime, getSessionTypeLabel, isProperSession, isPopularityFeatureEnabled, isPopularitySortAvailable, isPopularityVisibleOnSchedule, normalizePopularityCount, computeTalkExporters, areScheduleExportsDisabled, resolveScheduleApiBase, talksToScheduleSessions, buildSessionsBySpeaker, talkToSession, sortSessionsByStart, isTalkSchedulePending, getCsrfToken, loadStarredSharingPreference, updateStarredSharingPreference, fetchWidgetScheduleData } from '~/utils'
 import { changeScheduleLanguage } from './i18n.js'
+import { isShiftSchedule, resolveMode } from './teamshifts-adapter'
 
 function normalizeLocaleCode (code) {
 	if (!code) return ''
@@ -240,12 +243,17 @@ export default {
 			remoteApiUrl: computed(() => this.remoteApiUrl),
 			buntTeleportTarget: computed(() => this.$refs.teleportTarget),
 			onSessionLinkClick: (event, session) => {
+				if (this.isShiftMode) {
+					event.preventDefault()
+					return
+				}
 				if (this.onHomeServer) return
 				event.preventDefault()
 
 				this.showSessionDetails(session, event)
 			},
 			generateSessionLinkUrl: ({eventUrl, session}) => {
+				if (this.isShiftMode) return undefined
 				if (!this.onHomeServer) return `#session/${session.id}/`
 				return `${eventUrl}${wipLinkPrefix()}talk/${session.id}/`
 			},
@@ -342,9 +350,15 @@ export default {
 		}
 	},
 	computed: {
+		isShiftMode () {
+			return isShiftSchedule(this.schedule)
+		},
 		defaultJoinRoomBaseUrl () {
 			if (!this.eventUrl) return ''
 			return `${this.eventUrl.replace(/\/$/, '')}/video/rooms/`
+		},
+		resolvedNow() {
+			return this.scheduleData?.now || this.now || moment()
 		},
 		scheduleMaxWidth () {
 			return this.schedule ? Math.min(this.scrollParentWidth, 78 + (this.schedule.rooms?.length || 0) * 365) : this.scrollParentWidth
@@ -455,6 +469,7 @@ export default {
 				tracksLookup: this.tracksLookup,
 				roomsLookup: this.roomsLookup,
 				includePopularity: true,
+				mode: resolveMode(this.schedule),
 			}
 			const sessions = []
 			for (const talk of this.schedule.talks) {
@@ -489,6 +504,7 @@ export default {
 				tracksLookup: this.tracksLookup,
 				roomsLookup: this.roomsLookup,
 				includePopularity: true,
+				mode: resolveMode(this.schedule),
 			})
 		},
 		// sessions: baseSessions + search filter. Used for display.
@@ -728,6 +744,9 @@ export default {
 				}
 			}
 		}
+		if (this.isShiftMode) {
+			this.favsReadOnly = true
+		}
 		// Read toolbar metadata (version, exporters) injected by Django
 		const metaEl = document.getElementById('pretalx-schedule-meta')
 		if (metaEl) {
@@ -766,7 +785,9 @@ export default {
 		this.currentTimezone = localStorage.getItem(`${this.eventSlug}_timezone`)
 		this.currentTimezone = [this.schedule.timezone, this.userTimezone].includes(this.currentTimezone) ? this.currentTimezone : this.schedule.timezone
 		if (this.days?.length) {
-			this.currentDay = this.days[0].format('YYYY-MM-DD')
+			const todayStr = this.now.clone().tz(this.currentTimezone).format('YYYY-MM-DD')
+			const todayDay = this.days.find(d => d.clone().tz(this.currentTimezone).format('YYYY-MM-DD') === todayStr)
+			this.currentDay = todayDay ? todayStr : this.days[0].format('YYYY-MM-DD')
 		}
 		this.now = moment.tz(this.currentTimezone)
 		setInterval(() => this.now = moment.tz(this.currentTimezone), 30000)
@@ -945,6 +966,16 @@ export default {
 			// scroll-sync may have set currentDay with _scrollDayUpdate, which
 			// skips the currentDay watcher — forceScrollDay handles that case.
 			this.forceScrollDay++
+		},
+		goToNow() {
+			const todayMoment = this.resolvedNow.clone().tz(this.currentTimezone).startOf('day')
+			const today = todayMoment.format('YYYY-MM-DD')
+			const todayExists = this.allDays.some(day => day.format('YYYY-MM-DD') === today)
+			if (!todayExists) return
+			this.changeDay(todayMoment)
+			this.$nextTick(() => {
+				this.$refs.scheduleDisplay?.scrollToNow?.()
+			})
 		},
 		onWindowResize () {
 			this.scrollParentWidth = document.body.offsetWidth

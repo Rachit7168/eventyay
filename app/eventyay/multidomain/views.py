@@ -15,7 +15,7 @@ from django.urls.exceptions import NoReverseMatch
 from django.utils.encoding import force_str
 from django.utils.timezone import now
 from django.utils.functional import Promise
-from django.utils.translation import gettext as _
+from django.utils.translation import gettext as _, pgettext
 from django.views.generic import View
 from django.views.static import serve as static_serve
 from django_scopes import scope
@@ -176,9 +176,10 @@ class VideoSPAView(View):
                     )),
                     'version_warning_old': str(_('You are currently viewing an older schedule version.')),
                     'join_room': str(_('Join room')),
+                    'join_session': str(_('Join session')),
                     'view_video': str(_('View Video')),
                     'watch_live': str(_('Watch live')),
-                    'speaker_fallback': str(_('Speaker')),
+                    'speaker_fallback': str(pgettext('noun', 'Speaker')),
                     'speaker_name_not_provided': str(_('Speaker name not provided')),
                     'add_to_calendar': str(_('Add to Calendar')),
                     'ical': str(_('iCal')),

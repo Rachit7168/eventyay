@@ -5,12 +5,20 @@ from django import forms
 from django.conf import settings
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils.translation import gettext_lazy as _
-from i18nfield.forms import I18nFormField, I18nTextarea, I18nTextInput
 
 from eventyay.base.forms import SECRET_REDACTED, SecretKeySettingsField, SecretKeySettingsWidget, SettingsForm
 from eventyay.base.settings import EVENT_SERIES_CREATION_ENABLED, MEETUP_CREATION_ENABLED, GlobalSettingsObject
 from eventyay.base.signals import register_global_settings
+from eventyay.control.forms import ExtFileField
+from eventyay.consts import SizeKey
+from django.core.files.uploadedfile import UploadedFile
+from eventyay.helpers.image_optimize import optimize_uploaded_image
+from django.core.files.storage import default_storage
+import os
+import logging
 
+
+logger = logging.getLogger(__name__)
 
 class GlobalSettingsForm(SettingsForm):
     auto_fields = ['region', 'mail_from']
@@ -48,6 +56,7 @@ class GlobalSettingsForm(SettingsForm):
     def __init__(self, *args, **kwargs):
         self.obj = GlobalSettingsObject()
         self._setting_default()
+
         super().__init__(*args, obj=self.obj, **kwargs)
 
         smtp_select = [('sendgrid', _('SendGrid')), ('smtp', _('SMTP')), ('gmail_api', _('Gmail / Google Workspace API'))]
@@ -89,40 +98,6 @@ class GlobalSettingsForm(SettingsForm):
                     ),
                 ),
 
-                (
-                    'footer_text',
-                    I18nFormField(
-                        widget=I18nTextInput,
-                        required=False,
-                        label=_('Additional footer text'),
-                        help_text=_('Will be included as additional text in the footer, site-wide.'),
-                    ),
-                ),
-                (
-                    'footer_link',
-                    I18nFormField(
-                        widget=I18nTextInput,
-                        required=False,
-                        label=_('Additional footer link'),
-                        help_text=_('Will be included as the link in the additional footer text.'),
-                    ),
-                ),
-                (
-                    'banner_message',
-                    I18nFormField(
-                        widget=I18nTextarea,
-                        required=False,
-                        label=_('Global message banner'),
-                    ),
-                ),
-                (
-                    'banner_message_detail',
-                    I18nFormField(
-                        widget=I18nTextarea,
-                        required=False,
-                        label=_('Global message banner detail text'),
-                    ),
-                ),
                 (
                     'opencagedata_apikey',
                     SecretKeySettingsField(
@@ -288,8 +263,6 @@ class GlobalSettingsForm(SettingsForm):
                 # We need to be this explicit, since OrderedDict.update does not retain ordering
                 self.fields[key] = value
 
-        self.fields['banner_message'].widget.attrs['rows'] = '2'
-        self.fields['banner_message_detail'].widget.attrs['rows'] = '3'
         self.fields = OrderedDict(
             list(self.fields.items())
             + [
@@ -528,9 +501,6 @@ class GlobalSettingsForm(SettingsForm):
         )
 
         self.field_groups = [
-            ('basics', _('Basics'), [
-                'footer_text', 'footer_link', 'banner_message', 'banner_message_detail',
-            ]),
             ('localization', _('Localization'), [
                 'region',
             ]),
@@ -721,14 +691,6 @@ class SSOConfigForm(SettingsForm):
         super().__init__(*args, obj=self.obj, **kwargs)
 
 
-class StartPageSettingsForm(SettingsForm):
-    auto_fields = ['startpage_header_image', 'startpage_header_text']
-
-    def __init__(self, *args, **kwargs):
-        self.obj = GlobalSettingsObject()
-        super().__init__(*args, obj=self.obj, **kwargs)
-
-
 class StripeKeyValidator:
     """
     Validates that a given Stripe key starts with the expected prefix(es).
@@ -767,3 +729,58 @@ class StripeKeyValidator:
                 }
 
             raise forms.ValidationError(message, code='invalid-stripe-key', params=params)
+
+
+class MetaDataSettingsForm(SettingsForm):
+    auto_fields = [
+        'seo_homepage_title',
+        'seo_homepage_description',
+        'seo_og_title',
+        'seo_og_description',
+        'seo_twitter_title',
+        'seo_twitter_description',
+        'seo_fallback_text',
+    ]
+
+    seo_social_image = ExtFileField(
+        label=_('Social preview image'),
+        ext_whitelist=('.png', '.jpg', '.gif', '.jpeg', '.webp'),
+        max_size=settings.MAX_SIZE_CONFIG[SizeKey.UPLOAD_SIZE_IMAGE],
+        required=False,
+        help_text=_(
+            'This image is used for Open Graph and Twitter cards. '
+            'We recommend an image 1200 px wide and 630 px in height.'
+        ),
+    )
+
+    def __init__(self, *args, **kwargs):
+        self.obj = GlobalSettingsObject()
+        super().__init__(*args, obj=self.obj, **kwargs)
+        for name, field in self.fields.items():
+            if isinstance(field.widget, forms.ClearableFileInput):
+                field.widget.attrs['data-eventyay-file-wrapper'] = 'disabled'
+                field.widget.attrs['data-event-settings-image-tools'] = 'enabled'
+
+    def save(self):
+        image_field = 'seo_social_image'
+        current_value = self.obj.settings.get(image_field, as_type=str, default='') or ''
+        new_value = self.cleaned_data.get(image_field)
+        
+        # Simplified storage logic
+        if isinstance(new_value, UploadedFile):
+            from eventyay.common.urls import get_file_url_path
+            current_file = get_file_url_path(current_value)
+            if current_file:
+                default_storage.delete(current_file)
+            
+            clean_name, ext = os.path.splitext(new_value.name or image_field)
+            new_filename = self.get_new_filename(clean_name)
+            base_path, _ = os.path.splitext(new_filename)
+            optimized_name = f'{base_path}{ext}'
+            try:
+                optimized_path = default_storage.save(optimized_name, new_value)
+                self.cleaned_data[image_field] = f"file://{optimized_path}"
+            except OSError:
+                logger.exception('Could not store original image for %s', image_field)
+
+        return super().save()

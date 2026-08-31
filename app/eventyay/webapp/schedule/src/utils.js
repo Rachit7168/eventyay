@@ -114,12 +114,12 @@ export function buildExportMenuItems(exporters) {
 	if (!exporters) return []
 	const qr = exporters.qrcodes || {}
 	return [
-		{ id: 'google_calendar', label: 'Add to Google Calendar', url: exporters.google_calendar, icon: 'fa-google', qrcode_svg: qr.google_calendar },
-		{ id: 'webcal', label: 'Add to Other Calendar', url: exporters.webcal, icon: 'fa-calendar', qrcode_svg: qr.webcal },
-		{ id: 'ics', label: 'iCal', url: exporters.ics, icon: 'fa-calendar', qrcode_svg: qr.ics },
-		{ id: 'json', label: 'JSON (frab compatible)', url: exporters.json, icon: 'fa-code', qrcode_svg: qr.json },
-		{ id: 'xml', label: 'XML (frab compatible)', url: exporters.xml, icon: 'fa-code', qrcode_svg: qr.xml },
-		{ id: 'xcal', label: 'XCal (frab compatible)', url: exporters.xcal, icon: 'fa-calendar', qrcode_svg: qr.xcal },
+		{ id: 'google_calendar', label: translate('Add to Google Calendar'), url: exporters.google_calendar, icon: 'fa-google', qrcode_svg: qr.google_calendar },
+		{ id: 'webcal', label: translate('Add to Other Calendar'), url: exporters.webcal, icon: 'fa-calendar', qrcode_svg: qr.webcal },
+		{ id: 'ics', label: translate('iCal'), url: exporters.ics, icon: 'fa-calendar', qrcode_svg: qr.ics },
+		{ id: 'json', label: translate('JSON (frab compatible)'), url: exporters.json, icon: 'fa-code', qrcode_svg: qr.json },
+		{ id: 'xml', label: translate('XML (frab compatible)'), url: exporters.xml, icon: 'fa-code', qrcode_svg: qr.xml },
+		{ id: 'xcal', label: translate('XCal (frab compatible)'), url: exporters.xcal, icon: 'fa-calendar', qrcode_svg: qr.xcal },
 	].filter(o => o.url)
 }
 
@@ -237,6 +237,7 @@ export function talkToSession (talk, {
 	tracksLookup = {},
 	roomsLookup = {},
 	includePopularity = false,
+	mode = 'talks',
 } = {}) {
 	const isPending = isTalkSchedulePending(talk)
 	const speakers = (talk.speakers || []).map((sp) => {
@@ -251,8 +252,8 @@ export function talkToSession (talk, {
 		title: talk.title,
 		abstract: talk.abstract,
 		description: talk.description,
-        do_not_record: talk.do_not_record,
-        duration: talk.duration,
+		do_not_record: talk.do_not_record,
+		duration: talk.duration,
 		speakers,
 		track,
 		tags: talk.tags,
@@ -264,6 +265,10 @@ export function talkToSession (talk, {
 		recording_iframe: talk.recording_iframe,
 		stream_url: talk.stream_url || null,
 		stream_type: talk.stream_type || null,
+	}
+	if (mode === 'shifts') {
+		base.roles = talk.roles || null
+		base.talkId = talk.id
 	}
 	if (includePopularity) {
 		base.fav_count = normalizePopularityCount(talk)
