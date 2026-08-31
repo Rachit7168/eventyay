@@ -2,8 +2,8 @@ from django.db import migrations
 
 
 def initialize_global_video_settings(apps, schema_editor):
-    GlobalSetting = apps.get_model('base', 'GlobalSetting')
-    
+    SettingsStore = apps.get_model('base', 'GlobalSettingsObject_SettingsStore')
+
     video_settings = [
         'video_jitsi_enabled',
         'video_bbb_enabled',
@@ -15,13 +15,13 @@ def initialize_global_video_settings(apps, schema_editor):
     ]
 
     for key in video_settings:
-        if not GlobalSetting.objects.filter(key=key).exists():
-            GlobalSetting.objects.create(key=key, value='"True"')
+        if not SettingsStore.objects.filter(key=key).exists():
+            SettingsStore.objects.create(key=key, value='True')
 
 
 def reverse_global_video_settings(apps, schema_editor):
-    GlobalSetting = apps.get_model('base', 'GlobalSetting')
-    
+    SettingsStore = apps.get_model('base', 'GlobalSettingsObject_SettingsStore')
+
     video_settings = [
         'video_jitsi_enabled',
         'video_bbb_enabled',
@@ -31,8 +31,8 @@ def reverse_global_video_settings(apps, schema_editor):
         'video_qna_enabled',
         'video_polls_enabled',
     ]
-    
-    GlobalSetting.objects.filter(key__in=video_settings).delete()
+
+    SettingsStore.objects.filter(key__in=video_settings).delete()
 
 
 class Migration(migrations.Migration):

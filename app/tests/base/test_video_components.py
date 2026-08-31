@@ -10,6 +10,8 @@ from eventyay.base.video_components import (
 )
 from eventyay.base.services.event import create_room
 
+pytestmark = pytest.mark.django_db
+
 
 @pytest.fixture
 def gs():
@@ -88,7 +90,6 @@ def test_is_module_type_enabled_for_streaming_variants(gs):
 
 
 @pytest.mark.asyncio
-@pytest.mark.django_db
 async def test_create_room_rejects_disabled_chat(event, user, gs):
     gs.settings.set('video_chat_channels_enabled', False)
     with pytest.raises(ValidationError) as exc:
@@ -101,7 +102,6 @@ async def test_create_room_rejects_disabled_chat(event, user, gs):
 
 
 @pytest.mark.asyncio
-@pytest.mark.django_db
 async def test_create_room_allows_enabled_jitsi(event, user, gs, monkeypatch):
     monkeypatch.setattr(
         'eventyay.base.services.event.user_can_create_server_backed_room_during_development',
