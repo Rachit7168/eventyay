@@ -12,6 +12,7 @@ prompt.c-create-chat-prompt(@close="$emit('close')")
 </template>
 <script>
 import Prompt from 'components/Prompt'
+import features from 'features'
 import { mapGetters } from 'vuex'
 
 export default {
@@ -36,6 +37,10 @@ export default {
 	methods: {
 		async create() {
 			this.error = null
+			if (!features.enabled('chat')) {
+				this.error = this.$t('Chat channels are currently disabled by the platform administrator.')
+				return
+			}
 			if (!this.hasPermission('world:rooms.create.chat')) {
 				this.error = this.$t('You do not have permission to create channels.')
 				return

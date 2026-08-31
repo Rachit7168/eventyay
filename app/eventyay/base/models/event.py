@@ -2858,6 +2858,12 @@ class Event(
             return flags[feature]
         return default_feature_flags().get(feature, False)
 
+    def get_active_feature_flags(self):
+        from eventyay.base.video_components import apply_global_video_component_flags
+
+        return apply_global_video_component_flags(self.feature_flags_as_mapping())
+
+
     def session_popularity_show_on_schedule(self):
         flags = self.feature_flags_as_mapping()
         if 'session_popularity_show_on_schedule' in flags:

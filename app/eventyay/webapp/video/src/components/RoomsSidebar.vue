@@ -70,7 +70,7 @@ transition(name="sidebar")
 					router-link.room(:to="{name: 'admin:announcements'}", v-if="hasPermission('world:announce')") {{ $t('Announcements') }}
 					router-link.room(:to="{name: 'admin:users'}", v-if="hasPermission('world:users.list')") {{ $t('Users') }}
 					router-link.room(:to="{name: 'admin:rooms:index'}", v-if="hasPermission('room:update')") {{ $t('Rooms') }}
-					router-link.room(:to="{name: 'admin:chat:index'}", v-if="hasPermission('room:update')") {{ $t('Chat') }}
+					router-link.room(:to="{name: 'admin:chat:index'}", v-if="hasPermission('room:update') && $features.enabled('chat')") {{ $t('Chat') }}
 					router-link.room(:to="{name: 'admin:kiosks:index'}", v-if="hasPermission('world:kiosks.manage')") {{ $t('Kiosks') }}
 					router-link.room(v-if="hasPermission('world:update')", :to="{name: 'admin:config'}") {{ $t('Config') }}
 		transition(name="prompt")
@@ -82,6 +82,7 @@ transition(name="sidebar")
 </template>
 <script>
 import { mapState, mapGetters } from 'vuex'
+import features from 'features'
 import theme from 'theme'
 import ROOM_TYPES, { NETWORKING_MODULE_TYPES, VIDEO_CHANNEL_MODULE_TYPES, inferRoomType, inferType } from 'lib/room-types'
 import { isRoomTypeAvailable } from 'lib/room-type-permissions'
@@ -159,7 +160,7 @@ export default {
 			return this.networkingRoomType && isRoomTypeAvailable(this.networkingRoomType.id, this.hasPermission, this.isAdminMode)
 		},
 		canCreateChatRoom() {
-			return this.hasPermission('world:rooms.create.chat')
+			return features.enabled('chat') && this.hasPermission('world:rooms.create.chat')
 		},
 		// showAdminConfigLink no longer needed; link is always visible and backend will enforce access
 		style() {

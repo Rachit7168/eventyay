@@ -1,11 +1,22 @@
 {% extends "pretixcontrol/admin/base.html" %}
 {% load i18n %}
+{% load bootstrap3 %}
+{% load static %}
+
+{% block custom_header %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'pretixcontrol/css/order-form-toggles.css' %}">
+    <script defer src="{% static 'control/js/video-feature-toggles.js' %}"></script>
+{% endblock %}
 
 {% block video_admin_content %}
     <h1>{% trans "Video settings" %}</h1>
     <p>{% trans "Server configurations" %}</p>
 
     <ul class="nav nav-tabs" role="tablist">
+        <li role="presentation" class="{% if active_tab == 'features' %}active{% endif %}">
+            <a href="#features" aria-controls="features" role="tab" data-toggle="tab">{% trans "Features" %}</a>
+        </li>
         <li role="presentation" class="{% if active_tab == 'bbb' %}active{% endif %}">
             <a href="#bbb" aria-controls="bbb" role="tab" data-toggle="tab">{% trans "BBB" %}</a>
         </li>
@@ -270,5 +281,57 @@
                 </table>
             </div>
         </div>
+
+        <!-- Features Tab -->
+        <div role="tabpanel" class="tab-pane {% if active_tab == 'features' %}active{% endif %}" id="features">
+            {{ video_component_labels|json_script:"video-feature-labels" }}
+            {{ video_component_usage|json_script:"video-feature-usage" }}
+            <form method="post" action="" class="form-horizontal" id="video-features-form">
+                {% csrf_token %}
+                <fieldset>
+                    <legend>{% trans "Video Component Features" %}</legend>
+                    {% for field in form %}
+                        <div class="form-group">
+                            <label class="col-md-3 control-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            <div class="col-md-9">
+                                <label class="toggle-switch">
+                                    <input
+                                        type="checkbox"
+                                        name="{{ field.html_name }}"
+                                        id="{{ field.id_for_label }}"
+                                        class="js-video-feature-toggle"
+                                        {% if field.value %}checked{% endif %}
+                                    >
+                                    <span class="toggle-slider"></span>
+                                </label>
+                                {% if video_component_usage %}
+                                    {% for setting_key, usage in video_component_usage.items %}
+                                        {% if setting_key == field.name and usage.rooms %}
+                                            <div class="help-block text-muted">
+                                                {% blocktrans with rooms=usage.rooms events=usage.events %}
+                                                    Used by {{ rooms }} rooms in {{ events }} events.
+                                                {% endblocktrans %}
+                                            </div>
+                                        {% endif %}
+                                    {% endfor %}
+                                {% endif %}
+                                {% if field.help_text %}
+                                    <div class="help-block">{{ field.help_text }}</div>
+                                {% endif %}
+                                {% for error in field.errors %}
+                                    <div class="help-block text-danger">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </fieldset>
+                <div class="form-group submit-group">
+                    <button type="submit" class="btn btn-primary btn-save">
+                        {% trans "Save" %}
+                    </button>
+                </div>
+            </form>
+        </div>
+
     </div>
 {% endblock %}

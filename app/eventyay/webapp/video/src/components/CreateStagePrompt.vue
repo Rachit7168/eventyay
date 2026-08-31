@@ -12,6 +12,7 @@ prompt.c-create-stage-prompt(@close="$emit('close')")
 <script>
 import { useVuelidate } from '@vuelidate/core'
 import { mapGetters } from 'vuex'
+import features from 'features'
 import Prompt from 'components/Prompt'
 import { required } from 'lib/validators'
 import { PLAYBACK_MODE_ALWAYS_ON } from 'lib/stage-streams'
@@ -51,21 +52,22 @@ export default {
 			}
 
 			this.loading = true
-			const modules = [
-				{
+			const modules = []
+			if (features.enabled('chat')) {
+				modules.push({
 					type: 'chat.native',
 					config: {
 						volatile: true,
 					}
-				},
-				{
-					type: 'livestream.youtube',
-					config: {
-						playback_mode: PLAYBACK_MODE_ALWAYS_ON,
-						ytid: '',
-					}
+				})
+			}
+			modules.push({
+				type: 'livestream.youtube',
+				config: {
+					playback_mode: PLAYBACK_MODE_ALWAYS_ON,
+					ytid: '',
 				}
-			]
+			})
 			let room
 			try {
 				({ room } = await this.$store.dispatch('createRoom', {
