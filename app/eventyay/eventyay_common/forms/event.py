@@ -229,7 +229,7 @@ class EventCommonSettingsForm(SettingsForm):
 
         # Meetup video stream & RSVP support
         if is_meetup_event(self.event):
-            privacy_initial = PRIVACY_PRIVATE if (not self.event.is_public or self.event.testmode) else PRIVACY_PUBLIC
+            privacy_initial = PRIVACY_PRIVATE if not self.event.is_public else PRIVACY_PUBLIC
             self.fields['privacy_type'] = forms.ChoiceField(
                 label=_('Visibility'),
                 choices=PRIVACY_CHOICES,
@@ -238,8 +238,7 @@ class EventCommonSettingsForm(SettingsForm):
                 required=False,
                 help_text=_(
                     'Public meetups appear on your organizer profile and search. '
-                    'Private meetups are unlisted from your profile, accessible via direct link, '
-                    'and registrations are in test mode.'
+                    'Private meetups are unlisted from your profile and accessible only via direct link.'
                 ),
             )
             self.initial['privacy_type'] = privacy_initial

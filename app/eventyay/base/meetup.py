@@ -348,25 +348,15 @@ def _save_meetup_header_image(event, header_image, crop_box=None):
 
 
 def set_meetup_privacy(event, is_private: bool):
-    """Configure meetup visibility and testmode flags for public or private operation."""
-    if is_private:
+    """Configure meetup visibility flags for public or private operation."""
+    with transaction.atomic():
         event.live = True
         event.tickets_published = True
         event.private_testmode = False
-        event.testmode = True
-        event.is_public = False
+        event.is_public = not is_private
         event.settings.set('private_testmode_tickets', False)
-        event.settings.set('meta_noindex', True)
-    else:
-        event.live = True
-        event.tickets_published = True
-        event.private_testmode = False
-        event.testmode = False
-        event.is_public = True
-        event.settings.set('private_testmode_tickets', False)
-        event.settings.set('meta_noindex', False)
-
-    event.save(update_fields=['live', 'tickets_published', 'private_testmode', 'testmode', 'is_public'])
+        event.settings.set('meta_noindex', is_private)
+        event.save(update_fields=['live', 'tickets_published', 'private_testmode', 'is_public'])
 
 
 def provision_meetup_event(

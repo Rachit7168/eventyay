@@ -7,7 +7,6 @@ import stripe
 from django.contrib.auth.models import AnonymousUser
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.contrib.sessions.middleware import SessionMiddleware
-from django.core.exceptions import PermissionDenied
 from django.utils import timezone
 from django.utils.crypto import get_random_string
 from django_scopes import scopes_disabled
@@ -114,7 +113,6 @@ def test_settings_form_updates_meetup_visibility(organizer):
     assert event.live is True
     assert event.tickets_published is True
     assert event.is_public is False
-    assert event.testmode is True
     assert event.settings.get('meta_noindex', as_type=bool) is True
 
     form = EventCommonSettingsForm(obj=event)
@@ -133,7 +131,6 @@ def test_settings_form_updates_meetup_visibility(organizer):
     assert event.live is True
     assert event.tickets_published is True
     assert event.is_public is True
-    assert event.testmode is False
     assert event.settings.get('meta_noindex', as_type=bool) is False
 
     form2 = EventCommonSettingsForm(obj=event)
@@ -152,7 +149,6 @@ def test_settings_form_updates_meetup_visibility(organizer):
     assert event.live is True
     assert event.tickets_published is True
     assert event.is_public is False
-    assert event.testmode is True
     assert event.settings.get('meta_noindex', as_type=bool) is True
 
 
@@ -367,7 +363,7 @@ def test_stripe_payment_provider_is_allowed_only_for_meetups(meetup_event, organ
 
 @pytest.mark.django_db
 @scopes_disabled()
-def test_private_meetup_guest_rsvp_via_direct_link_creates_testmode_order(organizer, rf):
+def test_private_meetup_guest_rsvp_via_direct_link_creates_order(organizer, rf):
     now = timezone.now()
     event = Event.objects.create(
         organizer=organizer,
@@ -382,7 +378,6 @@ def test_private_meetup_guest_rsvp_via_direct_link_creates_testmode_order(organi
     assert event.live is True
     assert event.tickets_published is True
     assert event.is_public is False
-    assert event.testmode is True
     assert event.settings.get('meta_noindex', as_type=bool) is True
     event.settings.set('require_registered_account_for_tickets', False)
 
@@ -404,7 +399,6 @@ def test_private_meetup_guest_rsvp_via_direct_link_creates_testmode_order(organi
 
     order = event.orders.filter(email='guest@test.org').first()
     assert order is not None
-    assert order.testmode is True
 
 
 @pytest.mark.django_db

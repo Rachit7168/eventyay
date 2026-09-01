@@ -315,6 +315,5 @@ def test_meetup_create_post_private_mode(orga_client, organizer):
         assert event.live is True
         assert event.tickets_published is True
         assert event.is_public is False
-        assert event.testmode is True
         assert event.private_testmode is False
         assert event.settings.get('meta_noindex', as_type=bool) is True
