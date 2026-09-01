@@ -4,7 +4,7 @@ from django import forms
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db.models import Exists, OuterRef, Q
-from django.urls import reverse, NoReverseMatch
+from django.urls import reverse
 from django.utils.functional import cached_property
 from django.utils.html import escape
 from django.utils.timezone import now
