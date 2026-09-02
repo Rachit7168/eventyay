@@ -1,4 +1,4 @@
-from django.db import migrations
+from django.db import migrations, models
 
 
 def initialize_global_video_settings(apps, schema_editor):
@@ -43,4 +43,60 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.RunPython(initialize_global_video_settings, reverse_global_video_settings),
+        migrations.RenameIndex(
+            model_name='gmailoauthcredential',
+            new_name='base_gmailo_event_i_133776_idx',
+            old_name='base_gmailo_event_i_6f0d0d_idx',
+        ),
+        migrations.RenameIndex(
+            model_name='gmailoauthcredential',
+            new_name='base_gmailo_is_acti_22cf9d_idx',
+            old_name='base_gmailo_is_acti_0d8f8f_idx',
+        ),
+        migrations.RemoveField(
+            model_name='bbbserver',
+            name='event_exclusive',
+        ),
+        migrations.RemoveField(
+            model_name='janusserver',
+            name='event_exclusive',
+        ),
+        migrations.RemoveField(
+            model_name='jitsiserver',
+            name='event_exclusive',
+        ),
+        migrations.RemoveField(
+            model_name='turnserver',
+            name='event_exclusive',
+        ),
+        migrations.AddField(
+            model_name='bbbserver',
+            name='events_exclusive',
+            field=models.ManyToManyField(blank=True, to='base.event'),
+        ),
+        migrations.AddField(
+            model_name='janusserver',
+            name='events_exclusive',
+            field=models.ManyToManyField(blank=True, to='base.event'),
+        ),
+        migrations.AddField(
+            model_name='jitsiserver',
+            name='events_exclusive',
+            field=models.ManyToManyField(blank=True, to='base.event'),
+        ),
+        migrations.AddField(
+            model_name='turnserver',
+            name='events_exclusive',
+            field=models.ManyToManyField(blank=True, to='base.event'),
+        ),
+        migrations.AlterField(
+            model_name='streamschedule',
+            name='stream_type',
+            field=models.CharField(choices=[('youtube', 'YouTube'), ('vimeo', 'Vimeo'), ('hls', 'HLS')], default='youtube', max_length=50, verbose_name='Stream Type'),
+        ),
+        migrations.AlterField(
+            model_name='team',
+            name='can_video_manage_content',
+            field=models.BooleanField(default=False, help_text='Create and edit stages and chat/video channels; edit and delete rooms.', verbose_name='Video: Can manage rooms and content'),
+        ),
     ]

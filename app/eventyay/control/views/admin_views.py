@@ -152,14 +152,16 @@ class VideoSettings(AdministratorPermissionRequiredMixin, FormView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx["bbb_servers"] = BBBServer.objects.select_related("event_exclusive").order_by("url")
-        ctx["janus_servers"] = JanusServer.objects.select_related("event_exclusive").order_by("url")
-        ctx["jitsi_servers"] = JitsiServer.objects.select_related("event_exclusive").order_by("url")
-        ctx["turn_servers"] = TurnServer.objects.select_related("event_exclusive").order_by("hostname")
+        ctx["bbb_servers"] = BBBServer.objects.prefetch_related("events_exclusive").order_by("url")
+        ctx["janus_servers"] = JanusServer.objects.prefetch_related("events_exclusive").order_by("url")
+        ctx["jitsi_servers"] = JitsiServer.objects.prefetch_related("events_exclusive").order_by("url")
+        ctx["turn_servers"] = TurnServer.objects.prefetch_related("events_exclusive").order_by("hostname")
         ctx["streaming_servers"] = StreamingServer.objects.order_by("name")
         ctx["active_tab"] = self.request.GET.get("tab", "features")
         ctx["video_component_usage"] = get_video_component_usage()
         ctx["video_component_labels"] = SETTING_LABELS
+        from eventyay.base.settings import GlobalSettingsObject
+        ctx["global_video_settings"] = GlobalSettingsObject().settings
         return ctx
 
 

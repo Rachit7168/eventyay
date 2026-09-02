@@ -2384,10 +2384,10 @@ class Event(
         for stored_file in StoredFile.objects.filter(event=self).iterator():
             stored_file.full_delete()
 
-        self.bbbserver_set.update(event_exclusive=None)
-        self.janusserver_set.update(event_exclusive=None)
-        self.jitsiserver_set.update(event_exclusive=None)
-        self.turnserver_set.update(event_exclusive=None)
+        self.bbbserver_set.clear()
+        self.janusserver_set.clear()
+        self.jitsiserver_set.clear()
+        self.turnserver_set.clear()
 
         self.vouchers.all().delete()
         self.products.all().delete()
