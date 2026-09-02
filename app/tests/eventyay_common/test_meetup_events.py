@@ -17,7 +17,7 @@ from eventyay.base.meetup import (
 )
 from eventyay.base.models import Event, Order, OrderPayment, OrderPosition, Team, User
 from eventyay.base.payment import StripePaymentProvider
-from eventyay.eventyay_common.forms.event import EventCommonSettingsForm
+from eventyay.eventyay_common.forms.event import EventCommonSettingsForm, EventUpdateForm
 from eventyay.presale.views.event import EventIndex, JoinOnlineVideoView
 from eventyay.presale.views.meetup import (
     MEETUP_RSVP_SESSION_KEY,
@@ -150,6 +150,17 @@ def test_settings_form_updates_meetup_visibility(organizer):
     assert event.tickets_published is True
     assert event.is_public is False
     assert event.settings.get('meta_noindex', as_type=bool) is True
+
+
+@pytest.mark.django_db
+@scopes_disabled()
+def test_event_update_form_drops_is_public_for_meetups(meetup_event):
+    """EventUpdateForm should not include is_public for meetups so saving it does not overwrite privacy."""
+    meetup_event.is_public = True
+    meetup_event.save(update_fields=['is_public'])
+
+    form = EventUpdateForm(instance=meetup_event)
+    assert 'is_public' not in form.fields
 
 
 @pytest.mark.django_db
