@@ -38,7 +38,7 @@ def reverse_global_video_settings(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('base', '0068_invoicevoucher_status_comment_partial_usage'),
+        ('base', '0067_user_profile_picture_user_profile_picture_thumbnail_and_more'),
     ]
 
     operations = [
