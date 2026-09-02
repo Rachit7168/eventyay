@@ -354,9 +354,12 @@ def set_meetup_privacy(event, is_private: bool):
         event.tickets_published = True
         event.private_testmode = False
         event.is_public = not is_private
+        event.startpage_visible = not is_private
+        if is_private:
+            event.startpage_featured = False
         event.settings.set('private_testmode_tickets', False)
         event.settings.set('meta_noindex', is_private)
-        event.save(update_fields=['live', 'tickets_published', 'private_testmode', 'is_public'])
+        event.save(update_fields=['live', 'tickets_published', 'private_testmode', 'is_public', 'startpage_visible', 'startpage_featured'])
 
 
 def provision_meetup_event(
