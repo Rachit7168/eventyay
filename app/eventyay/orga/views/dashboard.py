@@ -324,6 +324,7 @@ class EventDashboardView(EventPermissionRequired, SubmissionStatsMixin, Template
             'can_send_mail': can_send_mail,
             'can_view_mails': can_view_mails,
             'can_view_teams': can_view_teams,
+            'can_review': event.teams.filter(members__in=[self.request.user], is_reviewer=True).exists(),
         })
         can_change_submissions = can_update_submission
 

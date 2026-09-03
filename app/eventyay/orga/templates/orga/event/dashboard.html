@@ -67,7 +67,7 @@
                 </a>
                 {% endif %}
                 
-                {% if can_view_submission_stats or request.user.is_reviewer %}
+                {% if can_view_submission_stats or can_review %}
                 <a href="{{ request.event.orga_urls.reviews }}" class="td-quick-btn">
                     <span class="fa fa-eye" aria-hidden="true"></span>
                     {% trans "Review proposals" %}
