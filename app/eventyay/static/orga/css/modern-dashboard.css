@@ -282,7 +282,7 @@
 }
 
 body:has(.td-dashboard) #page-content {
-  background: var(--td-bg);
+  background: #f9fafb;
   /* Same L/R padding as tickets (orga default #page-content) */
   padding-left: 44px;
   padding-right: 44px;

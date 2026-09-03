@@ -301,6 +301,27 @@ class EventDashboardView(EventPermissionRequired, SubmissionStatsMixin, Template
         today = _now
         can_change_settings = self.request.user.has_perm('base.change_settings.event', event)
         can_change_submissions = self.request.user.has_perm('base.orga_update_submission', event)
+
+        with scope(event=event):
+            tiles = self.get_cfp_tiles(_now, can_change_submissions=can_change_submissions)
+            if today < event.date_from:
+                days = (event.date_from - today).days
+                from django.utils.translation import ngettext_lazy
+                tiles.append({
+                    'large': days,
+                    'small': ngettext_lazy('day until event start', 'days until event start', days),
+                    'priority': 10,
+                })
+            elif today > event.date_to:
+                days = (today - event.date_from).days
+                from django.utils.translation import ngettext_lazy
+                tiles.append({
+                    'large': days,
+                    'small': ngettext_lazy('day since event start', 'days since event start', days),
+                    'priority': 10,
+                })
+            result['upcoming_items'] = tiles
+
         # Action required metrics
         unconfirmed_sessions_count = event.submissions.filter(state=SubmissionStates.ACCEPTED).count()
         
@@ -309,11 +330,12 @@ class EventDashboardView(EventPermissionRequired, SubmissionStatsMixin, Template
             unscheduled_sessions_count = event.wip_schedule.talks.filter(
                 Q(start__isnull=True) | Q(room__isnull=True),
                 is_visible=True,
-                submission__isnull=False
+                submission__state=SubmissionStates.CONFIRMED
             ).count()
             
         incomplete_speakers_count = event.speakers.filter(
-            Q(profiles__biography__isnull=True) | Q(profiles__biography='') |
+            Q(profiles__event=event, profiles__biography__isnull=True) |
+            Q(profiles__event=event, profiles__biography='') |
             Q(avatar__isnull=True) | Q(avatar='')
         ).distinct().count()
 
@@ -341,7 +363,8 @@ class EventDashboardView(EventPermissionRequired, SubmissionStatsMixin, Template
 
         speakers_count = event.speakers.count()
         
-        pending_reviews_count = get_missing_reviews(self.request.event, self.request.user).count() if self.request.user.is_authenticated else 0
+        is_reviewer = event.teams.filter(members__in=[self.request.user], is_reviewer=True).exists()
+        pending_reviews_count = get_missing_reviews(event, self.request.user).count() if is_reviewer else 0
         rejected_proposals_count = event.submissions.filter(state=SubmissionStates.REJECTED).count()
         withdrawn_proposals_count = event.submissions.filter(state__in=[SubmissionStates.WITHDRAWN, SubmissionStates.CANCELED]).count()
         
