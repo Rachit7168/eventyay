@@ -141,6 +141,37 @@ def test_orders_empty_state(new_user_client):
     content = response.content.decode()
     assert 'No tickets yet' in content
     assert 'Browse events' in content
+    assert 'No tickets match your filters.' not in content
+
+
+@pytest.mark.django_db
+def test_orders_empty_state_ignores_pagination_query(new_user_client):
+    response = new_user_client.get(reverse('eventyay_common:orders'), {'page': '1'})
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert 'No tickets yet' in content
+    assert 'No tickets match your filters.' not in content
+
+
+@pytest.mark.django_db
+def test_orders_empty_state_ignores_blank_filter_values(new_user_client):
+    response = new_user_client.get(
+        reverse('eventyay_common:orders'),
+        {'code': '', 'status': '', 'date_from': '', 'date_to': ''},
+    )
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert 'No tickets yet' in content
+    assert 'No tickets match your filters.' not in content
+
+
+@pytest.mark.django_db
+def test_orders_no_match_message_when_filter_active(new_user_client):
+    response = new_user_client.get(reverse('eventyay_common:orders'), {'code': 'NOMATCH'})
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert 'No tickets match your filters.' in content
+    assert 'No tickets yet' not in content
 
 
 @pytest.mark.django_db
@@ -150,6 +181,28 @@ def test_sessions_empty_state(new_user_client):
     content = response.content.decode()
     assert 'No sessions yet' in content
     assert 'Find open calls' in content
+    assert 'No sessions match your filters.' not in content
+
+
+@pytest.mark.django_db
+def test_sessions_empty_state_ignores_pagination_and_blank_search(new_user_client):
+    response = new_user_client.get(
+        reverse('eventyay_common:sessions'),
+        {'page': '1', 'search': ''},
+    )
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert 'No sessions yet' in content
+    assert 'No sessions match your filters.' not in content
+
+
+@pytest.mark.django_db
+def test_sessions_no_match_message_when_filter_active(new_user_client):
+    response = new_user_client.get(reverse('eventyay_common:sessions'), {'search': 'nomatch'})
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert 'No sessions match your filters.' in content
+    assert 'No sessions yet' not in content
 
 
 @pytest.mark.django_db

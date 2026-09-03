@@ -101,7 +101,7 @@
         </div>
         {% include 'pretixcontrol/pagination.html' %}
         {% else %}
-          {% if request.GET %}
+          {% if has_active_filters %}
             <div class="alert alert-info">{% translate "No sessions match your filters." %}</div>
           {% else %}
             {% url 'presale:events.upcoming' as upcoming_url %}
