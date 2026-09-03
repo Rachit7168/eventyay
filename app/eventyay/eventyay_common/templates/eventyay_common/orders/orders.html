@@ -96,19 +96,13 @@
           {% if request.GET %}
             <div class="alert alert-info">{% trans "No tickets match your filters." %}</div>
           {% else %}
-          <div class="personal-empty-state" role="status">
-            <div class="personal-empty-state__icon" aria-hidden="true">
-              <span class="fa fa-ticket"></span>
-            </div>
-            <div class="personal-empty-state__body">
-              <h2>{% trans "No tickets yet" %}</h2>
-              <p>{% trans "Browse upcoming events and register to see your tickets here." %}</p>
-            </div>
-            <div class="personal-empty-state__actions">
-              <a class="btn btn-primary" href="{% url 'presale:events.upcoming' %}">{% trans "Browse events" %}</a>
-              <a class="btn btn-default" href="{% url 'eventyay_common:dashboard' %}">{% trans "Go to dashboard" %}</a>
-            </div>
-          </div>
+            {% url 'presale:events.upcoming' as browse_events_url %}
+            {% url 'eventyay_common:dashboard' as dashboard_url %}
+            {% trans "No tickets yet" as empty_title %}
+            {% trans "Browse upcoming events and register to see your tickets here." as empty_description %}
+            {% trans "Browse events" as empty_primary_label %}
+            {% trans "Go to dashboard" as empty_secondary_label %}
+            {% include "eventyay_common/includes/personal_empty_state.html" with icon="ticket" title=empty_title description=empty_description primary_url=browse_events_url primary_label=empty_primary_label secondary_url=dashboard_url secondary_label=empty_secondary_label %}
           {% endif %}
         {% endif %}
     </div>

@@ -20,7 +20,7 @@ from django.db.models import (
 from django.db.models.functions import Coalesce, Greatest
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
-from django.urls import NoReverseMatch, reverse
+from django.urls import reverse
 from django.utils.formats import date_format
 from django.utils.html import escape, format_html
 from django.utils.timezone import now
@@ -31,7 +31,6 @@ from django.views.generic import TemplateView
 
 from eventyay.base.models import (
     Event,
-    OrganizerFollower,
     Product,
     ProductCategory,
     Order,
@@ -709,7 +708,6 @@ def rearrange(widgets: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 def eventyay_common_dashboard(request: HttpRequest) -> HttpResponse:
     if user_needs_onboarding(request.user, request):
         ctx = build_onboarding_context(request)
-        ctx['video_permission_dialog_id'] = VIDEO_PERMISSION_DIALOG_ID
         return render(request, 'eventyay_common/dashboard/dashboard.html', ctx)
 
     widgets = []
@@ -719,45 +717,6 @@ def eventyay_common_dashboard(request: HttpRequest) -> HttpResponse:
     ctx = build_organiser_dashboard_context(request, annotated_event_query)
     ctx['widgets'] = rearrange(widgets)
     ctx['video_permission_dialog_id'] = VIDEO_PERMISSION_DIALOG_ID
-
-    followed_organizers_data = []
-    if request.user.is_authenticated:
-        follows = (
-            OrganizerFollower.objects.filter(user=request.user)
-            .select_related('organizer')
-            .order_by('organizer__name')
-        )
-        for follow in follows:
-            organizer = follow.organizer
-            try:
-                organizer_url = eventreverse(organizer, 'presale:organizer.index')
-            except NoReverseMatch:
-                organizer_url = '#'
-            followed_organizers_data.append({
-                'follow': follow,
-                'organizer': organizer,
-                'organizer_url': organizer_url,
-            })
-    ctx['followed_organizers'] = followed_organizers_data
-
-    followed_upcoming_events = []
-    if request.user.is_authenticated:
-        followed_org_ids = OrganizerFollower.objects.filter(
-            user=request.user
-        ).values_list('organizer_id', flat=True)
-        followed_upcoming_events = (
-            Event.objects.filter(
-                organizer_id__in=followed_org_ids,
-                live=True,
-                is_public=True,
-                has_subevents=False,
-                date_from__gte=now(),
-            )
-            .select_related('organizer')
-            .order_by('date_from')[:10]
-        )
-    ctx['followed_upcoming_events'] = followed_upcoming_events
-
     return render(request, 'eventyay_common/dashboard/dashboard.html', ctx)
 
 

@@ -100,7 +100,6 @@ def build_profile_prompt_context(user: User) -> dict[str, Any]:
     missing = get_missing_profile_fields(user)
     return {
         'profile_incomplete': bool(missing),
-        'profile_missing_fields': missing,
         'profile_incomplete_message': format_profile_incomplete_message(missing),
         'edit_profile_url': reverse('eventyay_common:account.general'),
     }
