@@ -8,7 +8,7 @@ from django.utils.translation import gettext_lazy as _
 from django.utils.translation import ngettext_lazy
 from django.views.generic import TemplateView
 from django_context_decorator import context
-from django_scopes import scopes_disabled
+from django_scopes import scope, scopes_disabled
 
 from django.http import Http404
 
