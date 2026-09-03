@@ -67,7 +67,7 @@ def test_onboarding_dashboard_renders_for_new_user(new_user_client, public_upcom
     response = new_user_client.get(url)
     assert response.status_code == 200
     content = response.content.decode()
-    assert 'onboarding-dashboard' in content
+    assert 'common-dashboard' in content
     assert 'Welcome to Eventyay!' in content
     assert 'Find events' in content
     assert 'Get started' in content
@@ -108,8 +108,11 @@ def test_organiser_dashboard_still_shown_for_event_managers(organizer_client, ev
     response = organizer_client.get(reverse('eventyay_common:dashboard'))
     assert response.status_code == 200
     content = response.content.decode()
-    assert 'onboarding-dashboard' not in content
+    assert 'Welcome to Eventyay!' not in content
     assert 'Your upcoming events' in content
+    assert 'common-dashboard' in content
+    assert 'cd-event-card' in content
+    assert 'Quick actions' in content
 
 
 @pytest.mark.django_db

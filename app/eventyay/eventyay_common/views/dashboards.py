@@ -43,7 +43,6 @@ from eventyay.base.models import (
     Voucher,
 )
 from eventyay.base.meetup import is_meetup_event
-from eventyay.base.settings import is_event_series_creation_enabled, is_meetup_creation_enabled
 from eventyay.base.timeline import timeline_for_event
 from eventyay.control.forms.event import CommentForm
 from eventyay.control.signals import (
@@ -58,7 +57,7 @@ from eventyay.multidomain.urlreverse import eventreverse
 from .meetup import get_meetup_analytics_context
 
 from ...base.models.orders import CancellationRequest
-from ..onboarding import build_onboarding_context, user_needs_onboarding
+from ..onboarding import build_onboarding_context, build_organiser_dashboard_context, user_needs_onboarding
 from ..permissions import (
     filter_timeline_entry_for_ticket_access,
     get_cached_event_dashboard_access,
@@ -716,47 +715,10 @@ def eventyay_common_dashboard(request: HttpRequest) -> HttpResponse:
     widgets = []
     for r, result in user_dashboard_widgets.send(request, user=request.user):
         widgets.extend(result)
-    ctx = {
-        'is_onboarding_dashboard': False,
-        'widgets': rearrange(widgets),
-        'can_create_event': request.user.teams.filter(can_create_events=True).exists(),
-        'event_series_creation_enabled': is_event_series_creation_enabled(request),
-        'meetup_creation_enabled': is_meetup_creation_enabled(request),
-        'upcoming': widgets_for_event_qs(
-            request,
-            annotated_event_query(request, lazy=True)
-            .filter(
-                Q(has_subevents=False)
-                & Q(
-                    Q(Q(date_to__isnull=True) & Q(date_from__gte=now()))
-                    | Q(Q(date_to__isnull=False) & Q(date_to__gte=now()))
-                )
-            )
-            .order_by('date_from', 'order_to', 'pk'),
-            7,
-            lazy=True,
-        ),
-        'past': widgets_for_event_qs(
-            request,
-            annotated_event_query(request, lazy=True)
-            .filter(
-                Q(has_subevents=False)
-                & Q(
-                    Q(Q(date_to__isnull=True) & Q(date_from__lt=now()))
-                    | Q(Q(date_to__isnull=False) & Q(date_to__lt=now()))
-                )
-            )
-            .order_by('-order_to', 'pk'),
-            8,
-            lazy=True,
-        ),
-        'series': widgets_for_event_qs(
-            request,
-            annotated_event_query(request, lazy=True).filter(has_subevents=True).order_by('-order_to', 'pk'),
-            8,
-            lazy=True,
-        ),
-    }
+
+    ctx = build_organiser_dashboard_context(request, annotated_event_query)
+    ctx['widgets'] = rearrange(widgets)
+    ctx['video_permission_dialog_id'] = VIDEO_PERMISSION_DIALOG_ID
 
     followed_organizers_data = []
     if request.user.is_authenticated:
@@ -795,7 +757,6 @@ def eventyay_common_dashboard(request: HttpRequest) -> HttpResponse:
             .order_by('date_from')[:10]
         )
     ctx['followed_upcoming_events'] = followed_upcoming_events
-    ctx['video_permission_dialog_id'] = VIDEO_PERMISSION_DIALOG_ID
 
     return render(request, 'eventyay_common/dashboard/dashboard.html', ctx)
 
