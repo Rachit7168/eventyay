@@ -1,0 +1,199 @@
+{% load i18n %}
+{% load static %}
+
+<section class="onboarding-dashboard" aria-labelledby="onboarding-dashboard-title">
+  <header class="onboarding-dashboard__header">
+    <h1 id="onboarding-dashboard-title">{% trans "Dashboard" %}</h1>
+    <p class="onboarding-dashboard__lead">
+      {% trans "Discover events, join as an attendee, submit proposals or create your own event." %}
+    </p>
+  </header>
+
+  <section class="onboarding-welcome" aria-labelledby="onboarding-welcome-title">
+    <div class="onboarding-welcome__illustration" aria-hidden="true">
+      <div class="onboarding-welcome__art">
+        <span class="onboarding-welcome__cloud onboarding-welcome__cloud--left"></span>
+        <span class="onboarding-welcome__cloud onboarding-welcome__cloud--right"></span>
+        <span class="onboarding-welcome__tent">
+          <img src="{% static 'pretixbase/img/eventyay-icon.svg' %}" alt="" width="40" height="40">
+        </span>
+      </div>
+    </div>
+    <div class="onboarding-welcome__body">
+      <h2 id="onboarding-welcome-title">{% trans "Welcome to Eventyay!" %} 👋</h2>
+      <p>
+        {% blocktrans trimmed %}
+          You do not have any tickets, sessions, proposals, or events yet.
+          Use Eventyay to discover events, register for events, submit talks, or organise your own event.
+        {% endblocktrans %}
+      </p>
+      <div class="onboarding-welcome__actions">
+        <a class="btn btn-default onboarding-btn" href="#onboarding-find-events">
+          <span class="fa fa-search" aria-hidden="true"></span>
+          {% trans "Search events" %}
+        </a>
+        <a class="btn btn-primary onboarding-btn" href="{{ browse_events_url }}">
+          <span class="fa fa-calendar" aria-hidden="true"></span>
+          {% trans "Browse events" %}
+        </a>
+        {% if profile_incomplete %}
+          <a class="btn btn-default onboarding-btn" href="{{ edit_profile_url }}">
+            <span class="fa fa-user" aria-hidden="true"></span>
+            {% trans "Complete your profile" %}
+          </a>
+        {% endif %}
+        {% if can_create_event %}
+          <a class="btn btn-default onboarding-btn" href="{{ create_event_url }}">
+            <span class="fa fa-plus-circle" aria-hidden="true"></span>
+            {% trans "Create event" %}
+          </a>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+
+  <section class="onboarding-section" id="onboarding-find-events" aria-labelledby="onboarding-find-title">
+    <h2 id="onboarding-find-title">{% trans "Find events" %}</h2>
+    <p class="onboarding-section__hint">
+      {% trans "Search public events by name, organiser, location, or topic." %}
+    </p>
+    <form class="onboarding-search" action="{{ search_events_url }}" method="get" role="search">
+      <label class="sr-only" for="onboarding-event-search">{% trans "Search events" %}</label>
+      <div class="onboarding-search__field">
+        <span class="fa fa-search onboarding-search__icon" aria-hidden="true"></span>
+        <input
+          id="onboarding-event-search"
+          type="search"
+          name="q"
+          class="form-control onboarding-search__input"
+          placeholder="{% trans 'Search events by name, organiser, location, or topic' %}"
+          autocomplete="off"
+        >
+        <button type="submit" class="btn btn-primary onboarding-search__submit">
+          {% trans "Search" %}
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <section class="onboarding-section" aria-labelledby="onboarding-get-started-title">
+    <h2 id="onboarding-get-started-title">{% trans "Get started" %}</h2>
+    <div class="onboarding-actions">
+      <article class="onboarding-action-card">
+        <div class="onboarding-action-card__icon onboarding-action-card__icon--attend" aria-hidden="true">
+          <span class="fa fa-ticket"></span>
+        </div>
+        <h3>{% trans "Attend an event" %}</h3>
+        <p>{% trans "Browse upcoming events and register for tickets." %}</p>
+        <a class="onboarding-action-card__link" href="{{ upcoming_events_url }}">
+          {% trans "Browse events" %}
+          <span aria-hidden="true">→</span>
+        </a>
+      </article>
+
+      <article class="onboarding-action-card">
+        <div class="onboarding-action-card__icon onboarding-action-card__icon--talk" aria-hidden="true">
+          <span class="fa fa-microphone"></span>
+        </div>
+        <h3>{% trans "Submit a talk" %}</h3>
+        <p>{% trans "Find events with open calls for proposals." %}</p>
+        <a class="onboarding-action-card__link" href="{{ open_calls_url }}">
+          {% trans "Find open calls" %}
+          <span aria-hidden="true">→</span>
+        </a>
+      </article>
+
+      {% if can_create_event %}
+        <article class="onboarding-action-card">
+          <div class="onboarding-action-card__icon onboarding-action-card__icon--organise" aria-hidden="true">
+            <span class="fa fa-calendar-plus-o"></span>
+          </div>
+          <h3>{% trans "Organise an event" %}</h3>
+          <p>{% trans "Create a new event and start setting up tickets, talks, and video." %}</p>
+          <a class="onboarding-action-card__link" href="{{ create_event_url }}">
+            {% trans "Create event" %}
+            <span aria-hidden="true">→</span>
+          </a>
+        </article>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="onboarding-section" aria-labelledby="onboarding-recommended-title">
+    <div class="onboarding-section__heading-row">
+      <h2 id="onboarding-recommended-title">{% trans "Recommended events" %}</h2>
+      <a class="onboarding-section__view-all" href="{{ upcoming_events_url }}">
+        {% trans "View all events" %}
+        <span aria-hidden="true">→</span>
+      </a>
+    </div>
+
+    {% if recommended_events %}
+      <div class="onboarding-event-grid">
+        {% for card in recommended_events %}
+          <article class="onboarding-event-card">
+            <a class="onboarding-event-card__media" href="{{ card.url }}">
+              {% if card.image_url %}
+                <img src="{{ card.image_url }}" alt="" loading="lazy">
+              {% else %}
+                <div class="onboarding-event-card__placeholder" aria-hidden="true">
+                  <span class="fa fa-calendar"></span>
+                </div>
+              {% endif %}
+            </a>
+            <div class="onboarding-event-card__body">
+              <h3 class="onboarding-event-card__title">
+                <a href="{{ card.url }}">{{ card.name }}</a>
+              </h3>
+              {% if card.date_range %}
+                <p class="onboarding-event-card__meta">
+                  <span class="fa fa-calendar-o" aria-hidden="true"></span>
+                  {{ card.date_range }}
+                </p>
+              {% endif %}
+              {% if card.location %}
+                <p class="onboarding-event-card__meta">
+                  <span class="fa fa-map-marker" aria-hidden="true"></span>
+                  {{ card.location }}
+                </p>
+              {% endif %}
+              {% if card.badges %}
+                <ul class="onboarding-event-card__badges">
+                  {% for badge in card.badges %}
+                    <li class="onboarding-badge onboarding-badge--{{ badge.tone }}">{{ badge.label }}</li>
+                  {% endfor %}
+                </ul>
+              {% endif %}
+              <a class="onboarding-event-card__action" href="{{ card.primary_action.url }}">
+                {{ card.primary_action.label }}
+                <span aria-hidden="true">→</span>
+              </a>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="onboarding-empty">
+        <p>{% trans "No recommended events are available right now." %}</p>
+        <a class="btn btn-default" href="{{ browse_events_url }}">{% trans "Browse all events" %}</a>
+      </div>
+    {% endif %}
+  </section>
+
+  {% if profile_incomplete %}
+    <section class="onboarding-profile" aria-labelledby="onboarding-profile-title">
+      <div class="onboarding-profile__icon" aria-hidden="true">
+        <span class="fa fa-user"></span>
+      </div>
+      <div class="onboarding-profile__body">
+        <h2 id="onboarding-profile-title">{% trans "Complete your profile" %}</h2>
+        <p>
+          {% trans "Add your photo, biography, and social links to connect with organisers, speakers and attendees." %}
+        </p>
+      </div>
+      <a class="btn btn-default onboarding-profile__cta" href="{{ edit_profile_url }}">
+        {% trans "Edit profile" %}
+      </a>
+    </section>
+  {% endif %}
+</section>

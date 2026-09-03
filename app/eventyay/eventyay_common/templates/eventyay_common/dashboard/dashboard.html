@@ -3,6 +3,9 @@
 {% block title %}{% trans "Dashboard" %}
 {% endblock %}
 {% block content %}
+  {% if is_onboarding_dashboard %}
+    {% include "eventyay_common/dashboard/onboarding.html" %}
+  {% else %}
     <h1>{% trans "Dashboard" %}</h1>
     <div class="dropdown-container">
       <input type="text" class="form-control" id="dashboard_query"
@@ -149,4 +152,5 @@
     {% include "eventyay_common/includes/ticket_permission_dialog.html" %}
     {% include "eventyay_common/includes/talk_permission_dialog.html" %}
     {% include "eventyay_common/includes/video_permission_dialog.html" with dialog_id=video_permission_dialog_id %}
+  {% endif %}
 {% endblock %}

@@ -58,6 +58,7 @@ from eventyay.multidomain.urlreverse import eventreverse
 from .meetup import get_meetup_analytics_context
 
 from ...base.models.orders import CancellationRequest
+from ..onboarding import build_onboarding_context, user_needs_onboarding
 from ..permissions import (
     filter_timeline_entry_for_ticket_access,
     get_cached_event_dashboard_access,
@@ -707,10 +708,16 @@ def rearrange(widgets: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
 
 def eventyay_common_dashboard(request: HttpRequest) -> HttpResponse:
+    if user_needs_onboarding(request.user, request):
+        ctx = build_onboarding_context(request)
+        ctx['video_permission_dialog_id'] = VIDEO_PERMISSION_DIALOG_ID
+        return render(request, 'eventyay_common/dashboard/dashboard.html', ctx)
+
     widgets = []
     for r, result in user_dashboard_widgets.send(request, user=request.user):
         widgets.extend(result)
     ctx = {
+        'is_onboarding_dashboard': False,
         'widgets': rearrange(widgets),
         'can_create_event': request.user.teams.filter(can_create_events=True).exists(),
         'event_series_creation_enabled': is_event_series_creation_enabled(request),
