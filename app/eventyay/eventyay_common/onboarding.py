@@ -11,7 +11,7 @@ from django.urls import reverse
 from django.utils.formats import date_format
 from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
-from django_scopes import scopes_disabled
+from django_scopes import scope, scopes_disabled
 
 from eventyay.base.models import Event, Order, Submission, User
 from eventyay.base.settings import is_event_series_creation_enabled, is_meetup_creation_enabled
@@ -116,10 +116,11 @@ def _event_cfp_is_open(event: Event) -> bool:
     from eventyay.base.models.cfp import CfP
 
     try:
-        cfp = event.cfp
+        with scope(event=event):
+            cfp = event.cfp
+            return bool(cfp.is_open)
     except CfP.DoesNotExist:
         return False
-    return bool(cfp.is_open)
 
 
 def _event_badges(event: Event) -> list[dict[str, str]]:
@@ -135,7 +136,8 @@ def _event_badges(event: Event) -> list[dict[str, str]]:
 
 def _event_primary_action(event: Event) -> dict[str, str]:
     url = eventreverse(event, 'presale:event.index')
-    if _event_cfp_is_open(event) and not event.presale_is_running:
+    cfp_open = _event_cfp_is_open(event)
+    if cfp_open and not event.presale_is_running:
         return {'label': str(_('Submit proposal')), 'url': url}
     if event.presale_is_running:
         return {'label': str(_('Register')), 'url': url}
@@ -157,9 +159,11 @@ def _base_event_card(event: Event) -> dict[str, Any]:
 def build_recommended_event_cards(limit: int = RECOMMENDED_EVENTS_LIMIT) -> list[dict[str, Any]]:
     cards: list[dict[str, Any]] = []
     with scopes_disabled():
-        for event in _public_upcoming_events_qs()[:limit]:
-            if event.has_component_testmode:
-                continue
+        events = list(_public_upcoming_events_qs()[:limit])
+    for event in events:
+        if event.has_component_testmode:
+            continue
+        with scope(event=event):
             card = _base_event_card(event)
             card['url'] = eventreverse(event, 'presale:event.index')
             card['primary_action'] = _event_primary_action(event)
@@ -218,23 +222,24 @@ def _video_module_action(event: Event, request: HttpRequest) -> dict[str, Any]:
 
 
 def build_managed_event_card(event: Event, request: HttpRequest) -> dict[str, Any]:
-    card = _base_event_card(event)
-    card['url'] = reverse(
-        'eventyay_common:event.index',
-        kwargs={'organizer': event.organizer.slug, 'event': event.slug},
-    )
-    card['module_actions'] = [
-        _ticket_module_action(event, request),
-        _talk_module_action(event, request),
-        _video_module_action(event, request),
-    ]
+    with scope(event=event):
+        card = _base_event_card(event)
+        card['url'] = reverse(
+            'eventyay_common:event.index',
+            kwargs={'organizer': event.organizer.slug, 'event': event.slug},
+        )
+        card['module_actions'] = [
+            _ticket_module_action(event, request),
+            _talk_module_action(event, request),
+            _video_module_action(event, request),
+        ]
     return card
 
 
 def build_managed_event_cards(
     request: HttpRequest, qs: QuerySet[Event], limit: int = MANAGED_EVENTS_LIMIT
 ) -> list[dict[str, Any]]:
-    events = qs.prefetch_related('_settings_objects', 'cfp').select_related('organizer')[:limit]
+    events = list(qs.prefetch_related('_settings_objects', 'cfp').select_related('organizer')[:limit])
     return [build_managed_event_card(event, request) for event in events]
 
 
