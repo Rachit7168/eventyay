@@ -1,0 +1,134 @@
+{% load i18n %}
+<section class="td-section" aria-labelledby="td-overview-title">
+    <div class="td-section-heading">
+        <h2 id="td-overview-title" class="td-section-title">
+            <span class="fa fa-tachometer" aria-hidden="true"></span>
+            {% trans "At a glance" %}
+        </h2>
+    </div>
+
+    <div class="td-kpi-grid">
+        <a href="{{ request.event.orga_urls.live }}" class="td-kpi-card td-status-card {% if at_a_glance.talk_component_status.text == 'Live' %}td-status-card-green{% else %}td-status-card-blue{% endif %}" title="{% trans "Talk component status" %}">
+            <div class="td-kpi-top">
+                <span class="td-kpi-icon" aria-hidden="true"><span class="fa fa-desktop"></span></span>
+                <span class="td-kpi-label">{% trans "Talk component" %}</span>
+            </div>
+            <div class="td-status-card-value">
+                <span class="td-status-dot" aria-hidden="true"></span>
+                {{ at_a_glance.talk_component_status.text|default:"Live" }}
+            </div>
+            <div class="td-kpi-hint td-kpi-hint-spacer" aria-hidden="true"></div>
+            <div class="td-kpi-link">{% trans "Click to change" %} ></div>
+        </a>
+
+        <a href="{{ request.event.orga_urls.submissions }}" class="td-kpi-card td-kpi-blue td-kpi-sparkline td-kpi-sparkline-blue" title="{% trans 'Submitted proposals' %}">
+            <div class="td-kpi-top">
+                <span class="td-kpi-icon" aria-hidden="true"><span class="fa fa-inbox"></span></span>
+                <span class="td-kpi-label">{% trans "Submitted proposals" %}</span>
+            </div>
+            <div class="td-kpi-value">{{ at_a_glance.submitted_proposals }}</div>
+            <div class="td-kpi-hint td-kpi-hint-spacer" aria-hidden="true"></div>
+            <div class="td-kpi-link">{% trans "View all" %} ></div>
+        </a>
+
+        <a href="{{ request.event.orga_urls.submissions }}?state=accepted" class="td-kpi-card td-kpi-green td-kpi-sparkline td-kpi-sparkline-green" title="{% trans 'Accepted proposals' %}">
+            <div class="td-kpi-top">
+                <span class="td-kpi-icon" aria-hidden="true"><span class="fa fa-check-circle"></span></span>
+                <span class="td-kpi-label">{% trans "Accepted proposals" %}</span>
+            </div>
+            <div class="td-kpi-value">{{ at_a_glance.accepted_proposals }}</div>
+            <div class="td-kpi-hint">{{ at_a_glance.conversion_percentage }}% conversion</div>
+            <div class="td-kpi-link">{% trans "View all" %} ></div>
+        </a>
+
+        <a href="{{ request.event.orga_urls.submissions }}?state=confirmed" class="td-kpi-card td-kpi-green td-kpi-sparkline td-kpi-sparkline-green" title="{% trans 'Confirmed sessions' %}">
+            <div class="td-kpi-top">
+                <span class="td-kpi-icon" aria-hidden="true"><span class="fa fa-check-circle-o"></span></span>
+                <span class="td-kpi-label">{% trans "Confirmed sessions" %}</span>
+            </div>
+            <div class="td-kpi-value">{{ at_a_glance.confirmed_sessions }}</div>
+            <div class="td-kpi-hint td-kpi-hint-spacer" aria-hidden="true"></div>
+            <div class="td-kpi-link">{% trans "View all" %} ></div>
+        </a>
+
+        <a href="{{ request.event.orga_urls.schedule }}" class="td-kpi-card td-kpi-blue td-kpi-sparkline td-kpi-sparkline-blue" title="{% trans 'Scheduled sessions' %}">
+            <div class="td-kpi-top">
+                <span class="td-kpi-icon" aria-hidden="true"><span class="fa fa-calendar-check-o"></span></span>
+                <span class="td-kpi-label">{% trans "Scheduled sessions" %}</span>
+            </div>
+            <div class="td-kpi-value">{{ at_a_glance.scheduled_sessions }}</div>
+            <div class="td-kpi-hint td-kpi-hint-spacer" aria-hidden="true"></div>
+            <div class="td-kpi-link">{% trans "View schedule" %} ></div>
+        </a>
+
+        <a href="{{ request.event.orga_urls.speakers }}" class="td-kpi-card td-kpi-blue td-kpi-sparkline td-kpi-sparkline-blue" title="{% trans 'Speakers' %}">
+            <div class="td-kpi-top">
+                <span class="td-kpi-icon" aria-hidden="true"><span class="fa fa-users"></span></span>
+                <span class="td-kpi-label">{% trans "Speakers" %}</span>
+            </div>
+            <div class="td-kpi-value">{{ at_a_glance.speakers }}</div>
+            <div class="td-kpi-hint td-kpi-hint-spacer" aria-hidden="true"></div>
+            <div class="td-kpi-link">{% trans "View speakers" %} ></div>
+        </a>
+
+        <a href="{{ request.event.orga_urls.reviews }}" class="td-kpi-card td-kpi-muted" title="{% trans 'Pending reviews' %}">
+            <div class="td-kpi-top">
+                <span class="td-kpi-icon" aria-hidden="true"><span class="fa fa-clock-o"></span></span>
+                <span class="td-kpi-label">{% trans "Pending reviews" %}</span>
+            </div>
+            <div class="td-kpi-value">{{ at_a_glance.pending_reviews }}</div>
+            <div class="td-kpi-hint td-kpi-hint-spacer" aria-hidden="true"></div>
+            <div class="td-kpi-link">{% trans "Review now" %} ></div>
+        </a>
+
+        <a href="{{ request.event.orga_urls.submissions }}?state=rejected" class="td-kpi-card td-kpi-red" title="{% trans 'Rejected proposals' %}">
+            <div class="td-kpi-top">
+                <span class="td-kpi-icon" aria-hidden="true"><span class="fa fa-times"></span></span>
+                <span class="td-kpi-label">{% trans "Rejected proposals" %}</span>
+            </div>
+            <div class="td-kpi-value">{{ at_a_glance.rejected_proposals }}</div>
+            <div class="td-kpi-hint td-kpi-hint-spacer" aria-hidden="true"></div>
+            <div class="td-kpi-link">{% trans "View all" %} ></div>
+        </a>
+
+        <a href="{{ request.event.orga_urls.submissions }}?state=withdrawn" class="td-kpi-card td-kpi-muted" title="{% trans 'Withdrawn proposals' %}">
+            <div class="td-kpi-top">
+                <span class="td-kpi-icon" aria-hidden="true"><span class="fa fa-undo"></span></span>
+                <span class="td-kpi-label">{% trans "Withdrawn proposals" %}</span>
+            </div>
+            <div class="td-kpi-value">{{ at_a_glance.withdrawn_proposals }}</div>
+            <div class="td-kpi-hint td-kpi-hint-spacer" aria-hidden="true"></div>
+            <div class="td-kpi-link">{% trans "View all" %} ></div>
+        </a>
+
+        <a href="{{ request.event.orga_urls.sent_mails }}" class="td-kpi-card td-kpi-blue td-kpi-sparkline td-kpi-sparkline-blue" title="{% trans 'Emails sent' %}">
+            <div class="td-kpi-top">
+                <span class="td-kpi-icon" aria-hidden="true"><span class="fa fa-envelope"></span></span>
+                <span class="td-kpi-label">{% trans "Emails sent" %}</span>
+            </div>
+            <div class="td-kpi-value">{{ at_a_glance.emails_sent }}</div>
+            <div class="td-kpi-hint td-kpi-hint-spacer" aria-hidden="true"></div>
+            <div class="td-kpi-link">{% trans "View history" %} ></div>
+        </a>
+
+        <a href="{{ request.event.orga_urls.schedule }}" class="td-kpi-card td-kpi-purple" title="{% trans 'Current schedule' %}">
+            <div class="td-kpi-top">
+                <span class="td-kpi-icon" aria-hidden="true"><span class="fa fa-calendar-o"></span></span>
+                <span class="td-kpi-label">{% trans "Current schedule" %}</span>
+            </div>
+            <div class="td-kpi-value">{{ at_a_glance.current_schedule_version|default:"1.0" }}</div>
+            <div class="td-kpi-hint td-kpi-hint-spacer" aria-hidden="true"></div>
+            <div class="td-kpi-link">{% trans "View schedule" %} ></div>
+        </a>
+
+        <a href="{{ request.event.orga_urls.reviews }}" class="td-kpi-card td-kpi-muted" title="{% trans 'Active reviewers' %}">
+            <div class="td-kpi-top">
+                <span class="td-kpi-icon" aria-hidden="true"><span class="fa fa-user"></span></span>
+                <span class="td-kpi-label">{% trans "Active reviewers" %}</span>
+            </div>
+            <div class="td-kpi-value">{{ at_a_glance.active_reviewers }}</div>
+            <div class="td-kpi-hint td-kpi-hint-spacer" aria-hidden="true"></div>
+            <div class="td-kpi-link">{% trans "View reviews" %} ></div>
+        </a>
+    </div>
+</section>
