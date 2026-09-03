@@ -7,7 +7,9 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.utils import timezone
 from eventyay.base.models import Event, Organizer, Team
+from eventyay.base.meetup import EVENT_TYPE_SETTING, MEETUP_EVENT_TYPE
 from eventyay.eventyay_common.onboarding import (
+    _event_kind,
     format_profile_incomplete_message,
     get_missing_profile_fields,
     is_profile_incomplete,
@@ -180,3 +182,18 @@ def test_global_navigation_labels(new_user_client):
     assert 'Browse events' in content
     assert 'My Tickets' in content
     assert 'Dashboard' in content
+
+
+@pytest.mark.django_db
+def test_event_kind_labels_event_series_and_meetup(event):
+    assert _event_kind(event)['kind'] == 'event'
+    assert _event_kind(event)['label'] == 'Event'
+
+    event.has_subevents = True
+    assert _event_kind(event)['kind'] == 'series'
+    assert _event_kind(event)['label'] == 'Series'
+
+    event.has_subevents = False
+    event.settings.set(EVENT_TYPE_SETTING, MEETUP_EVENT_TYPE)
+    assert _event_kind(event)['kind'] == 'meetup'
+    assert _event_kind(event)['label'] == 'Meetup'

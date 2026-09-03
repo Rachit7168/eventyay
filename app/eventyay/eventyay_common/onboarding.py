@@ -13,6 +13,7 @@ from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 from django_scopes import scope, scopes_disabled
 
+from eventyay.base.meetup import is_meetup_event
 from eventyay.base.models import Event, Order, Submission, User
 from eventyay.base.settings import is_event_series_creation_enabled, is_meetup_creation_enabled
 from eventyay.eventyay_common.permissions import (
@@ -159,14 +160,36 @@ def _event_cfp_is_open(event: Event) -> bool:
         return False
 
 
+def _event_kind(event: Event) -> dict[str, str]:
+    """Return a short type label for cards: event, series, or meetup."""
+    if is_meetup_event(event):
+        return {
+            'kind': 'meetup',
+            'label': str(_('Meetup')),
+            'tone': 'success',
+            'icon': 'users',
+        }
+    if event.has_subevents:
+        return {
+            'kind': 'series',
+            'label': str(_('Series')),
+            'tone': 'warning',
+            'icon': 'calendar',
+        }
+    return {
+        'kind': 'event',
+        'label': str(_('Event')),
+        'tone': 'primary',
+        'icon': 'ticket',
+    }
+
+
 def _event_badges(event: Event) -> list[dict[str, str]]:
     badges: list[dict[str, str]] = []
     if event.presale_is_running:
         badges.append({'label': str(_('Tickets on sale')), 'tone': 'success'})
     if _event_cfp_is_open(event):
         badges.append({'label': str(_('Call for proposals')), 'tone': 'accent'})
-    if event.has_subevents:
-        badges.append({'label': str(_('Event series')), 'tone': 'neutral'})
     return badges
 
 
@@ -187,6 +210,7 @@ def _base_event_card(event: Event) -> dict[str, Any]:
         'date_range': _event_date_range(event),
         'time_label': _event_time_label(event),
         'location': _event_location_label(event),
+        'kind': _event_kind(event),
         'badges': _event_badges(event),
         'organizer_name': str(event.organizer.name) if event.organizer_id else '',
     }

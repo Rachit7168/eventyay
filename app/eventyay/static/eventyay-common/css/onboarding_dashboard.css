@@ -466,10 +466,47 @@
 
 .cd-event-card__media {
   display: block;
+  position: relative;
   aspect-ratio: 16 / 9;
   background: color-mix(in srgb, var(--cd-primary) 8%, #f3f5f7);
   overflow: hidden;
   flex: 0 0 auto;
+}
+
+.cd-event-kind {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  box-shadow: 0 4px 12px rgb(15 23 42 / 0.12);
+}
+
+.cd-event-kind--primary {
+  color: #fff;
+  background: var(--cd-primary);
+  border-color: color-mix(in srgb, var(--cd-primary) 70%, black);
+}
+
+.cd-event-kind--warning {
+  color: color-mix(in srgb, var(--cd-warning) 35%, black);
+  background: var(--cd-warning);
+  border-color: color-mix(in srgb, var(--cd-warning) 70%, black);
+}
+
+.cd-event-kind--success {
+  color: #fff;
+  background: var(--cd-positive);
+  border-color: color-mix(in srgb, var(--cd-positive) 70%, black);
 }
 
 .cd-event-card__media img {

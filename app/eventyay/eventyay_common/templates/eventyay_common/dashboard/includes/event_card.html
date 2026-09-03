@@ -2,6 +2,12 @@
 
 <article class="cd-event-card">
   <a class="cd-event-card__media" href="{{ card.url }}">
+    {% if card.kind %}
+      <span class="cd-event-kind cd-event-kind--{{ card.kind.tone }}">
+        <span class="fa fa-{{ card.kind.icon }}" aria-hidden="true"></span>
+        {{ card.kind.label }}
+      </span>
+    {% endif %}
     {% if card.image_url %}
       <img src="{{ card.image_url }}" alt="" loading="lazy">
     {% else %}
