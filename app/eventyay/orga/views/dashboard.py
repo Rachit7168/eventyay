@@ -299,8 +299,33 @@ class EventDashboardView(EventPermissionRequired, SubmissionStatsMixin, Template
         result['go_to_target'] = 'schedule' if stages['REVIEW']['phase'] == 'done' else 'cfp'
         _now = now()
         today = _now
+        
+        can_update_event = self.request.user.has_perm('base.update_event', event)
         can_change_settings = self.request.user.has_perm('base.change_settings.event', event)
-        can_change_submissions = self.request.user.has_perm('base.orga_update_submission', event)
+        can_update_submission = self.request.user.has_perm('base.orga_update_submission', event)
+        can_view_submission_stats = self.request.user.has_perm('base.orga_list_submission', event)
+        can_edit_schedule = self.request.user.has_perm('base.orga_edit_schedule', event)
+        can_view_schedule = self.request.user.has_perm('base.orga_view_schedule', event)
+        can_list_speaker = self.request.user.has_perm('base.orga_list_speakerprofile', event)
+        can_view_speakers = can_list_speaker
+        can_send_mail = self.request.user.has_perm('base.list_queuedmail', event)
+        can_view_mails = can_send_mail
+        can_view_teams = can_change_settings
+        
+        result.update({
+            'can_update_event': can_update_event,
+            'can_change_settings': can_change_settings,
+            'can_update_submission': can_update_submission,
+            'can_view_submission_stats': can_view_submission_stats,
+            'can_edit_schedule': can_edit_schedule,
+            'can_view_schedule': can_view_schedule,
+            'can_list_speaker': can_list_speaker,
+            'can_view_speakers': can_view_speakers,
+            'can_send_mail': can_send_mail,
+            'can_view_mails': can_view_mails,
+            'can_view_teams': can_view_teams,
+        })
+        can_change_submissions = can_update_submission
 
         with scope(event=event):
             tiles = self.get_cfp_tiles(_now, can_change_submissions=can_change_submissions)

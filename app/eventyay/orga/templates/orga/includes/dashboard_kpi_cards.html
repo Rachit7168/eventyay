@@ -9,7 +9,6 @@
     </div>
 
     <div class="td-kpi-grid">
-        {% has_event_perm "base.update_event" request.user request request.event as can_update_event %}
         {% if can_update_event %}
         <a href="{{ request.event.orga_urls.live }}" class="td-kpi-card td-status-card {% if at_a_glance.talk_component_status.is_live %}td-status-card-green{% else %}td-status-card-blue{% endif %}" title="{% trans "Talk component status" %}">
             <div class="td-kpi-top">
@@ -25,7 +24,6 @@
         </a>
         {% endif %}
 
-        {% has_event_perm "base.orga_list_submission" request.user request request.event as can_view_submission_stats %}
         {% if can_view_submission_stats %}
         <a href="{{ request.event.orga_urls.submissions }}" class="td-kpi-card td-kpi-blue td-kpi-sparkline td-kpi-sparkline-blue" title="{% trans 'Submitted proposals' %}">
             <div class="td-kpi-top">
@@ -58,7 +56,6 @@
         </a>
         {% endif %}
 
-        {% has_event_perm "base.orga_view_schedule" request.user request request.event as can_view_schedule %}
         {% if can_view_schedule %}
         <a href="{{ request.event.orga_urls.schedule }}" class="td-kpi-card td-kpi-blue td-kpi-sparkline td-kpi-sparkline-blue" title="{% trans 'Scheduled sessions' %}">
             <div class="td-kpi-top">
@@ -71,7 +68,6 @@
         </a>
         {% endif %}
 
-        {% has_event_perm "base.orga_list_speakerprofile" request.user request request.event as can_view_speakers %}
         {% if can_view_speakers %}
         <a href="{{ request.event.orga_urls.speakers }}" class="td-kpi-card td-kpi-blue td-kpi-sparkline td-kpi-sparkline-blue" title="{% trans 'Speakers' %}">
             <div class="td-kpi-top">
@@ -118,7 +114,6 @@
         </a>
         {% endif %}
 
-        {% has_event_perm "base.list_queuedmail" request.user request request.event as can_view_mails %}
         {% if can_view_mails %}
         <a href="{{ request.event.orga_urls.sent_mails }}" class="td-kpi-card td-kpi-blue td-kpi-sparkline td-kpi-sparkline-blue" title="{% trans 'Emails sent' %}">
             <div class="td-kpi-top">
@@ -143,7 +138,6 @@
         </a>
         {% endif %}
 
-        {% has_event_perm "base.change_settings.event" request.user request request.event as can_view_teams %}
         {% if can_view_teams %}
         <a href="{{ request.event.organizer.orga_urls.teams }}" class="td-kpi-card td-kpi-blue" title="{% trans 'Active reviewers' %}">
             <div class="td-kpi-top">

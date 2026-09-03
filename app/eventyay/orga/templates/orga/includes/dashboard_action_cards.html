@@ -9,7 +9,6 @@
     </div>
     <div class="td-attention-layout">
         <div class="td-action-grid">
-            {% has_event_perm "base.orga_update_submission" request.user request request.event as can_update_submission %}
             {% if can_update_submission %}
             <article class="td-action-card td-action-danger td-action-card-active">
                 <div class="td-action-header">
@@ -28,7 +27,6 @@
             </article>
             {% endif %}
 
-            {% has_event_perm "base.orga_edit_schedule" request.user request request.event as can_edit_schedule %}
             {% if can_edit_schedule or can_update_submission %}
             <article class="td-action-card td-action-warning td-action-card-active">
                 <div class="td-action-header">
@@ -47,7 +45,6 @@
             </article>
             {% endif %}
 
-            {% has_event_perm "base.orga_list_speakerprofile" request.user request request.event as can_list_speaker %}
             {% if can_list_speaker %}
             <article class="td-action-card td-action-caution td-action-card-active">
                 <div class="td-action-header">
@@ -66,7 +63,6 @@
             </article>
             {% endif %}
 
-            {% has_event_perm "base.send_queuedmail" request.user request request.event as can_send_mail %}
             {% if can_send_mail %}
             <article class="td-action-card td-action-info td-action-card-active">
                 <div class="td-action-header">

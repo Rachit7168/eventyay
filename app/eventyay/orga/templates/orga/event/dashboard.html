@@ -12,14 +12,12 @@
         <link rel="stylesheet" href="{% static "orga/css/modern-dashboard.css" %}">
         <link rel="stylesheet" href="{% static "orga/css/dashboard.css" %}">
     {% endcompress %}
-    {% has_event_perm "base.orga_list_submission" request.user request request.event as can_view_submission_stats %}
     {% if can_view_submission_stats %}
         <link rel="stylesheet" type="text/css" href="{% static "vendored/apexcharts/apexcharts.css" %}" />
     {% endif %}
 {% endblock stylesheets %}
 
 {% block scripts %}
-    {% has_event_perm "base.orga_list_submission" request.user request request.event as can_view_submission_stats %}
     {% if can_view_submission_stats %}
         {% compress js %}
             <script defer src="{% static "vendored/apexcharts/apexcharts.min.js" %}"></script>
@@ -29,8 +27,6 @@
 {% endblock scripts %}
 
 {% block content %}
-    {% has_event_perm "base.orga_list_speakerprofile" request.user request request.event as can_view_speakers %}
-    {% has_event_perm "base.update_event" request.user request request.event as can_change_settings %}
     {% if "congratulations" in request.GET %}
         <div class="alert alert-success congratulations">
             <span></span>
@@ -64,7 +60,6 @@
                 {% trans "Quick actions" %}
             </h2>
             <div class="td-quick-actions" role="toolbar" aria-label="{% trans "Quick actions" %}">
-                {% has_event_perm "base.orga_update_submission" request.user request request.event as can_update_submission %}
                 {% if can_update_submission %}
                 <a href="{{ request.event.orga_urls.new_submission }}" class="td-quick-btn">
                     <span class="fa fa-plus" aria-hidden="true"></span>
@@ -72,7 +67,6 @@
                 </a>
                 {% endif %}
                 
-                {% has_event_perm "base.orga_list_submission" request.user request request.event as can_view_submission_stats %}
                 {% if can_view_submission_stats or request.user.is_reviewer %}
                 <a href="{{ request.event.orga_urls.reviews }}" class="td-quick-btn">
                     <span class="fa fa-eye" aria-hidden="true"></span>
@@ -80,7 +74,6 @@
                 </a>
                 {% endif %}
                 
-                {% has_event_perm "base.orga_list_speakerprofile" request.user request request.event as can_list_speaker %}
                 {% if can_list_speaker %}
                 <a href="{{ request.event.orga_urls.speakers }}" class="td-quick-btn">
                     <span class="fa fa-users" aria-hidden="true"></span>
@@ -88,7 +81,6 @@
                 </a>
                 {% endif %}
                 
-                {% has_event_perm "base.orga_edit_schedule" request.user request request.event as can_edit_schedule %}
                 {% if can_edit_schedule %}
                 <a href="{{ request.event.orga_urls.schedule }}" class="td-quick-btn">
                     <span class="fa fa-calendar" aria-hidden="true"></span>
@@ -96,7 +88,6 @@
                 </a>
                 {% endif %}
                 
-                {% has_event_perm "base.list_queuedmail" request.user request request.event as can_send_mail %}
                 {% if can_send_mail %}
                 <a href="{{ request.event.orga_urls.outbox }}" class="td-quick-btn">
                     <span class="fa fa-envelope" aria-hidden="true"></span>
@@ -113,7 +104,6 @@
         {% include "orga/includes/dashboard_kpi_cards.html" %}
     </div>
 
-    {% has_event_perm "base.orga_list_submission" request.user request request.event as can_view_submission_stats %}
     {% if can_view_submission_stats %}
         {% include "orga/submission/includes/statistics.html" %}
     {% endif %}
