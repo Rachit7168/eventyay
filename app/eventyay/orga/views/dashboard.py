@@ -262,7 +262,7 @@ class EventDashboardView(EventPermissionRequired, SubmissionStatsMixin, Template
                     'priority': 60,
                 }
             )
-        is_reviewer = self.request.event.teams.filter(members__in=[self.request.user], is_reviewer=True).exists()
+        is_reviewer = self.request.user.is_administrator or self.request.event.teams.filter(members__in=[self.request.user], is_reviewer=True).exists()
         if is_reviewer:
             reviews_missing = get_missing_reviews(self.request.event, self.request.user).count()
             if reviews_missing:
@@ -324,7 +324,7 @@ class EventDashboardView(EventPermissionRequired, SubmissionStatsMixin, Template
             'can_send_mail': can_send_mail,
             'can_view_mails': can_view_mails,
             'can_view_teams': can_view_teams,
-            'can_review': event.teams.filter(members__in=[self.request.user], is_reviewer=True).exists(),
+            'can_review': self.request.user.is_administrator or event.teams.filter(members__in=[self.request.user], is_reviewer=True).exists(),
         })
         can_change_submissions = can_update_submission
 
@@ -389,7 +389,7 @@ class EventDashboardView(EventPermissionRequired, SubmissionStatsMixin, Template
 
         speakers_count = event.speakers.count()
         
-        is_reviewer = event.teams.filter(members__in=[self.request.user], is_reviewer=True).exists()
+        is_reviewer = self.request.user.is_administrator or event.teams.filter(members__in=[self.request.user], is_reviewer=True).exists()
         pending_reviews_count = get_missing_reviews(event, self.request.user).count() if is_reviewer else 0
         rejected_proposals_count = event.submissions.filter(state=SubmissionStates.REJECTED).count()
         withdrawn_proposals_count = event.submissions.filter(state__in=[SubmissionStates.WITHDRAWN, SubmissionStates.CANCELED]).count()
