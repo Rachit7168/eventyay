@@ -2243,137 +2243,142 @@ body:has(.td-dashboard) #page-content {
 
 
 
-/* User requested bolder and bigger text for section headers and cards */
+
+/* Visual overrides requested by user */
 .td-section-title {
-  font-size: 24px !important;
-  font-weight: 800 !important;
+  font-size: 24px;
+  font-weight: 800;
   letter-spacing: -0.3px;
 }
 
 .td-card-title {
-  font-size: 17px !important;
-  font-weight: 800 !important;
+  font-size: 17px;
+  font-weight: 800;
 }
 
 .td-action-title {
-  font-size: 16px !important;
-  font-weight: 800 !important;
+  font-size: 16px;
+  font-weight: 800;
 }
 
-.td-action-count {
-  font-size: 36px !important;
-  font-weight: 800 !important;
+.td-action-grid .td-action-count, 
+.td-action-danger .td-action-count, 
+.td-action-warning .td-action-count,
+.td-action-caution .td-action-count,
+.td-action-info .td-action-count {
+  font-size: 36px;
+  font-weight: 800;
   line-height: 1.1;
   margin-top: 6px;
 }
 
 .td-action-desc {
-  font-size: 14px !important;
-  font-weight: 500 !important;
-  color: #4b5563 !important;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--td-muted);
   line-height: 1.4;
 }
 
 .td-kpi-label {
-  font-size: 15px !important;
-  font-weight: 800 !important;
+  font-size: 15px;
+  font-weight: 800;
 }
 
 .td-kpi-value {
-  font-size: 34px !important;
-  font-weight: 800 !important;
+  font-size: 34px;
+  font-weight: 800;
   margin-top: 6px;
 }
 
 .td-kpi-hint {
-  font-size: 13px !important;
-  font-weight: 500 !important;
-  color: #6b7280 !important;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--td-muted);
 }
 
-/* Enhancing card visuals for a "more better looking" interface */
+/* Enhancing card visuals */
 .td-action-card {
-  border-radius: 16px !important;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03) !important;
-  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
-  padding: 18px !important;
+  border-radius: var(--td-radius);
+  box-shadow: var(--td-shadow);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  padding: 18px;
 }
 
 .td-action-card:hover {
-  transform: translateY(-4px) !important;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+  transform: translateY(-4px);
+  box-shadow: var(--td-shadow-hover);
 }
 
-.td-action-danger {
-  background: linear-gradient(135deg, #fff5f5 0%, #ffffff 100%) !important;
-  border: 1px solid #fecaca !important;
+.td-action-card.td-action-danger {
+  background: linear-gradient(135deg, var(--td-red-soft) 0%, #fff 100%);
+  border: 1px solid var(--td-red);
 }
 
-.td-action-warning {
-  background: linear-gradient(135deg, #fff7ed 0%, #ffffff 100%) !important;
-  border: 1px solid #fed7aa !important;
+.td-action-card.td-action-warning {
+  background: linear-gradient(135deg, var(--td-orange-soft) 0%, #fff 100%);
+  border: 1px solid var(--td-orange);
 }
 
-.td-action-caution {
-  background: linear-gradient(135deg, #fefce8 0%, #ffffff 100%) !important;
-  border: 1px solid #fef08a !important;
+.td-action-card.td-action-caution {
+  background: linear-gradient(135deg, var(--td-yellow-soft) 0%, #fff 100%);
+  border: 1px solid var(--td-yellow);
 }
 
-.td-action-info {
-  background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%) !important;
-  border: 1px solid #bfdbfe !important;
+.td-action-card.td-action-info {
+  background: linear-gradient(135deg, var(--td-blue-soft) 0%, #fff 100%);
+  border: 1px solid var(--td-blue);
 }
 
 .td-kpi-card {
-  border-radius: 16px !important;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.02) !important;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease !important;
+  border-radius: var(--td-radius);
+  box-shadow: var(--td-shadow);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .td-kpi-card:hover {
-  transform: translateY(-3px) !important;
-  box-shadow: 0 8px 12px rgba(0,0,0,0.05) !important;
+  transform: translateY(-3px);
+  box-shadow: var(--td-shadow-hover);
 }
 
 /* Colored gradients for At a glance KPI cards */
-.td-kpi-blue, .td-status-card-blue {
-  background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%) !important;
-  border: 1px solid #bfdbfe !important;
+.td-kpi-card.td-kpi-blue, .td-kpi-card.td-status-card-blue {
+  background: linear-gradient(135deg, var(--td-blue-soft) 0%, #fff 100%);
+  border: 1px solid var(--td-blue-mid);
 }
-.td-kpi-blue:hover, .td-status-card-blue:hover { border-color: #93c5fd !important; }
+.td-kpi-card.td-kpi-blue:hover, .td-kpi-card.td-status-card-blue:hover { border-color: var(--td-blue); }
 
-.td-kpi-green, .td-status-card-green {
-  background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%) !important;
-  border: 1px solid #bbf7d0 !important;
+.td-kpi-card.td-kpi-green, .td-kpi-card.td-status-card-green {
+  background: linear-gradient(135deg, var(--td-green-soft) 0%, #fff 100%);
+  border: 1px solid var(--td-green);
 }
-.td-kpi-green:hover, .td-status-card-green:hover { border-color: #86efac !important; }
+.td-kpi-card.td-kpi-green:hover, .td-kpi-card.td-status-card-green:hover { border-color: var(--td-green); }
 
-.td-kpi-red {
-  background: linear-gradient(135deg, #fef2f2 0%, #ffffff 100%) !important;
-  border: 1px solid #fecaca !important;
+.td-kpi-card.td-kpi-red {
+  background: linear-gradient(135deg, var(--td-red-soft) 0%, #fff 100%);
+  border: 1px solid var(--td-red);
 }
-.td-kpi-red:hover { border-color: #fca5a5 !important; }
+.td-kpi-card.td-kpi-red:hover { border-color: var(--td-red); }
 
-.td-kpi-purple {
-  background: linear-gradient(135deg, #faf5ff 0%, #ffffff 100%) !important;
-  border: 1px solid #e9d5ff !important;
+.td-kpi-card.td-kpi-purple {
+  background: linear-gradient(135deg, var(--td-purple-soft) 0%, #fff 100%);
+  border: 1px solid var(--td-purple);
 }
-.td-kpi-purple:hover { border-color: #d8b4fe !important; }
+.td-kpi-card.td-kpi-purple:hover { border-color: var(--td-purple); }
 
-.td-kpi-muted {
-  background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%) !important;
-  border: 1px solid #e2e8f0 !important;
+.td-kpi-card.td-kpi-muted {
+  background: linear-gradient(135deg, var(--td-bg) 0%, #fff 100%);
+  border: 1px solid var(--td-border);
 }
-.td-kpi-muted:hover { border-color: #cbd5e1 !important; }
+.td-kpi-card.td-kpi-muted:hover { border-color: var(--td-muted); }
 
-.td-kpi-link {
-  font-weight: 700 !important;
-  font-size: 13px !important;
+.td-kpi-grid .td-kpi-link {
+  font-weight: 700;
+  font-size: 13px;
 }
 
-.td-action-btn {
-  border-radius: 8px !important;
-  font-weight: 700 !important;
-  padding: 8px 14px !important;
-  font-size: 13px !important;
+.td-action-grid .td-action-btn {
+  border-radius: 8px;
+  font-weight: 700;
+  padding: 8px 14px;
+  font-size: 13px;
 }
