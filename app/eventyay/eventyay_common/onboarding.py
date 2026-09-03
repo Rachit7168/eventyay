@@ -62,11 +62,47 @@ def user_needs_onboarding(user: User, request: HttpRequest | None = None) -> boo
     return True
 
 
+def get_missing_profile_fields(user: User) -> list[str]:
+    """Return human-readable account fields that are still missing."""
+    missing: list[str] = []
+    if not (user.fullname or '').strip():
+        missing.append(str(_('full name')))
+    if not user.has_profile_picture:
+        missing.append(str(_('profile picture')))
+    return missing
+
+
+def format_profile_incomplete_message(missing: list[str]) -> str:
+    """Build a short prompt that names only the missing profile fields."""
+    if not missing:
+        return ''
+    if len(missing) == 1:
+        return str(_('Add your %(item)s to finish your profile.') % {'item': missing[0]})
+    if len(missing) == 2:
+        return str(
+            _('Add your %(first)s and %(second)s to finish your profile.')
+            % {'first': missing[0], 'second': missing[1]}
+        )
+    *head, last = missing
+    return str(
+        _('Add your %(items)s, and %(last)s to finish your profile.')
+        % {'items': ', '.join(head), 'last': last}
+    )
+
+
 def is_profile_incomplete(user: User) -> bool:
     """Account profile is incomplete without a display name or photo."""
-    has_name = bool((user.fullname or '').strip())
-    has_photo = bool(user.has_profile_picture)
-    return not (has_name and has_photo)
+    return bool(get_missing_profile_fields(user))
+
+
+def build_profile_prompt_context(user: User) -> dict[str, Any]:
+    missing = get_missing_profile_fields(user)
+    return {
+        'profile_incomplete': bool(missing),
+        'profile_missing_fields': missing,
+        'profile_incomplete_message': format_profile_incomplete_message(missing),
+        'edit_profile_url': reverse('eventyay_common:account.general'),
+    }
 
 
 def _public_upcoming_events_qs():
@@ -174,12 +210,16 @@ def build_recommended_event_cards(limit: int = RECOMMENDED_EVENTS_LIMIT) -> list
 def _module_action(
     *,
     label: str,
+    icon: str,
+    tone: str,
     url: str | None = None,
     dialog_id: str | None = None,
     modal_target: str | None = None,
 ) -> dict[str, Any]:
     return {
         'label': label,
+        'icon': icon,
+        'tone': tone,
         'url': url or '#',
         'dialog_id': dialog_id,
         'modal_target': modal_target,
@@ -190,21 +230,40 @@ def _ticket_module_action(event: Event, request: HttpRequest) -> dict[str, Any]:
     if user_has_ticket_dashboard_access(request.user, event.organizer, event, request=request):
         return _module_action(
             label=str(_('Tickets')),
+            icon='ticket',
+            tone='tickets',
             url=reverse(
                 'control:event.index',
                 kwargs={'event': event.slug, 'organizer': event.organizer.slug},
             ),
         )
-    return _module_action(label=str(_('Tickets')), dialog_id=TICKET_PERMISSION_DIALOG_ID)
+    return _module_action(
+        label=str(_('Tickets')),
+        icon='ticket',
+        tone='tickets',
+        dialog_id=TICKET_PERMISSION_DIALOG_ID,
+    )
 
 
 def _talk_module_action(event: Event, request: HttpRequest) -> dict[str, Any]:
     if event.settings.create_for != EventCreatedFor.BOTH.value and event.settings.talk_schedule_public is None:
-        return _module_action(label=str(_('Talks')), modal_target='#alert-modal')
+        return _module_action(
+            label=str(_('Talks')),
+            icon='microphone',
+            tone='talks',
+            modal_target='#alert-modal',
+        )
     if not user_has_talk_dashboard_access(request.user, event.organizer, event, request=request):
-        return _module_action(label=str(_('Talks')), dialog_id=TALK_PERMISSION_DIALOG_ID)
+        return _module_action(
+            label=str(_('Talks')),
+            icon='microphone',
+            tone='talks',
+            dialog_id=TALK_PERMISSION_DIALOG_ID,
+        )
     return _module_action(
         label=str(_('Talks')),
+        icon='microphone',
+        tone='talks',
         url=reverse('orga:event.dashboard', kwargs={'organizer': event.organizer.slug, 'event': event.slug}),
     )
 
@@ -213,12 +272,19 @@ def _video_module_action(event: Event, request: HttpRequest) -> dict[str, Any]:
     if user_has_video_dashboard_access(request.user, event.organizer, event, request=request):
         return _module_action(
             label=str(_('Video')),
+            icon='video-camera',
+            tone='video',
             url=reverse(
                 'eventyay_common:event.create_access_to_video',
                 kwargs={'event': event.slug, 'organizer': event.organizer.slug},
             ),
         )
-    return _module_action(label=str(_('Video')), dialog_id=VIDEO_PERMISSION_DIALOG_ID)
+    return _module_action(
+        label=str(_('Video')),
+        icon='video-camera',
+        tone='video',
+        dialog_id=VIDEO_PERMISSION_DIALOG_ID,
+    )
 
 
 def build_managed_event_card(event: Event, request: HttpRequest) -> dict[str, Any]:
@@ -281,17 +347,15 @@ def build_create_actions(request: HttpRequest) -> list[dict[str, Any]]:
 def build_onboarding_context(request: HttpRequest) -> dict[str, Any]:
     user = request.user
     can_create_event = user.teams.filter(can_create_events=True).exists()
-    profile_incomplete = is_profile_incomplete(user)
     return {
         'is_onboarding_dashboard': True,
         'can_create_event': can_create_event,
-        'profile_incomplete': profile_incomplete,
+        **build_profile_prompt_context(user),
         'recommended_events': build_recommended_event_cards(),
         'browse_events_url': reverse('presale:index'),
         'upcoming_events_url': reverse('presale:events.upcoming'),
         'open_calls_url': reverse('presale:events.upcoming') + '?cfp=open',
         'create_event_url': reverse('eventyay_common:events.add'),
-        'edit_profile_url': reverse('eventyay_common:account.general'),
         'search_events_url': reverse('presale:index'),
     }
 
@@ -338,7 +402,6 @@ def build_organiser_dashboard_context(request: HttpRequest, annotated_qs_factory
         'upcoming_list_url': reverse('eventyay_common:events') + '?ordering=date_from&status=date_future',
         'past_list_url': reverse('eventyay_common:events') + '?ordering=date_from&status=-date_to',
         'series_list_url': reverse('eventyay_common:events') + '?ordering=-date_to&status=series',
-        'edit_profile_url': reverse('eventyay_common:account.general'),
-        'profile_incomplete': is_profile_incomplete(request.user),
+        **build_profile_prompt_context(request.user),
         'browse_events_url': reverse('presale:index'),
     }

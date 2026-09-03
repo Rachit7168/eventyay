@@ -2,17 +2,35 @@
 
 <section class="common-dashboard" aria-labelledby="common-dashboard-title">
   <header class="common-dashboard__header">
-    <h1 id="common-dashboard-title">{% trans "Dashboard" %}</h1>
-    <p class="common-dashboard__lead">
-      {% trans "Manage your events, jump into tickets, talks and video, or create something new." %}
-    </p>
+    <h1 id="common-dashboard-title" class="common-dashboard__title">
+      {% trans "Dashboard" %}
+      <button
+        type="button"
+        class="cd-info"
+        data-toggle="tooltip"
+        data-placement="right"
+        title="{% trans 'Manage your events, jump into tickets, talks and video, or create something new.' %}"
+        aria-label="{% trans 'Manage your events, jump into tickets, talks and video, or create something new.' %}"
+      >
+        <span class="fa fa-info-circle" aria-hidden="true"></span>
+      </button>
+    </h1>
   </header>
 
   <section class="common-dashboard__section" aria-labelledby="organiser-find-title">
-    <h2 id="organiser-find-title">{% trans "Go to event" %}</h2>
-    <p class="common-dashboard__hint">
-      {% trans "Search the events you organise or have access to." %}
-    </p>
+    <h2 id="organiser-find-title" class="common-dashboard__title">
+      {% trans "Go to event" %}
+      <button
+        type="button"
+        class="cd-info"
+        data-toggle="tooltip"
+        data-placement="right"
+        title="{% trans 'Search the events you organise or have access to.' %}"
+        aria-label="{% trans 'Search the events you organise or have access to.' %}"
+      >
+        <span class="fa fa-info-circle" aria-hidden="true"></span>
+      </button>
+    </h2>
     <div class="cd-search">
       <div class="cd-search__field cd-search__field--typeahead">
         <span class="fa fa-search cd-search__icon" aria-hidden="true"></span>
@@ -21,7 +39,7 @@
           <input type="text" class="form-control cd-search__input" id="dashboard_query"
                  placeholder="{% trans 'Go to event' %}"
                  data-typeahead-query autofocus>
-          <ul data-event-typeahead data-source="{% url 'control:nav.typeahead' %}" data-typeahead-field="#dashboard_query"
+          <ul data-event-typeahead data-source="{% url 'control:events.typeahead' %}" data-typeahead-field="#dashboard_query"
               class="event-dropdown dropdown-menu">
           </ul>
         </div>
@@ -42,7 +60,7 @@
             <p>{{ action.description }}</p>
             <a class="cd-action-card__link" href="{{ action.url }}">
               {{ action.title }}
-              <span aria-hidden="true">→</span>
+              <span aria-hidden="true">></span>
             </a>
           </article>
         {% endfor %}
@@ -56,7 +74,7 @@
       {% if upcoming_events %}
         <a class="common-dashboard__view-all" href="{{ upcoming_list_url }}">
           {% trans "View all upcoming events" %}
-          <span aria-hidden="true">→</span>
+          <span aria-hidden="true">></span>
         </a>
       {% endif %}
     </div>
@@ -84,7 +102,7 @@
         <h2 id="organiser-past-title">{% trans "Your most recent events" %}</h2>
         <a class="common-dashboard__view-all" href="{{ past_list_url }}">
           {% trans "View all recent events" %}
-          <span aria-hidden="true">→</span>
+          <span aria-hidden="true">></span>
         </a>
       </div>
       <div class="cd-card-grid cd-card-grid--dense">
@@ -101,7 +119,7 @@
         <h2 id="organiser-series-title">{% trans "Your event series" %}</h2>
         <a class="common-dashboard__view-all" href="{{ series_list_url }}">
           {% trans "View all event series" %}
-          <span aria-hidden="true">→</span>
+          <span aria-hidden="true">></span>
         </a>
       </div>
       <div class="cd-card-grid cd-card-grid--dense">
@@ -148,9 +166,7 @@
       </div>
       <div class="cd-profile__body">
         <h2 id="organiser-profile-title">{% trans "Complete your profile" %}</h2>
-        <p>
-          {% trans "Add your photo, biography, and social links to connect with organisers, speakers and attendees." %}
-        </p>
+        <p>{{ profile_incomplete_message }}</p>
       </div>
       <a class="btn btn-default cd-profile__cta" href="{{ edit_profile_url }}">
         {% trans "Edit profile" %}

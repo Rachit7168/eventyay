@@ -100,8 +100,10 @@
             <div class="personal-empty-state__icon" aria-hidden="true">
               <span class="fa fa-ticket"></span>
             </div>
-            <h2>{% trans "No tickets yet" %}</h2>
-            <p>{% trans "Browse upcoming events and register to see your tickets here." %}</p>
+            <div class="personal-empty-state__body">
+              <h2>{% trans "No tickets yet" %}</h2>
+              <p>{% trans "Browse upcoming events and register to see your tickets here." %}</p>
+            </div>
             <div class="personal-empty-state__actions">
               <a class="btn btn-primary" href="{% url 'presale:events.upcoming' %}">{% trans "Browse events" %}</a>
               <a class="btn btn-default" href="{% url 'eventyay_common:dashboard' %}">{% trans "Go to dashboard" %}</a>

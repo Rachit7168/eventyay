@@ -8,6 +8,8 @@ from django.urls import reverse
 from django.utils import timezone
 from eventyay.base.models import Event, Organizer, Team
 from eventyay.eventyay_common.onboarding import (
+    format_profile_incomplete_message,
+    get_missing_profile_fields,
     is_profile_incomplete,
     user_needs_onboarding,
 )
@@ -54,6 +56,20 @@ def public_upcoming_event(db):
 def test_new_user_needs_onboarding(new_user):
     assert user_needs_onboarding(new_user, request=None) is True
     assert is_profile_incomplete(new_user) is True
+    assert get_missing_profile_fields(new_user) == ['full name', 'profile picture']
+    assert 'full name' in format_profile_incomplete_message(get_missing_profile_fields(new_user))
+    assert 'profile picture' in format_profile_incomplete_message(get_missing_profile_fields(new_user))
+
+
+@pytest.mark.django_db
+def test_profile_prompt_lists_only_missing_fields(new_user):
+    new_user.fullname = 'Ada Lovelace'
+    new_user.save(update_fields=['fullname'])
+    missing = get_missing_profile_fields(new_user)
+    assert missing == ['profile picture']
+    assert format_profile_incomplete_message(missing) == (
+        'Add your profile picture to finish your profile.'
+    )
 
 
 @pytest.mark.django_db
@@ -75,6 +91,7 @@ def test_onboarding_dashboard_renders_for_new_user(new_user_client, public_upcom
     assert 'Public Summit' in content
     assert 'Your upcoming events' not in content
     assert 'Complete your profile' in content
+    assert 'Add your full name and profile picture to finish your profile.' in content
 
 
 @pytest.mark.django_db

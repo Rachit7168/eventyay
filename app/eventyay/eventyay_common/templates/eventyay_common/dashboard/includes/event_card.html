@@ -39,19 +39,38 @@
       <div class="cd-event-card__modules">
         {% for action in card.module_actions %}
           {% if action.dialog_id %}
-            <a href="#" role="button" aria-haspopup="dialog" aria-controls="{{ action.dialog_id }}"
-               data-dialog-target="#{{ action.dialog_id }}" data-toggle="dialog">{{ action.label }}</a>
+            <a href="#" role="button"
+               class="cd-module-btn cd-module-btn--{{ action.tone }}"
+               aria-label="{{ action.label }}"
+               title="{{ action.label }}"
+               aria-haspopup="dialog" aria-controls="{{ action.dialog_id }}"
+               data-dialog-target="#{{ action.dialog_id }}" data-toggle="dialog">
+              <span class="fa fa-{{ action.icon }}" aria-hidden="true"></span>
+            </a>
           {% elif action.modal_target %}
-            <a href="#" data-toggle="modal" data-target="{{ action.modal_target }}">{{ action.label }}</a>
+            <a href="#"
+               class="cd-module-btn cd-module-btn--{{ action.tone }}"
+               aria-label="{{ action.label }}"
+               title="{{ action.label }}"
+               data-toggle="modal"
+               data-target="{{ action.modal_target }}">
+              <span class="fa fa-{{ action.icon }}" aria-hidden="true"></span>
+            </a>
           {% else %}
-            <a href="{{ action.url }}">{{ action.label }}</a>
+            <a href="{{ action.url }}"
+               class="cd-module-btn cd-module-btn--{{ action.tone }}"
+               aria-label="{{ action.label }}"
+               title="{{ action.label }}"
+               data-toggle="tooltip">
+              <span class="fa fa-{{ action.icon }}" aria-hidden="true"></span>
+            </a>
           {% endif %}
         {% endfor %}
       </div>
     {% elif card.primary_action %}
       <a class="cd-event-card__action" href="{{ card.primary_action.url }}">
         {{ card.primary_action.label }}
-        <span aria-hidden="true">→</span>
+        <span aria-hidden="true">></span>
       </a>
     {% endif %}
   </div>

@@ -3,24 +3,29 @@
 
 <section class="common-dashboard" aria-labelledby="common-dashboard-title">
   <header class="common-dashboard__header">
-    <h1 id="common-dashboard-title">{% trans "Dashboard" %}</h1>
-    <p class="common-dashboard__lead">
-      {% trans "Discover events, join as an attendee, submit proposals or create your own event." %}
-    </p>
+    <h1 id="common-dashboard-title" class="common-dashboard__title">
+      {% trans "Dashboard" %}
+      <button
+        type="button"
+        class="cd-info"
+        data-toggle="tooltip"
+        data-placement="right"
+        title="{% trans 'Discover events, join as an attendee, submit proposals or create your own event.' %}"
+        aria-label="{% trans 'Discover events, join as an attendee, submit proposals or create your own event.' %}"
+      >
+        <span class="fa fa-info-circle" aria-hidden="true"></span>
+      </button>
+    </h1>
   </header>
 
   <section class="cd-welcome" aria-labelledby="onboarding-welcome-title">
     <div class="cd-welcome__illustration" aria-hidden="true">
       <div class="cd-welcome__art">
-        <span class="cd-welcome__cloud cd-welcome__cloud--left"></span>
-        <span class="cd-welcome__cloud cd-welcome__cloud--right"></span>
-        <span class="cd-welcome__tent">
-          <img src="{% static 'pretixbase/img/eventyay-icon.svg' %}" alt="" width="36" height="36">
-        </span>
+        <img src="{% static 'pretixbase/img/eventyay-icon.svg' %}" alt="" width="48" height="48">
       </div>
     </div>
     <div class="cd-welcome__body">
-      <h2 id="onboarding-welcome-title">{% trans "Welcome to Eventyay!" %} 👋</h2>
+      <h2 id="onboarding-welcome-title">{% trans "Welcome to Eventyay!" %}</h2>
       <p>
         {% blocktrans trimmed %}
           You do not have any tickets, sessions, proposals, or events yet.
@@ -54,9 +59,6 @@
 
   <section class="common-dashboard__section" id="onboarding-find-events" aria-labelledby="onboarding-find-title">
     <h2 id="onboarding-find-title">{% trans "Find events" %}</h2>
-    <p class="common-dashboard__hint">
-      {% trans "Search public events by name, organiser, location, or topic." %}
-    </p>
     <form class="cd-search" action="{{ search_events_url }}" method="get" role="search">
       <label class="sr-only" for="onboarding-event-search">{% trans "Search events" %}</label>
       <div class="cd-search__field">
@@ -87,7 +89,7 @@
         <p>{% trans "Browse upcoming events and register for tickets." %}</p>
         <a class="cd-action-card__link" href="{{ upcoming_events_url }}">
           {% trans "Browse events" %}
-          <span aria-hidden="true">→</span>
+          <span aria-hidden="true">></span>
         </a>
       </article>
 
@@ -99,7 +101,7 @@
         <p>{% trans "Find events with open calls for proposals." %}</p>
         <a class="cd-action-card__link" href="{{ open_calls_url }}">
           {% trans "Find open calls" %}
-          <span aria-hidden="true">→</span>
+          <span aria-hidden="true">></span>
         </a>
       </article>
 
@@ -112,7 +114,7 @@
           <p>{% trans "Create a new event and start setting up tickets, talks, and video." %}</p>
           <a class="cd-action-card__link" href="{{ create_event_url }}">
             {% trans "Create event" %}
-            <span aria-hidden="true">→</span>
+            <span aria-hidden="true">></span>
           </a>
         </article>
       {% endif %}
@@ -124,7 +126,7 @@
       <h2 id="onboarding-recommended-title">{% trans "Recommended events" %}</h2>
       <a class="common-dashboard__view-all" href="{{ upcoming_events_url }}">
         {% trans "View all events" %}
-        <span aria-hidden="true">→</span>
+        <span aria-hidden="true">></span>
       </a>
     </div>
 
@@ -149,9 +151,7 @@
       </div>
       <div class="cd-profile__body">
         <h2 id="onboarding-profile-title">{% trans "Complete your profile" %}</h2>
-        <p>
-          {% trans "Add your photo, biography, and social links to connect with organisers, speakers and attendees." %}
-        </p>
+        <p>{{ profile_incomplete_message }}</p>
       </div>
       <a class="btn btn-default cd-profile__cta" href="{{ edit_profile_url }}">
         {% trans "Edit profile" %}
