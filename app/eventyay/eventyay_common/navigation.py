@@ -54,7 +54,18 @@ def get_global_navigation(request: HttpRequest) -> List[MenuItem]:
         },
     ]
 
-    if request.user.is_authenticated and request.user.teams.exists():
+    show_organizers = False
+    if request.user.is_authenticated:
+        if request.user.teams.exists():
+            show_organizers = True
+        else:
+            from eventyay.control.permissions import OrganizerCreationPermissionMixin
+            class _PermChecker(OrganizerCreationPermissionMixin):
+                def __init__(self, request):
+                    self.request = request
+            show_organizers = _PermChecker(request)._can_create_organizer(request.user)
+
+    if show_organizers:
         nav.append({
             'label': _('Organizers'),
             'url': reverse('eventyay_common:organizers'),
