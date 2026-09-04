@@ -52,13 +52,15 @@ def get_global_navigation(request: HttpRequest) -> List[MenuItem]:
             'active': 'events' in url.url_name,
             'icon': 'calendar',
         },
-        {
+    ]
+
+    if request.user.is_authenticated and request.user.teams.exists():
+        nav.append({
             'label': _('Organizers'),
             'url': reverse('eventyay_common:organizers'),
             'active': 'organizers' in url.url_name,
             'icon': 'group',
-        },
-    ]
+        })
 
     # Merge plugin-provided navigation items
     plugin_responses = nav_global.send(request, request=request)
