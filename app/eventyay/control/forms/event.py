@@ -5,7 +5,7 @@ from django import forms
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import UploadedFile
-from django.core.validators import validate_email, MinValueValidator, MaxValueValidator
+from django.core.validators import validate_email
 from django.db.models import Q
 from django.forms import CheckboxSelectMultiple, formset_factory
 from django.urls import reverse
@@ -38,6 +38,9 @@ from eventyay.base.meetup import (
     LOCATION_IN_PERSON,
     LOCATION_TYPE_CHOICES,
     LOCATION_VIRTUAL,
+    PRIVACY_CHOICES,
+    PRIVACY_PRIVATE,
+    PRIVACY_PUBLIC,
     REGISTRATION_FEE_CHOICES,
     REGISTRATION_FEE_FREE,
     REGISTRATION_FEE_PAID,
@@ -215,7 +218,8 @@ class EventWizardBasicsForm(I18nModelForm):
             'detailed configuration later.'
         ),
         required=False,
-        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        min_value=0,
+        max_value=100,
     )
     team = forms.ModelChoiceField(
         label=_('Grant access to team'),
@@ -1608,7 +1612,14 @@ class TaxRuleLineForm(I18nForm):
             ('block', _('Sale not allowed')),
         ],
     )
-    rate = forms.DecimalField(label=_('Deviating tax rate'), max_digits=10, decimal_places=2, required=False)
+    rate = forms.DecimalField(
+        label=_('Deviating tax rate'),
+        max_digits=10,
+        decimal_places=2,
+        required=False,
+        min_value=0,
+        max_value=100,
+    )
     invoice_text = I18nFormField(label=_('Text on invoice'), required=False, widget=I18nTextInput)
 
 
@@ -1724,7 +1735,8 @@ class QuickSetupForm(I18nForm):
         required=False,
         max_digits=10,
         decimal_places=2,
-        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        min_value=0,
+        max_value=100,
     )
     tax_price_includes_tax = forms.BooleanField(
         label=_('The configured product prices include the tax amount'),
@@ -1939,6 +1951,13 @@ ConfirmTextFormset = formset_factory(
 class MeetupEventWizardBasicsForm(EventWizardBasicsForm):
     """Event basics for meetups: single-page quick-create form."""
 
+    privacy_type = forms.ChoiceField(
+        label=_('Visibility'),
+        choices=PRIVACY_CHOICES,
+        initial=PRIVACY_PUBLIC,
+        widget=forms.Select(attrs={'class': 'form-control meetup-privacy-select'}),
+        required=False,
+    )
     location_type = forms.ChoiceField(
         label=_('Location'),
         choices=LOCATION_TYPE_CHOICES,
@@ -2140,5 +2159,7 @@ class MeetupEventWizardBasicsForm(EventWizardBasicsForm):
                 self.add_error('payment_stripe_secret_key', _('Please enter your Stripe secret key.'))
             if not cleaned_data.get('payment_stripe_merchant_country'):
                 self.add_error('payment_stripe_merchant_country', _('Please select your Stripe merchant country.'))
+
+        cleaned_data['privacy_type'] = cleaned_data.get('privacy_type') or PRIVACY_PUBLIC
 
         return cleaned_data
