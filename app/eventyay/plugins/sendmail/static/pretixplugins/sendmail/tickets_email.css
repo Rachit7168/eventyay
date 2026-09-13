@@ -573,7 +573,12 @@ dialog.mail-templates-info-dialog::backdrop {
   background: #fff;
   box-shadow: 0 0 10px rgb(0 0 0 / 0.35);
   overflow: hidden;
+  width: 100%;
   color: #276f86;
+}
+
+form.mail-templates-info-dialog__card {
+  padding: 0;
 }
 
 .mail-templates-info-dialog__icon {
@@ -602,6 +607,6 @@ dialog.mail-templates-info-dialog::backdrop {
   line-height: 1.45;
 }
 
-.mail-templates-info-dialog__body p:last-child {
-  margin-bottom: 0;
+.mail-templates-info-dialog__body p:last-of-type {
+  margin-bottom: 12px;
 }

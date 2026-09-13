@@ -190,7 +190,9 @@ class SenderView(EventPermissionRequiredMixin, CopyDraftMixin, BulkReplyToMixin,
             return
         initial = form_kwargs.setdefault('initial', {})
         initial.setdefault('subject', template.subject)
+        # MailForm uses ``text`` for the body (TeamMailForm uses ``message``).
         initial.setdefault('text', template.text)
+        initial.setdefault('message', template.text)
         if template.reply_to:
             initial.setdefault('reply_to', template.reply_to)
         if template.bcc:
@@ -499,6 +501,12 @@ class MailTemplatesView(EventPermissionRequiredMixin, TemplateView):
             'can_change_orders',
             request=self.request,
         )
+        context['can_change_event_settings'] = self.request.user.has_event_permission(
+            self.request.organizer,
+            self.request.event,
+            'can_change_event_settings',
+            request=self.request,
+        )
         return context
 
 
@@ -641,11 +649,24 @@ class TicketMailTemplateUpdateView(TicketMailTemplateMixin, EventPermissionRequi
                 user=self.request.user,
                 data={
                     'id': self.object.pk,
-                    **{k: form.cleaned_data.get(k) for k in form.changed_data},
+                    **{
+                        k: self._serialize_log_value(form.cleaned_data.get(k))
+                        for k in form.changed_data
+                    },
                 },
             )
         messages.success(self.request, _('The template has been saved.'))
         return response
+
+    @staticmethod
+    def _serialize_log_value(value):
+        """Make log_action payloads JSON-safe (LazyI18nString → dict/str)."""
+        if isinstance(value, LazyI18nString):
+            data = getattr(value, 'data', None)
+            if isinstance(data, dict):
+                return {str(k): str(v) for k, v in data.items()}
+            return str(value)
+        return value
 
 
 class TicketMailTemplateDeleteView(TicketMailTemplateMixin, EventPermissionRequiredMixin, DeleteView):

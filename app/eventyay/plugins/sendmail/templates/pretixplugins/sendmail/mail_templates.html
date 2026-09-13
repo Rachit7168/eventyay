@@ -36,7 +36,7 @@
   </div>
 
   <dialog id="info-dialog" class="mail-templates-info-dialog" aria-label="{% translate 'About email templates' %}">
-    <div class="mail-templates-info-dialog__card">
+    <form method="dialog" class="mail-templates-info-dialog__card">
       <div class="mail-templates-info-dialog__icon" aria-hidden="true">
         <i class="fa fa-info-circle"></i>
       </div>
@@ -54,8 +54,11 @@
             They are explained in detail once you start editing a template.
           {% endblocktranslate %}
         </p>
+        <button type="submit" class="btn btn-default" value="close">
+          {% translate "Close" %}
+        </button>
       </div>
-    </div>
+    </form>
   </dialog>
 
   <div class="table-responsive-sm">
@@ -71,15 +74,21 @@
         {% for row in system_templates %}
           <tr>
             <td>
-              <a href="{{ row.edit_url }}">
+              {% if can_change_event_settings %}
+                <a href="{{ row.edit_url }}">
+                  <span class="badge {{ row.badge_class }}">{{ row.label }}</span>
+                </a>
+              {% else %}
                 <span class="badge {{ row.badge_class }}">{{ row.label }}</span>
-              </a>
+              {% endif %}
             </td>
             <td>{{ row.subject }}</td>
             <td class="text-right mail-templates-actions">
-              <a href="{{ row.edit_url }}" class="btn btn-info" title="{% translate 'Edit' %}" aria-label="{% translate 'Edit' %}">
-                <i class="fa fa-edit" aria-hidden="true"></i>
-              </a>
+              {% if can_change_event_settings %}
+                <a href="{{ row.edit_url }}" class="btn btn-info" title="{% translate 'Edit' %}" aria-label="{% translate 'Edit' %}">
+                  <i class="fa fa-edit" aria-hidden="true"></i>
+                </a>
+              {% endif %}
             </td>
           </tr>
         {% endfor %}
