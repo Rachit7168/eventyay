@@ -1459,6 +1459,9 @@ BYTES_IN_MB = 1024 * 1024
 # Config for max size limits
 MAX_SIZE_CONFIG = {key: BYTES_IN_MB * cast(int, getattr(conf, key)) for key in SizeKey}
 
+# Alias used by the check-in required-answer upload flow.
+FILE_UPLOAD_MAX_SIZE_OTHER = MAX_SIZE_CONFIG[SizeKey.UPLOAD_SIZE_OTHER]
+
 FORM_RENDERER = 'eventyay.common.forms.renderers.TabularFormRenderer'
 
 # TODO: Move to consts.py. It should not be dynamic, or it will cause generating DB migrations.
