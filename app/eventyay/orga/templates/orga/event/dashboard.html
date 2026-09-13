@@ -111,6 +111,7 @@
     {% endif %}
 
     <div class="td-dashboard pt-0">
+        {% if can_update_event or recent_talk_activity and can_change_settings %}
         <div class="td-split-layout mt-4">
         {% if recent_talk_activity and can_change_settings %}
             <section class="td-section d-flex flex-column">
@@ -139,21 +140,21 @@
                             <td>{% if log.person %}{{ log.person.get_full_name|default:log.person.email }}{% endif %}</td>
                             <td>
                                 {% if "session" in log.action_type %}
-                                    <span class="td-activity-badge type-session"><i class="fa fa-file-text-o"></i> Session</span>
+                                    <span class="td-activity-badge type-session"><i class="fa fa-file-text-o"></i> {% translate "Session" %}</span>
                                 {% elif "accept" in log.action_type %}
-                                    <span class="td-activity-badge type-accepted"><i class="fa fa-check"></i> Accepted</span>
+                                    <span class="td-activity-badge type-accepted"><i class="fa fa-check"></i> {% translate "Accepted" %}</span>
                                 {% elif "reject" in log.action_type %}
-                                    <span class="td-activity-badge type-rejected"><i class="fa fa-times"></i> Rejected</span>
+                                    <span class="td-activity-badge type-rejected"><i class="fa fa-times"></i> {% translate "Rejected" %}</span>
                                 {% elif "schedule" in log.action_type %}
-                                    <span class="td-activity-badge type-schedule"><i class="fa fa-calendar"></i> Schedule</span>
+                                    <span class="td-activity-badge type-schedule"><i class="fa fa-calendar"></i> {% translate "Schedule" %}</span>
                                 {% elif "cfp" in log.action_type %}
-                                    <span class="td-activity-badge type-cfp"><i class="fa fa-bullhorn"></i> CFP</span>
+                                    <span class="td-activity-badge type-cfp"><i class="fa fa-bullhorn"></i> {% translate "CFP" %}</span>
                                 {% elif "review" in log.action_type %}
-                                    <span class="td-activity-badge type-review"><i class="fa fa-eye"></i> Review</span>
+                                    <span class="td-activity-badge type-review"><i class="fa fa-eye"></i> {% translate "Review" %}</span>
                                 {% elif "speaker" in log.action_type %}
-                                    <span class="td-activity-badge type-speaker"><i class="fa fa-user"></i> Speaker</span>
+                                    <span class="td-activity-badge type-speaker"><i class="fa fa-user"></i> {% translate "Speaker" %}</span>
                                 {% else %}
-                                    <span class="td-activity-badge type-default"><i class="fa fa-circle"></i> Log</span>
+                                    <span class="td-activity-badge type-default"><i class="fa fa-circle"></i> {% translate "Log" %}</span>
                                 {% endif %}
                             </td>
                             <td>
@@ -183,8 +184,6 @@
                     </a>
                 </div>
             </section>
-        {% else %}
-            <div></div>
         {% endif %}
         
         {% if can_update_event %}
@@ -198,17 +197,16 @@
                 <form method="post" action="" class="td-note-form">
                     {% csrf_token %}
                     <div class="td-note-textarea-wrapper">
-                        <textarea name="internal_note" id="internal_note_textarea" class="td-note-textarea" placeholder="{% translate 'Add notes for other organizers here...' %}" maxlength="1000">{{ request.event.comment|default:"" }}</textarea>
+                        <textarea name="internal_note" id="internal_note_textarea" class="td-note-textarea" placeholder="{% translate 'Add notes for other organizers here...' %}" maxlength="1000">{{ orga_internal_note }}</textarea>
                     </div>
                     <div class="td-note-footer">
-                        <span class="td-note-counter"><span id="internal_note_counter">{{ request.event.comment|length|default:"0" }}</span>/1000</span>
+                        <span class="td-note-counter"><span id="internal_note_counter">{{ orga_internal_note|length }}</span>/1000</span>
                         <button type="submit" class="td-note-btn">{% translate "Save note" %}</button>
                     </div>
                 </form>
             </section>
-        {% else %}
-            <div></div>
         {% endif %}
         </div>
+        {% endif %}
     </div>
 {% endblock content %}

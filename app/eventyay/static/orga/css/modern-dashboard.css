@@ -1025,6 +1025,10 @@ body:has(.td-dashboard) #page-content {
   align-items: stretch;
 }
 
+.td-split-layout > :only-child {
+  grid-column: 1 / -1;
+}
+
 .td-activity-table-wrap {
   width: 100%;
   overflow-x: auto;

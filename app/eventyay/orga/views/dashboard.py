@@ -166,8 +166,13 @@ class EventDashboardView(EventPermissionRequired, SubmissionStatsMixin, Template
             if len(internal_note) > 1000:
                 messages.error(request, _('Internal note must be at most 1000 characters.'))
                 return redirect(request.path)
-            request.event.comment = internal_note
-            request.event.save(update_fields=['comment'])
+            # Keep talks notes separate from tickets Event.comment (control:event.comment).
+            request.event.settings.set('orga_internal_note', internal_note)
+            request.event.log_action(
+                'eventyay.orga.internal_note',
+                user=request.user,
+                data={'new_note': internal_note},
+            )
             messages.success(request, _('Internal note saved.'))
             return redirect(request.path)
         return HttpResponseNotAllowed(['GET', 'POST'])
@@ -305,12 +310,17 @@ class EventDashboardView(EventPermissionRequired, SubmissionStatsMixin, Template
                     | Q(action_type__contains='speaker')
                     | Q(action_type__contains='talk')
                     | Q(action_type__contains='cfp')
-                    | Q(action_type__contains='review'),
+                    | Q(action_type__contains='review')
+                    | Q(action_type__contains='schedule'),
                     event=self.request.event,
                 )
                 .select_related('user', 'event', 'content_type')
                 .prefetch_related('content_object')[:10]
             )
+
+    @context
+    def orga_internal_note(self):
+        return self.request.event.settings.get('orga_internal_note', default='') or ''
 
     def get_context_data(self, **kwargs):
         # Tiles can have priorities
