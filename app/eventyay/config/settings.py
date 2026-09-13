@@ -159,7 +159,10 @@ class BaseSettings(_BaseSettings):
     fetch_ecb_rates: bool = True
     cache_tickets_hours: int = Field(default=24, ge=1)
     # Days of the month to send unpaid billing invoice reminders.
-    billing_reminder_schedule: list[int] = [15, 29]
+    billing_reminder_schedule: Annotated[
+        list[Annotated[int, Field(ge=1, le=31)]],
+        Field(min_length=1),
+    ] = [15, 29]
 
     @classmethod
     def settings_customise_sources(
