@@ -1621,7 +1621,7 @@ CALL_FOR_SPEAKER_LOGIN_BUTTON_LABEL = conf.call_for_speaker_login_button_label
 # GeoIP2: expose GEOIP_PATH so GeoIP2() can locate the database. HAS_GEOIP
 # guards call sites and is True only when an mmdb file is present.
 GEOIP_PATH = Path(os.getenv('DJANGO_GEOIP_PATH', str(DATA_DIR / 'geoip')))
-HAS_GEOIP = GEOIP_PATH.is_dir() and any(GEOIP_PATH.glob('*.mmdb'))
+HAS_GEOIP = GEOIP_PATH.is_dir() and any(path.is_file() for path in GEOIP_PATH.glob('*.mmdb'))
 
 if IS_DEVELOPMENT:
     # Support for Android emulators and port forwarding
