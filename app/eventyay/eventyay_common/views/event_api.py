@@ -18,18 +18,25 @@ from eventyay.control.permissions import EventPermissionRequiredMixin
 from eventyay.control.views.event import EventSettingsViewMixin
 from eventyay.control.views.organizer import TokenForm
 from eventyay.eventyay_common.api_catalog import (
+    API_PAGE_PERMISSIONS,
     access_levels,
     build_api_catalog,
     docs_urls,
+    event_has_tickets_component,
+    event_has_talks_component,
+    permission_label,
     tickets_api_base,
     talks_api_base,
 )
+
 
 class EventAPIView(EventSettingsViewMixin, EventPermissionRequiredMixin, TemplateView):
     """Central API overview, docs, and token management for an event."""
 
     template_name = 'eventyay_common/event/api.html'
-    permission = 'can_change_event_settings'
+    # Any API-related event permission is enough to open the page; endpoints
+    # are still filtered individually by read/write permissions.
+    permission = API_PAGE_PERMISSIONS
 
     def get_success_url(self):
         return reverse(
@@ -79,13 +86,26 @@ class EventAPIView(EventSettingsViewMixin, EventPermissionRequiredMixin, Templat
         teams = list(self.get_event_teams())
         for team in teams:
             team.token_form = TokenForm(prefix=f'token-{team.pk}')
+            # Tokens inherit the team's permissions; surface the effective set.
+            # permission_set() is a method; permission_set_display incorrectly
+            # treats it as a property in some code paths, so build labels here.
+            team.effective_permission_labels = sorted(
+                filter(
+                    None,
+                    (permission_label(perm) for perm in team.permission_set()),
+                )
+            )
+        show_tickets = event_has_tickets_component(event)
+        show_talks = event_has_talks_component(event)
         ctx.update(
             {
                 'endpoint_groups': build_api_catalog(self.request, event),
                 'access_levels': access_levels(),
                 'docs_urls': docs_urls(),
-                'tickets_api_base': tickets_api_base(event),
-                'talks_api_base': talks_api_base(event),
+                'tickets_api_base': tickets_api_base(event) if show_tickets else None,
+                'talks_api_base': talks_api_base(event) if show_talks else None,
+                'show_tickets_api': show_tickets,
+                'show_talks_api': show_talks,
                 'can_manage_team_tokens': self.can_manage_team_tokens,
                 'event_teams': teams,
                 'user_api_tokens': self.get_user_api_tokens(),

@@ -23,24 +23,32 @@
         {% endblocktrans %}
       </p>
       <dl class="dl-horizontal">
-        <dt>{% translate "Tickets API base" %}</dt>
-        <dd>
-          <code id="tickets-api-base">{{ tickets_api_base }}</code>
-          <button type="button" class="btn btn-default btn-xs btn-clipboard" data-clipboard-text="{{ tickets_api_base }}" title="{% translate 'Copy' %}">
-            <i class="fa fa-clipboard" aria-hidden="true"></i>
-            {% translate "Copy" %}
-          </button>
-        </dd>
-        <dt>{% translate "Talks API base" %}</dt>
-        <dd>
-          <code id="talks-api-base">{{ talks_api_base }}</code>
-          <button type="button" class="btn btn-default btn-xs btn-clipboard" data-clipboard-text="{{ talks_api_base }}" title="{% translate 'Copy' %}">
-            <i class="fa fa-clipboard" aria-hidden="true"></i>
-            {% translate "Copy" %}
-          </button>
-        </dd>
+        {% if show_tickets_api and tickets_api_base %}
+          <dt>{% translate "Tickets API base" %}</dt>
+          <dd>
+            <code id="tickets-api-base">{{ tickets_api_base }}</code>
+            <button type="button" class="btn btn-default btn-xs btn-clipboard" data-clipboard-text="{{ tickets_api_base }}" title="{% translate 'Copy' %}">
+              <i class="fa fa-clipboard" aria-hidden="true"></i>
+              {% translate "Copy" %}
+            </button>
+          </dd>
+        {% endif %}
+        {% if show_talks_api and talks_api_base %}
+          <dt>{% translate "Talks API base" %}</dt>
+          <dd>
+            <code id="talks-api-base">{{ talks_api_base }}</code>
+            <button type="button" class="btn btn-default btn-xs btn-clipboard" data-clipboard-text="{{ talks_api_base }}" title="{% translate 'Copy' %}">
+              <i class="fa fa-clipboard" aria-hidden="true"></i>
+              {% translate "Copy" %}
+            </button>
+          </dd>
+        {% endif %}
       </dl>
-      <pre class="api-example">curl -H "Authorization: Token &lt;your-token&gt;" {{ talks_api_base }}</pre>
+      {% if show_talks_api and talks_api_base %}
+        <pre class="api-example">curl -H "Authorization: Token &lt;your-token&gt;" {{ talks_api_base }}</pre>
+      {% elif show_tickets_api and tickets_api_base %}
+        <pre class="api-example">curl -H "Authorization: Token &lt;your-token&gt;" {{ tickets_api_base }}</pre>
+      {% endif %}
       <p>
         <a class="btn btn-info" href="{{ docs_urls.reference }}" target="_blank" rel="noopener noreferrer">
           <i class="fa fa-book"></i> {% translate "API documentation" %}
@@ -78,6 +86,7 @@
       <p class="help-block">
         {% blocktrans trimmed %}
           Only endpoints relevant to enabled components and your permissions are listed.
+          Read and write requirements are shown per endpoint.
         {% endblocktrans %}
       </p>
       {% for group in endpoint_groups %}
@@ -89,6 +98,7 @@
               <tr>
                 <th>{% translate "Endpoint" %}</th>
                 <th>{% translate "Access" %}</th>
+                <th>{% translate "Permissions" %}</th>
                 <th>{% translate "Methods" %}</th>
                 <th></th>
               </tr>
@@ -111,8 +121,30 @@
                         {% translate "Restricted" %}
                       {% endif %}
                     </span>
-                    {% if endpoint.write_permission %}
-                      <div class="small text-muted">{% translate "Write access requires matching team permissions." %}</div>
+                  </td>
+                  <td class="small">
+                    <div>
+                      <strong>{% translate "Read" %}:</strong>
+                      {% if endpoint.read_permission_label %}
+                        {{ endpoint.read_permission_label }}
+                      {% elif endpoint.access == 'public' %}
+                        {% translate "No team permission (public)" %}
+                      {% else %}
+                        {% translate "Any event team access" %}
+                      {% endif %}
+                    </div>
+                    {% if endpoint.write_permission_label %}
+                      <div>
+                        <strong>{% translate "Write" %}:</strong>
+                        {{ endpoint.write_permission_label }}
+                        {% if endpoint.user_can_write %}
+                          <span class="label label-success">{% translate "You can write" %}</span>
+                        {% else %}
+                          <span class="label label-default">{% translate "Read only for you" %}</span>
+                        {% endif %}
+                      </div>
+                    {% else %}
+                      <div class="text-muted">{% translate "Write: not applicable (read-only endpoint)" %}</div>
                     {% endif %}
                   </td>
                   <td><code>{{ endpoint.methods }}</code></td>
@@ -138,8 +170,11 @@
       <legend>{% translate "Token management" %}</legend>
       <p>
         {% blocktrans trimmed %}
-          Team API tokens authenticate against the tickets API and inherit the team’s
-          event permissions. Personal Talk API tokens can be scoped to events and endpoints.
+          This event’s API area is the place to review endpoints and manage tokens for teams
+          that can access this event. Team tokens authenticate as that team and inherit the
+          team’s permissions — they do not have a separate per-token scope.
+          Organiser-wide team membership is still managed under Teams &amp; permissions;
+          the same tokens appear there for convenience.
         {% endblocktrans %}
       </p>
 
@@ -159,6 +194,14 @@
               </span>
             </div>
             <div class="panel-body">
+              <p class="small text-muted">
+                <strong>{% translate "Effective team permissions" %}:</strong>
+                {% for label in team.effective_permission_labels %}
+                  {{ label }}{% if not forloop.last %}, {% endif %}
+                {% empty %}
+                  {% translate "No permissions granted" %}
+                {% endfor %}
+              </p>
               <form method="post" action="{% url 'eventyay_common:event.api' organizer=request.event.organizer.slug event=request.event.slug %}#tokens">
                 {% csrf_token %}
                 <input type="hidden" name="token_action" value="revoke">
@@ -167,7 +210,7 @@
                   <thead>
                     <tr>
                       <th>{% translate "Name" %}</th>
-                      <th>{% translate "Access level / scope" %}</th>
+                      <th>{% translate "Effective access" %}</th>
                       <th class="text-right"></th>
                     </tr>
                   </thead>
@@ -176,8 +219,7 @@
                       <tr>
                         <td>{{ token.name }}</td>
                         <td>
-                          {% translate "Organiser team token" %}
-                          · {% translate "Inherits team permissions for this event" %}
+                          {% translate "Inherits this team’s permissions for every event the team can access." %}
                         </td>
                         <td class="text-right">
                           <button type="submit" name="token_id" value="{{ token.pk }}" class="btn btn-danger btn-sm">
@@ -211,6 +253,7 @@
         {% endfor %}
         <p>
           <a href="{{ teams_url }}">{% translate "Open organiser Teams &amp; permissions" %}</a>
+          — {% translate "for team membership and organiser-wide settings." %}
         </p>
       {% else %}
         <div class="alert alert-info">
@@ -226,14 +269,14 @@
       <p>
         {% blocktrans trimmed %}
           Talk API tokens are managed in your user settings. Tokens listed here include
-          this event in their scope.
+          this event in their scope and can limit which endpoints they may call.
         {% endblocktrans %}
       </p>
       <table class="table table-condensed">
         <thead>
           <tr>
             <th>{% translate "Name" %}</th>
-            <th>{% translate "Access level / scope" %}</th>
+            <th>{% translate "Scope" %}</th>
             <th>{% translate "Valid until" %}</th>
           </tr>
         </thead>
@@ -263,7 +306,7 @@
 
     <fieldset id="examples">
       <legend>{% translate "Examples" %}</legend>
-      {% if not is_meetup %}
+      {% if show_talks_api and talks_api_base %}
         <h4>{% translate "Talk speakers" %}</h4>
         <pre class="api-example">curl -H "Authorization: Token &lt;your-token&gt;" {{ talks_api_base }}speakers/</pre>
         <button type="button" class="btn btn-default btn-sm btn-clipboard" data-clipboard-text="{{ talks_api_base }}speakers/" title="{% translate 'Copy URL' %}">
@@ -283,11 +326,13 @@
         </button>
       {% endif %}
 
-      <h4>{% translate "Ticket orders" %}</h4>
-      <pre class="api-example">curl -H "Authorization: Token &lt;your-token&gt;" {{ tickets_api_base }}orders/</pre>
-      <button type="button" class="btn btn-default btn-sm btn-clipboard" data-clipboard-text="{{ tickets_api_base }}orders/" title="{% translate 'Copy URL' %}">
-        <i class="fa fa-clipboard"></i> {% translate "Copy orders URL" %}
-      </button>
+      {% if show_tickets_api and tickets_api_base %}
+        <h4>{% translate "Ticket orders" %}</h4>
+        <pre class="api-example">curl -H "Authorization: Token &lt;your-token&gt;" {{ tickets_api_base }}orders/</pre>
+        <button type="button" class="btn btn-default btn-sm btn-clipboard" data-clipboard-text="{{ tickets_api_base }}orders/" title="{% translate 'Copy URL' %}">
+          <i class="fa fa-clipboard"></i> {% translate "Copy orders URL" %}
+        </button>
+      {% endif %}
     </fieldset>
   </div>
 
