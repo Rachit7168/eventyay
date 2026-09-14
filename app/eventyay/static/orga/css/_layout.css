@@ -2070,6 +2070,10 @@ div.mail-preview {
   font-weight: bold;
 }
 
+.mail-language-tab:focus-visible {
+  box-shadow: var(--shadow-focus);
+}
+
 .mail-language-tab.active::before,
 .mail-language-tab[aria-selected="true"]::before {
   content: "✓";
