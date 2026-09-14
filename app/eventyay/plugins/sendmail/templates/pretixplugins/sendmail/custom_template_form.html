@@ -39,7 +39,7 @@
 
       <div class="mail-editor-tabs"
            data-email-preview-wrapper
-           data-email-preview-url="{% url 'control:event.editor.email.preview' organizer=request.event.organizer.slug event=request.event.slug %}">
+           data-email-preview-url="{% url 'control:event.settings.mail.preview' event=request.event.slug organizer=request.event.organizer.slug %}">
         <div class="mail-editor-mode-tabs" role="tablist" aria-label="{% translate 'Message view' %}">
           <button type="button" class="mail-editor-mode-tab active"
                   role="tab" aria-selected="true" aria-controls="mail-message-edit"
