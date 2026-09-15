@@ -457,7 +457,7 @@ export default {
 				export: m.export || this.$t('Export'),
 				current: m.current || this.$t('current'),
         now: m.now || this.$t('Now'),
-        now_disabled: m.now_disabled || this.$t('Go to now is only available on the current day'),
+        now_disabled: m.now_disabled || this.$t('Go to now is only available while the event is ongoing'),
 				list_view: m.list_view || this.$t('List View'),
 				calendar_view: m.calendar_view || this.$t('Calendar View'),
 				search: m.search || this.$t('Search'),
@@ -1095,7 +1095,7 @@ export default {
 		font-weight: 600
 		border-radius: 4px
 		padding: 0 10px
-		&:hover:not(:disabled)
+		&:hover, &:focus-visible
 			background-color: var(--pretalx-clr-primary, #3aa57c)
 			color: #fff
 			filter: brightness(0.92)
@@ -1103,6 +1103,11 @@ export default {
 			cursor: not-allowed
 			opacity: 0.5
 			filter: none
+			&:hover, &:focus-visible
+				background-color: var(--pretalx-clr-primary, #3aa57c)
+				color: #fff
+				filter: none
+				opacity: 0.5
 	.toolbar-row
 		display: flex
 		align-items: center
@@ -1717,7 +1722,7 @@ export default {
 		&.icon-only
 			padding: 0 5px
 			gap: 3px
-		&:hover
+		&:hover:not(.now-btn)
 			background-color: rgba(0, 0, 0, 0.05)
 		&.sessions-toggle.active
 			color: var(--pretalx-clr-primary, #3aa57c)
@@ -2076,6 +2081,9 @@ export default {
 		button.toolbar-btn.now-btn,
 		.toolbar-right button.toolbar-btn.now-btn
 			color: #fff
+			&:hover, &:focus-visible
+				color: #fff
+				background-color: var(--pretalx-clr-primary, #3aa57c)
 			svg.tb-icon.now-arrow
 				stroke: currentColor
 				color: inherit
