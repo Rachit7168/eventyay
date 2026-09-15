@@ -330,8 +330,9 @@ function buildHeadingMenu(editor) {
     li.tabIndex = 0
     li.dataset.headingLevel = level == null ? '' : String(level)
     if (level) {
-      const sampleEl = document.createElement(`h${level}`)
+      const sampleEl = document.createElement('span')
       sampleEl.className = 'tiptap-heading-sample'
+      sampleEl.dataset.level = String(level)
       sampleEl.textContent = sample
       li.append(sampleEl)
     } else {
@@ -395,7 +396,6 @@ function buildHeadingMenu(editor) {
     }
     toggle.textContent = activeLevel ? `H${activeLevel}` : 'Paragraph'
     toggle.classList.toggle('is-active', activeLevel != null)
-    toggle.setAttribute('aria-pressed', String(activeLevel != null))
     optionEls.forEach((li) => {
       const level = li.dataset.headingLevel
       const selected =

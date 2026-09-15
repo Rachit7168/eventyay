@@ -68,15 +68,16 @@
   padding: 6px 12px;
 }
 
-.mail-composer .card-body .form-check-label,
-.mail-composer .panel-body .form-check-label {
+.mail-composer .card-body .form-check-label {
   font-size: var(--composer-font-size);
 }
 
 /*
  * Talks base.css and pretixcontrol both style .alert differently. On this page
- * both sheets load, so reset to one Talks-like layout that stays inside the
- * content column (no sidebar overlap, no double icon padding).
+ * both sheets load,
+so reset to one Talks-like layout that stays inside the
+ * content column (no sidebar overlap,
+no double icon padding).
  */
 #page-wrapper .container-fluid > .alert,
 .mail-composer .alert {
@@ -108,8 +109,7 @@
   margin-top: 8px;
 }
 
-.mail-composer fieldset.mt-4 + section.card,
-.mail-composer fieldset.mt-4 + section.panel {
+.mail-composer fieldset.mt-4 + section.card {
   margin-top: 8px;
 }
 
@@ -164,7 +164,8 @@
   min-width: 0;
 }
 
-/* Keep field tips/errors under the control, not under the label column. */
+/* Keep field tips/errors under the control,
+not under the label column. */
 .mail-composer .form-group.row > .col-md-9 > .form-text,
 .mail-composer .form-group.row > .col-md-9 > .invalid-feedback,
 .mail-composer .composer-filters .form-group .form-text,
@@ -189,8 +190,7 @@
   line-height: 1.4;
 }
 
-.mail-composer .card-body > fieldset > .form-group.row > label > .optional,
-.mail-composer .panel-body > fieldset > .form-group.row > label > .optional {
+.mail-composer .card-body > fieldset > .form-group.row > label > .optional {
   color: var(--color-grey);
   display: block;
   font-weight: normal;
@@ -341,7 +341,6 @@
 }
 
 .mail-composer .card-header [data-toggle="tooltip"],
-.mail-composer .panel-heading [data-toggle="tooltip"],
 .mail-composer [data-toggle="tooltip"][role="button"] {
   cursor: pointer;
 }

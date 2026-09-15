@@ -43,29 +43,25 @@
   white-space: nowrap;
 }
 
-.mail-composer > .card,
-.mail-composer > .panel {
+.mail-composer > .card {
   border: 1px solid var(--color-card-border);
   border-radius: var(--composer-border-radius);
   box-shadow: none;
   margin-bottom: 16px;
 }
 
-.mail-composer > .card > .card-header,
-.mail-composer > .panel > .panel-heading {
+.mail-composer > .card > .card-header {
   background-color: var(--color-card-header);
   border-bottom: 1px solid var(--color-card-border);
   padding: 12px 20px;
 }
 
 .mail-composer .card-header [data-toggle="tooltip"],
-.mail-composer .panel-heading [data-toggle="tooltip"],
 .mail-composer [data-toggle="tooltip"][role="button"] {
   cursor: pointer;
 }
 
-.mail-composer > .card > .card-body,
-.mail-composer > .panel > .panel-body {
+.mail-composer > .card > .card-body {
   padding: 20px;
 }
 
@@ -414,8 +410,7 @@
 
 /* fileInput.js wraps uploads in .eventyay-file-pick-wrapper; stretch it like other controls. */
 .mail-composer .col-md-9 > .eventyay-file-pick-wrapper,
-.form-with-placeholder .card-body .col-md-9 > .eventyay-file-pick-wrapper,
-.form-with-placeholder .panel-body .col-md-9 > .eventyay-file-pick-wrapper {
+.form-with-placeholder .card-body .col-md-9 > .eventyay-file-pick-wrapper {
   box-sizing: border-box;
   max-width: 100%;
   min-height: var(--composer-control-height);
@@ -423,8 +418,7 @@
 }
 
 .mail-composer .eventyay-file-pick-wrapper .eventyay-file-name,
-.form-with-placeholder .card-body .col-md-9 > .eventyay-file-pick-wrapper .eventyay-file-name,
-.form-with-placeholder .panel-body .col-md-9 > .eventyay-file-pick-wrapper .eventyay-file-name {
+.form-with-placeholder .card-body .col-md-9 > .eventyay-file-pick-wrapper .eventyay-file-name {
   flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
@@ -434,8 +428,7 @@
 
 /* Fallback before fileInput.js wraps the control. */
 .mail-composer .col-md-9 > input[type="file"],
-.form-with-placeholder .card-body .col-md-9 > input[type="file"],
-.form-with-placeholder .panel-body .col-md-9 > input[type="file"] {
+.form-with-placeholder .card-body .col-md-9 > input[type="file"] {
   box-sizing: border-box;
   display: block;
   max-width: 100%;
@@ -443,8 +436,7 @@
   width: 100%;
 }
 
-.mail-composer .card-body > fieldset > .form-group.row,
-.mail-composer .panel-body > fieldset > .form-group.row {
+.mail-composer .card-body > fieldset > .form-group.row {
   align-items: flex-start;
   display: flex;
   flex-wrap: nowrap;
@@ -453,13 +445,11 @@
   margin-right: 0;
 }
 
-.mail-composer .card-body > fieldset > .form-group.row:last-child,
-.mail-composer .panel-body > fieldset > .form-group.row:last-child {
+.mail-composer .card-body > fieldset > .form-group.row:last-child {
   margin-bottom: 0;
 }
 
-.mail-composer .card-body > fieldset > .form-group.row > label.col-form-label,
-.mail-composer .panel-body > fieldset > .form-group.row > label.col-form-label {
+.mail-composer .card-body > fieldset > .form-group.row > label.col-form-label {
   flex: 0 0 25%;
   margin-left: auto;
   max-width: 25%;
@@ -468,8 +458,7 @@
   text-align: right;
 }
 
-.mail-composer .card-body > fieldset > .form-group.row > .col-md-9,
-.mail-composer .panel-body > fieldset > .form-group.row > .col-md-9 {
+.mail-composer .card-body > fieldset > .form-group.row > .col-md-9 {
   flex: 0 0 75%;
   max-width: 75%;
   min-height: 0;
@@ -636,15 +625,12 @@
     text-align: left;
   }
 
-  .mail-composer .card-body > fieldset > .form-group.row,
-  .mail-composer .panel-body > fieldset > .form-group.row {
+  .mail-composer .card-body > fieldset > .form-group.row {
     flex-wrap: wrap;
   }
 
   .mail-composer .card-body > fieldset > .form-group.row > label.col-form-label,
-  .mail-composer .card-body > fieldset > .form-group.row > .col-md-9,
-  .mail-composer .panel-body > fieldset > .form-group.row > label.col-form-label,
-  .mail-composer .panel-body > fieldset > .form-group.row > .col-md-9 {
+  .mail-composer .card-body > fieldset > .form-group.row > .col-md-9 {
     flex: 0 0 100%;
     margin-left: 0;
     max-width: 100%;
@@ -703,8 +689,7 @@
   margin-top: 8px;
 }
 
-.mail-composer fieldset.mt-4 + section.card,
-.mail-composer fieldset.mt-4 + section.panel {
+.mail-composer fieldset.mt-4 + section.card {
   margin-top: 8px;
 }
 
@@ -799,65 +784,48 @@
 .form-with-placeholder .card-body .col-md-9 > textarea.form-control,
 .form-with-placeholder .card-body .col-md-9 > input.form-control,
 .form-with-placeholder .card-body .col-md-9 > input[type="file"],
-.form-with-placeholder .card-body .col-md-9 > .eventyay-file-pick-wrapper,
-.form-with-placeholder .panel-body .i18n-form-group,
-.form-with-placeholder .panel-body .i18n-form-group textarea,
-.form-with-placeholder .panel-body .i18n-form-group input,
-.form-with-placeholder .panel-body .col-md-9 > textarea.form-control,
-.form-with-placeholder .panel-body .col-md-9 > input.form-control,
-.form-with-placeholder .panel-body .col-md-9 > input[type="file"],
-.form-with-placeholder .panel-body .col-md-9 > .eventyay-file-pick-wrapper {
+.form-with-placeholder .card-body .col-md-9 > .eventyay-file-pick-wrapper {
   max-width: 100%;
   width: 100%;
 }
 
-.form-with-placeholder .card-body .col-md-9 > textarea.form-control:not([data-tiptap-profile]),
-.form-with-placeholder .panel-body .col-md-9 > textarea.form-control:not([data-tiptap-profile]) {
+.form-with-placeholder .card-body .col-md-9 > textarea.form-control:not([data-tiptap-profile]) {
   min-height: 192px;
 }
 
 .form-with-placeholder .card-body .col-md-9 .tiptap-wrapper,
 .form-with-placeholder .card-body .col-md-9 .tiptap-editor-content,
-.form-with-placeholder .card-body .col-md-9 .tiptap-prosemirror,
-.form-with-placeholder .panel-body .col-md-9 .tiptap-wrapper,
-.form-with-placeholder .panel-body .col-md-9 .tiptap-editor-content,
-.form-with-placeholder .panel-body .col-md-9 .tiptap-prosemirror {
+.form-with-placeholder .card-body .col-md-9 .tiptap-prosemirror {
   max-width: 100%;
   width: 100%;
 }
 
-.form-with-placeholder .card-body .col-md-9 .tiptap-placeholder-menu,
-.form-with-placeholder .panel-body .col-md-9 .tiptap-placeholder-menu {
+.form-with-placeholder .card-body .col-md-9 .tiptap-placeholder-menu {
   position: relative;
   z-index: 1060;
 }
 
-.form-with-placeholder .card-body .col-md-9 .tiptap-placeholder-dropdown,
-.form-with-placeholder .panel-body .col-md-9 .tiptap-placeholder-dropdown {
+.form-with-placeholder .card-body .col-md-9 .tiptap-placeholder-dropdown {
   left: auto;
   max-height: min(280px, 50vh);
   right: 0;
   z-index: 1060;
 }
 
-.form-with-placeholder .card-body .col-md-9 .tiptap-editor-content,
-.form-with-placeholder .panel-body .col-md-9 .tiptap-editor-content {
+.form-with-placeholder .card-body .col-md-9 .tiptap-editor-content {
   min-height: 192px;
 }
 
-.card-header .btn-sm,
-.panel-heading .btn-sm {
+.card-header .btn-sm {
   min-height: var(--composer-small-control-height);
 }
 
-.form-with-placeholder > .card > .card-header,
-.form-with-placeholder > .panel > .panel-heading {
+.form-with-placeholder > .card > .card-header {
   position: relative;
   z-index: 1;
 }
 
-.form-with-placeholder .card-header > span:last-child,
-.form-with-placeholder .panel-heading > span:last-child {
+.form-with-placeholder .card-header > span:last-child {
   align-items: center;
   display: inline-flex;
   flex-shrink: 0;
@@ -957,13 +925,22 @@
   gap: 6px;
   line-height: 1.4;
   margin-bottom: 0;
-  padding: 6px 14px;
+  padding: 6px 14px 6px 14px;
   text-decoration: none;
   transition:
     background-color 0.15s ease,
     border-color 0.15s ease,
     color 0.15s ease,
     box-shadow 0.15s ease;
+}
+
+.mail-language-tab::before,
+.mail-composer .mail-language-tab::before {
+  content: "✓";
+  display: inline-block;
+  font-weight: 700;
+  opacity: 0;
+  width: 0.9em;
 }
 
 .mail-language-tab:hover,
@@ -1032,9 +1009,7 @@
 
 .mail-language-tab.active::before,
 .mail-language-tab[aria-selected="true"]::before {
-  content: "✓";
-  display: inline-block;
-  font-weight: 700;
+  opacity: 1;
 }
 
 #placeholder-drawer {
