@@ -14,7 +14,7 @@ from babel import Locale
 from django import forms
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.gis.geoip2 import GeoIP2
+from django.contrib.gis.geoip2 import GeoIP2, GeoIP2Exception
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db.models import QuerySet
@@ -1103,12 +1103,13 @@ def get_country_from_request(request, event):
     @return: A Country object representing the user's country.
     """
     if settings.HAS_GEOIP:
-        g = GeoIP2()
         try:
+            g = GeoIP2()
             res = g.country(get_client_ip(request))
             country_code = res.get('country_code')
             if country_code and len(country_code) == 2:
                 return Country(country_code)
-        except AddressNotFoundError:
+        except (AddressNotFoundError, GeoIP2Exception, OSError):
+            # Corrupt/missing DB or unknown IP — fall back to event locale.
             pass
     return guess_country(event)
