@@ -1909,6 +1909,19 @@ export default {
 			align-items: center
 			justify-content: flex-end
 			max-width: 100%
+			min-width: 0
+			button.toolbar-btn.now-btn
+				padding: 0 8px
+				height: 28px
+				font-size: 12px
+				gap: 2px
+				flex-shrink: 0
+				svg.tb-icon.now-arrow
+					width: 12px
+					height: 12px
+			.tz-btn
+				.tz-label, .chevron-icon
+					display: none
 			.fullscreen-quick
 				display: inline-flex
 				order: 98
@@ -1920,6 +1933,7 @@ export default {
 				display: flex
 				align-items: center
 				gap: 2px
+				flex-shrink: 0
 			.toolbar-secondary
 				display: none
 				position: absolute
@@ -2050,8 +2064,9 @@ export default {
 				width: 130px
 				font-size: 13px
 			.toolbar-right-quick
-				.timezone-label
-					display: none
+				.tz-btn
+					.tz-label, .chevron-icon
+						display: none
 			.toolbar-btn,
 			.toolbar-btn.icon-only,
 			button.toolbar-btn,
@@ -2070,10 +2085,15 @@ export default {
 		button.toolbar-btn.now-btn,
 		.toolbar-right button.toolbar-btn.now-btn
 			color: #fff
+			padding: 0 7px
+			height: 28px
+			font-size: 12px
+			gap: 0
 			&:hover, &:focus-visible
 				color: #fff
 				background-color: var(--pretalx-clr-primary, #3aa57c)
 			svg.tb-icon.now-arrow
+				display: none
 				stroke: currentColor
 				color: inherit
 				fill: none
