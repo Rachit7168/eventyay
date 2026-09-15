@@ -68,7 +68,8 @@
   padding: 6px 12px;
 }
 
-.mail-composer .card-body .form-check-label {
+.mail-composer .card-body .form-check-label,
+.mail-composer .panel-body .form-check-label {
   font-size: var(--composer-font-size);
 }
 
@@ -107,7 +108,8 @@
   margin-top: 8px;
 }
 
-.mail-composer fieldset.mt-4 + section.card {
+.mail-composer fieldset.mt-4 + section.card,
+.mail-composer fieldset.mt-4 + section.panel {
   margin-top: 8px;
 }
 
@@ -187,7 +189,8 @@
   line-height: 1.4;
 }
 
-.mail-composer .card-body > fieldset > .form-group.row > label > .optional {
+.mail-composer .card-body > fieldset > .form-group.row > label > .optional,
+.mail-composer .panel-body > fieldset > .form-group.row > label > .optional {
   color: var(--color-grey);
   display: block;
   font-weight: normal;
@@ -338,6 +341,7 @@
 }
 
 .mail-composer .card-header [data-toggle="tooltip"],
+.mail-composer .panel-heading [data-toggle="tooltip"],
 .mail-composer [data-toggle="tooltip"][role="button"] {
   cursor: pointer;
 }
