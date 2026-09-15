@@ -2023,64 +2023,6 @@ div.mail-preview {
   z-index: 1;
 }
 
-#mail-language-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 1rem;
-}
-
-.mail-language-tab {
-  align-items: center;
-  background-color: var(--color-bg);
-  border: 1px solid var(--color-border);
-  border-radius: 16px;
-  box-shadow: none;
-  color: var(--color-text);
-  cursor: pointer;
-  display: inline-flex;
-  gap: 6px;
-  margin-bottom: 0;
-  padding: 6px 16px;
-  text-decoration: none;
-  transition: all 0.2s ease-in-out;
-}
-
-.mail-language-tab:hover,
-.mail-language-tab:focus,
-.mail-language-tab:focus-visible {
-  background-color: var(--color-grey-lighter);
-  border-color: var(--color-primary);
-  box-shadow: none;
-  color: var(--color-primary);
-  outline: none;
-  text-decoration: none;
-}
-
-.mail-language-tab:active {
-  background-color: var(--color-grey-lighter);
-  box-shadow: none;
-}
-
-.mail-language-tab.active,
-.mail-language-tab[aria-selected="true"] {
-  background-color: var(--color-primary);
-  border-color: var(--color-primary);
-  color: var(--color-white);
-  font-weight: bold;
-}
-
-.mail-language-tab:focus-visible {
-  box-shadow: var(--shadow-focus);
-}
-
-.mail-language-tab.active::before,
-.mail-language-tab[aria-selected="true"]::before {
-  content: "✓";
-  display: inline-block;
-  font-weight: bold;
-}
-
 #placeholder-drawer {
   background: white;
   border-left: 1px solid var(--color-grey-lighter);
