@@ -49,6 +49,10 @@ export function buildToolbar(
   const boldBtn = button('<b>B</b>', 'Bold', () => editor.chain().focus().toggleBold().run(), 'bold')
   const italicBtn = button('<i>I</i>', 'Italic', () => editor.chain().focus().toggleItalic().run(), 'italic')
   const underlineBtn = button('<u>U</u>', 'Underline', () => editor.chain().focus().toggleUnderline().run(), 'underline')
+  const h2Btn = button('H2', 'Heading 2', () => editor.chain().focus().toggleHeading({ level: 2 }).run())
+  h2Btn.dataset.activeHeading = '2'
+  const h3Btn = button('H3', 'Heading 3', () => editor.chain().focus().toggleHeading({ level: 3 }).run())
+  h3Btn.dataset.activeHeading = '3'
   const ulBtn = button('&#8226;&#8212;', 'Bullet list', () => editor.chain().focus().toggleBulletList().run(), 'bulletList')
   const olBtn = button('1.&#8212;', 'Numbered list', () => editor.chain().focus().toggleOrderedList().run(), 'orderedList')
   const linkWrapper = document.createElement('span')
@@ -59,7 +63,24 @@ export function buildToolbar(
   const undoBtn = button('&#8630;', 'Undo', () => editor.chain().focus().undo().run())
   const redoBtn = button('&#8631;', 'Redo', () => editor.chain().focus().redo().run())
 
-  bar.append(boldBtn, italicBtn, underlineBtn, separator(), ulBtn, olBtn, separator(), linkWrapper, separator(), clearBtn, separator(), undoBtn, redoBtn)
+  bar.append(
+    boldBtn,
+    italicBtn,
+    underlineBtn,
+    separator(),
+    h2Btn,
+    h3Btn,
+    separator(),
+    ulBtn,
+    olBtn,
+    separator(),
+    linkWrapper,
+    separator(),
+    clearBtn,
+    separator(),
+    undoBtn,
+    redoBtn,
+  )
 
   if (editorEl) {
     bar.append(separator(), buildHtmlSourceButton(editor, editorEl, textarea, bar))
@@ -79,6 +100,12 @@ export function buildToolbar(
       const key = btn.dataset.activeKey
       btn.classList.toggle('is-active', editor.isActive(key))
       btn.setAttribute('aria-pressed', String(editor.isActive(key)))
+    })
+    bar.querySelectorAll('[data-active-heading]').forEach((btn) => {
+      const level = Number(btn.dataset.activeHeading)
+      const active = editor.isActive('heading', { level })
+      btn.classList.toggle('is-active', active)
+      btn.setAttribute('aria-pressed', String(active))
     })
     undoBtn.disabled = !editor.can().undo()
     redoBtn.disabled = !editor.can().redo()

@@ -97,6 +97,15 @@ class TestSanitizeRichText:
         result = sanitize_rich_text('<p>line1<br>line2</p>')
         assert '<br>' in result or '<br/>' in result or '<br />' in result
 
+    def test_headings_h2_h3_allowed(self):
+        html = '<h2>Section</h2><h3>Subsection</h3><p>Body</p>'
+        assert sanitize_rich_text(html) == html
+
+    def test_heading_h1_stripped(self):
+        result = sanitize_rich_text('<h1>Title</h1><p>Body</p>')
+        assert '<h1>' not in result
+        assert '<p>Body</p>' in result
+
 
 class TestSanitizePageRichText:
     def test_headings_allowed(self):

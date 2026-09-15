@@ -16,6 +16,7 @@ import nh3
 _RICH_TEXT_TAGS: frozenset[str] = frozenset({
     'p', 'br', 'strong', 'b', 'em', 'i', 'u',
     'ul', 'ol', 'li', 'a', 'blockquote',
+    'h2', 'h3',
 })
 
 _EMAIL_TAGS: frozenset[str] = _RICH_TEXT_TAGS | frozenset({'span', 'img'})

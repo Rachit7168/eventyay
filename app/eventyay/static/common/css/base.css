@@ -267,6 +267,12 @@ a {
 
 }
 
+/* TipTap wraps list item text in <p>; match editor compact spacing on public pages. */
+ul li > p,
+ol li > p {
+  margin: 0;
+}
+
 /* Conventions and custom elements */
 
 .color-success,
