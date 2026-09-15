@@ -1621,18 +1621,6 @@ IMAGE_DEFAULT_MAX_HEIGHT = 2000
 
 CALL_FOR_SPEAKER_LOGIN_BUTTON_LABEL = conf.call_for_speaker_login_button_label
 
-# GeoIP2: expose GEOIP_PATH / country / city basenames so GeoIP2() can locate
-# databases. HAS_GEOIP is True only when a path GeoIP2 itself would accept is
-# present (direct .mmdb file, or directory containing the configured country
-# or city database filename).
-GEOIP_PATH = Path(os.getenv('DJANGO_GEOIP_PATH', str(DATA_DIR / 'geoip')))
-GEOIP_COUNTRY = os.getenv('DJANGO_GEOIP_COUNTRY', 'GeoLite2-Country.mmdb')
-GEOIP_CITY = os.getenv('DJANGO_GEOIP_CITY', 'GeoLite2-City.mmdb')
-HAS_GEOIP = (GEOIP_PATH.is_file() and GEOIP_PATH.suffix == '.mmdb') or (
-    GEOIP_PATH.is_dir()
-    and any((GEOIP_PATH / name).is_file() for name in (GEOIP_COUNTRY, GEOIP_CITY))
-)
-
 if IS_DEVELOPMENT:
     # Support for Android emulators and port forwarding
     if '*' not in ALLOWED_HOSTS:
