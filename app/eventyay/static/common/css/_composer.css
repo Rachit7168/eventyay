@@ -598,6 +598,11 @@
     white-space: normal;
   }
 
+  #mail-language-tabs {
+    margin-left: 0;
+    padding-right: 0;
+  }
+
   .mail-editor-tabs {
     grid-template-columns: 100%;
   }
@@ -905,8 +910,11 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  /* Align with Subject/Message inputs (label column is 25%). */
   margin-bottom: 16px;
+  margin-left: 25%;
   padding-bottom: 0;
+  padding-right: 15px;
 }
 
 /* Keep chip styles above shared .mail-composer button rules (tickets + talks). */
