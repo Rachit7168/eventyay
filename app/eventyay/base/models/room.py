@@ -2,7 +2,7 @@ import uuid
 from functools import cached_property
 
 from django.core.exceptions import ValidationError
-from django.db import models
+from django.db import models, transaction
 from django.db.models import Exists, JSONField, OuterRef, Q
 from django.db.models.expressions import RawSQL, Value
 from django.db.models.signals import post_delete, post_save
@@ -101,6 +101,7 @@ def schedule_editor_room_url(event, room) -> str:
     return f'{event.orga_urls.schedule}?room={room.pk}'
 
 
+@transaction.atomic
 def unassign_linked_sessions_from_room(room) -> int:
     """
     Remove this room from all submission-linked talk slots.

@@ -4,9 +4,15 @@ from django_scopes import scope
 from rest_framework import serializers
 
 from eventyay.api.serializers.room import RoomOrgaSerializer
-from eventyay.base.models import Room
-from eventyay.base.models.room import room_has_linked_submissions
+from eventyay.base.models import Room, Submission
+from eventyay.base.models.room import (
+    ROOM_DELETE_LINKED_SESSIONS_MESSAGE,
+    room_has_linked_submissions,
+    validate_room_can_be_deleted,
+    validate_talk_slot_room,
+)
 from eventyay.base.models.slot import TalkSlot
+from eventyay.base.services.room import soft_delete_room
 from eventyay.core.permissions import Permission, SYSTEM_ROLES
 
 
@@ -85,8 +91,6 @@ def test_room_queryset_annotation_for_linked_submissions(event):
 
 @pytest.mark.django_db
 def test_room_cannot_be_marked_unscheduled_with_linked_sessions(event):
-    from eventyay.base.models import Submission
-
     with scope(event=event):
         room = Room.objects.create(event=event, name='Scheduled')
         submission = Submission.objects.create(
@@ -107,8 +111,6 @@ def test_room_cannot_be_marked_unscheduled_with_linked_sessions(event):
 
 @pytest.mark.django_db
 def test_room_orga_serializer_rejects_unscheduled_with_linked_sessions(event):
-    from eventyay.base.models import Submission
-
     with scope(event=event):
         room = Room.objects.create(event=event, name='Scheduled')
         submission = Submission.objects.create(
@@ -133,9 +135,6 @@ def test_room_orga_serializer_rejects_unscheduled_with_linked_sessions(event):
 
 @pytest.mark.django_db
 def test_talk_slot_cannot_use_unscheduled_room(event):
-    from eventyay.base.models import Submission
-    from eventyay.base.models.room import validate_talk_slot_room
-
     with scope(event=event):
         room = Room.objects.create(event=event, name='Unscheduled', is_unscheduled=True)
         submission = Submission.objects.create(
@@ -171,13 +170,6 @@ def test_validate_room_config_patch_ignores_read_only_body_fields(event):
 
 @pytest.mark.django_db
 def test_room_cannot_be_deleted_with_linked_sessions(event):
-    from eventyay.base.models import Submission
-    from eventyay.base.models.room import (
-        ROOM_DELETE_LINKED_SESSIONS_MESSAGE,
-        validate_room_can_be_deleted,
-    )
-    from eventyay.base.services.room import soft_delete_room
-
     with scope(event=event):
         room = Room.objects.create(event=event, name='Scheduled')
         empty_room = Room.objects.create(event=event, name='Empty')
