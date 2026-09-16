@@ -366,6 +366,14 @@ class SenderView(EventPermissionRequiredMixin, CopyDraftMixin, BulkReplyToMixin,
 
         qm.populate_to_users()
 
+        if not is_draft and not qm.recipients.filter(email__isnull=False).exclude(email='').exists():
+            qm.delete()
+            messages.error(
+                self.request,
+                _('There are no valid email addresses for the selected recipients.'),
+            )
+            return self.form_invalid(form)
+
         if is_draft and form.cleaned_data.get('attachment'):
             messages.info(
                 self.request,
