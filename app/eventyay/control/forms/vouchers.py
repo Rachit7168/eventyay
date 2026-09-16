@@ -15,7 +15,7 @@ from eventyay.base.email import get_available_placeholders
 from eventyay.base.forms import I18nModelForm, PlaceholderValidator
 from eventyay.base.models import Product, Voucher
 from eventyay.control.forms import SplitDateTimeField, SplitDateTimePickerWidget
-from eventyay.control.forms.widgets import Select2, Select2ProductVarQuota
+from eventyay.control.forms.widgets import Select2, Select2ProductVarQuotaMultiple
 from eventyay.control.signals import voucher_form_validation
 from eventyay.helpers.models import modelcopy
 
@@ -28,11 +28,28 @@ class FakeChoiceField(forms.ChoiceField):
         return True
 
 
+class FakeMultipleChoiceField(forms.MultipleChoiceField):
+    """Accept Select2 AJAX values that are not preloaded into ``choices``."""
+
+    def valid_value(self, value):
+        return True
+
+    def to_python(self, value):
+        if value is None:
+            return []
+        if not isinstance(value, (list, tuple)):
+            value = [value]
+        return [str(v) for v in value if v not in (None, '')]
+
+
 class VoucherForm(I18nModelForm):
-    productvar = FakeChoiceField(
+    productvar = FakeMultipleChoiceField(
         label=_('Product'),
-        help_text=_("This product is added to the user's cart if the voucher is redeemed."),
-        required=True,
+        help_text=_(
+            'Select one or more products this voucher applies to. Leave empty or choose "All products" '
+            'to allow any product. You can also select a quota to allow any product in that quota.'
+        ),
+        required=False,
     )
 
     class Meta:
@@ -67,23 +84,27 @@ class VoucherForm(I18nModelForm):
         initial = kwargs['initial']
         if instance:
             self.initial_instance_data = modelcopy(instance)
-            try:
-                if instance.variation:
-                    initial['productvar'] = '%d-%d' % (
-                        instance.product.pk,
-                        instance.variation.pk,
-                    )
-                elif instance.product:
-                    initial['productvar'] = str(instance.product.pk)
-                elif instance.quota:
-                    initial['productvar'] = 'q-%d' % instance.quota.pk
-                else:
-                    initial['productvar'] = ALL_PRODUCTS
-            except Product.DoesNotExist:
-                initial['productvar'] = ALL_PRODUCTS
+            if 'productvar' not in initial:
+                try:
+                    if instance.pk and (instance.limit_products.exists() or instance.limit_variations.exists()):
+                        initial['productvar'] = [str(p.pk) for p in instance.limit_products.all()] + [
+                            '%d-%d' % (v.product_id, v.pk) for v in instance.limit_variations.all()
+                        ]
+                    elif instance.variation:
+                        initial['productvar'] = ['%d-%d' % (instance.product.pk, instance.variation.pk)]
+                    elif instance.product:
+                        initial['productvar'] = [str(instance.product.pk)]
+                    elif instance.quota:
+                        initial['productvar'] = ['q-%d' % instance.quota.pk]
+                    else:
+                        initial['productvar'] = [ALL_PRODUCTS]
+                except Product.DoesNotExist:
+                    initial['productvar'] = [ALL_PRODUCTS]
         else:
             self.initial_instance_data = None
         super().__init__(*args, **kwargs)
+        self._limit_products = []
+        self._limit_variations = []
 
         if instance.event.has_subevents:
             self.fields['subevent'].queryset = instance.event.subevents.all()
@@ -106,27 +127,37 @@ class VoucherForm(I18nModelForm):
             del self.fields['subevent']
 
         choices = []
+        selected = []
         if 'productvar' in initial or (self.data and 'productvar' in self.data):
-            iv = self.data.get('productvar') or initial.get('productvar', '')
-            if iv == ALL_PRODUCTS:
-                choices.append((ALL_PRODUCTS, _('All products')))
-            elif iv.startswith('q-'):
-                q = self.instance.event.quotas.get(pk=iv[2:])
-                choices.append(('q-%d' % q.pk, _('Any product in quota "{quota}"').format(quota=q)))
-            elif '-' in iv:
-                productid, varid = iv.split('-')
-                i = self.instance.event.products.get(pk=productid)
-                v = i.variations.get(pk=varid)
-                choices.append(('%d-%d' % (i.pk, v.pk), '%s – %s' % (str(i), v.value)))
-            elif iv:
-                i = self.instance.event.products.get(pk=iv)
-                if i.variations.exists():
-                    choices.append((str(i.pk), _('{product} – Any variation').format(product=i)))
-                else:
-                    choices.append((str(i.pk), str(i)))
+            if self.data and 'productvar' in self.data:
+                raw = self.data.getlist('productvar') if hasattr(self.data, 'getlist') else self.data.get('productvar')
+                if not isinstance(raw, (list, tuple)):
+                    raw = [raw] if raw else []
+            else:
+                raw = initial.get('productvar') or []
+                if not isinstance(raw, (list, tuple)):
+                    raw = [raw] if raw else []
+            selected = [str(v) for v in raw if v]
+            for iv in selected:
+                if iv == ALL_PRODUCTS:
+                    choices.append((ALL_PRODUCTS, _('All products')))
+                elif iv.startswith('q-'):
+                    q = self.instance.event.quotas.get(pk=iv[2:])
+                    choices.append(('q-%d' % q.pk, _('Any product in quota "{quota}"').format(quota=q)))
+                elif '-' in iv:
+                    productid, varid = iv.split('-')
+                    i = self.instance.event.products.get(pk=productid)
+                    v = i.variations.get(pk=varid)
+                    choices.append(('%d-%d' % (i.pk, v.pk), '%s – %s' % (str(i), v.value)))
+                elif iv:
+                    i = self.instance.event.products.get(pk=iv)
+                    if i.variations.exists():
+                        choices.append((str(i.pk), _('{product} – Any variation').format(product=i)))
+                    else:
+                        choices.append((str(i.pk), str(i)))
 
         self.fields['productvar'].choices = choices
-        self.fields['productvar'].widget = Select2ProductVarQuota(
+        self.fields['productvar'].widget = Select2ProductVarQuotaMultiple(
             attrs={
                 'data-model-select2': 'generic',
                 'data-select2-url': reverse(
@@ -158,41 +189,67 @@ class VoucherForm(I18nModelForm):
                 help_text=str(self.instance.seat) if self.instance.seat else '',
             )
 
+    def _parse_productvar_selection(self, values):
+        """Return (quota, product, variation, limit_products, limit_variations)."""
+        values = [str(v) for v in (values or []) if v]
+        if ALL_PRODUCTS in values:
+            if len(values) > 1:
+                raise ValidationError(
+                    _('"All products" cannot be combined with other product or quota selections.')
+                )
+            return None, None, None, [], []
+
+        quotas = [v for v in values if v.startswith('q-')]
+        products = [v for v in values if not v.startswith('q-')]
+        if quotas and products:
+            raise ValidationError(_('You cannot select a quota and a specific product at the same time.'))
+        if len(quotas) > 1:
+            raise ValidationError(_('Please select only one quota.'))
+        if quotas:
+            quota = self.instance.event.quotas.get(pk=quotas[0][2:])
+            return quota, None, None, [], []
+
+        limit_products = []
+        limit_variations = []
+        seen_products = set()
+        seen_variations = set()
+        for iv in products:
+            if '-' in iv:
+                productid, varid = iv.split('-', 1)
+                product = self.instance.event.products.get(pk=productid)
+                variation = product.variations.get(pk=varid)
+                if variation.pk not in seen_variations:
+                    limit_variations.append(variation)
+                    seen_variations.add(variation.pk)
+            else:
+                product = self.instance.event.products.get(pk=iv)
+                if product.pk not in seen_products:
+                    limit_products.append(product)
+                    seen_products.add(product.pk)
+
+        # Single selection keeps the legacy FK fields for API / display compatibility
+        if len(limit_products) + len(limit_variations) == 1:
+            if limit_variations:
+                variation = limit_variations[0]
+                return None, variation.product, variation, [], []
+            return None, limit_products[0], None, [], []
+
+        return None, None, None, limit_products, limit_variations
+
     def clean(self):
         data = super().clean()
 
         if not self._errors:
             try:
-                productid = quotaid = None
-                iv = self.data.get('productvar', '')
-                if iv == ALL_PRODUCTS:
-                    iv = ''
-                if iv.startswith('q-'):
-                    quotaid = iv[2:]
-                elif '-' in iv:
-                    productid, varid = iv.split('-')
-                elif iv:
-                    productid, varid = iv, None
-                else:
-                    productid, varid = None, None
-
-                if productid:
-                    self.instance.product = self.instance.event.products.get(pk=productid)
-                    if varid:
-                        self.instance.variation = self.instance.product.variations.get(pk=varid)
-                    else:
-                        self.instance.variation = None
-                    self.instance.quota = None
-                elif quotaid:
-                    self.instance.quota = self.instance.event.quotas.get(pk=quotaid)
-                    self.instance.product = None
-                    self.instance.variation = None
-                else:
-                    self.instance.quota = None
-                    self.instance.product = None
-                    self.instance.variation = None
-
-            except ObjectDoesNotExist:
+                quota, product, variation, limit_products, limit_variations = self._parse_productvar_selection(
+                    data.get('productvar')
+                )
+                self.instance.quota = quota
+                self.instance.product = product
+                self.instance.variation = variation
+                self._limit_products = limit_products
+                self._limit_variations = limit_variations
+            except (ObjectDoesNotExist, ValueError):
                 raise ValidationError(_('Invalid product selected.'))
 
         if 'codes' in data:
@@ -209,21 +266,29 @@ class VoucherForm(I18nModelForm):
             self.instance.variation,
             seats_given=data.get('seat') or data.get('seats'),
             block_quota=data.get('block_quota'),
+            limit_products=getattr(self, '_limit_products', []),
+            limit_variations=getattr(self, '_limit_variations', []),
         )
-        if not self.instance.show_hidden_products and (
-            (self.instance.quota and all(i.hide_without_voucher for i in self.instance.quota.products.all()))
-            or (self.instance.product and self.instance.product.hide_without_voucher)
-        ):
-            raise ValidationError(
-                {
-                    'show_hidden_products': [
-                        _(
-                            'The voucher only matches hidden products but you have not selected that it should show '
-                            'them.'
-                        )
-                    ]
-                }
-            )
+        if not self.instance.show_hidden_products:
+            limited = getattr(self, '_limit_products', []) or getattr(self, '_limit_variations', [])
+            all_limits_hidden = bool(limited) and all(
+                i.hide_without_voucher for i in getattr(self, '_limit_products', [])
+            ) and all(v.product.hide_without_voucher for v in getattr(self, '_limit_variations', []))
+            if (
+                (self.instance.quota and all(i.hide_without_voucher for i in self.instance.quota.products.all()))
+                or (self.instance.product and self.instance.product.hide_without_voucher)
+                or all_limits_hidden
+            ):
+                raise ValidationError(
+                    {
+                        'show_hidden_products': [
+                            _(
+                                'The voucher only matches hidden products but you have not selected that it should show '
+                                'them.'
+                            )
+                        ]
+                    }
+                )
         Voucher.clean_subevent(data, self.instance.event)
         Voucher.clean_max_usages(data, self.instance.redeemed)
         check_quota = Voucher.clean_quota_needs_checking(
@@ -241,6 +306,8 @@ class VoucherForm(I18nModelForm):
                 self.instance.quota,
                 self.instance.product,
                 self.instance.variation,
+                limit_products=getattr(self, '_limit_products', []),
+                limit_variations=getattr(self, '_limit_variations', []),
             )
         Voucher.clean_voucher_code(data, self.instance.event, self.instance.pk)
         Voucher.clean_value_and_budget(data)
@@ -270,8 +337,23 @@ class VoucherForm(I18nModelForm):
                     unique_errors.append(err)
             self._errors[field] = self.error_class(unique_errors, renderer=self.renderer)
 
+    def _apply_product_limits(self, instance):
+        instance.limit_products.set(getattr(self, '_limit_products', []))
+        instance.limit_variations.set(getattr(self, '_limit_variations', []))
+
     def save(self, commit=True):
-        return super().save(commit)
+        instance = super().save(commit=commit)
+        if commit:
+            self._apply_product_limits(instance)
+        else:
+            old_save_m2m = self.save_m2m
+
+            def save_m2m():
+                old_save_m2m()
+                self._apply_product_limits(instance)
+
+            self.save_m2m = save_m2m
+        return instance
 
 
 class VoucherBulkForm(VoucherForm):
@@ -496,4 +578,5 @@ class VoucherBulkForm(VoucherForm):
         return data
 
     def post_bulk_save(self, objs):
-        pass
+        for obj in objs:
+            self._apply_product_limits(obj)

@@ -98,7 +98,7 @@ def test_voucher_form_all_products_clears_product_and_quota(env):
                 'code': voucher.code,
                 'max_usages': '1',
                 'price_mode': 'none',
-                'productvar': ALL_PRODUCTS,
+                'productvar': [ALL_PRODUCTS],
             },
         )
 
@@ -109,3 +109,35 @@ def test_voucher_form_all_products_clears_product_and_quota(env):
     assert voucher.product is None
     assert voucher.variation is None
     assert voucher.quota is None
+    assert voucher.limit_products.count() == 0
+    assert voucher.limit_variations.count() == 0
+
+
+@pytest.mark.django_db
+def test_voucher_form_multi_product_selection(env):
+    organizer, event, user, product = env
+    with scope(organizer=organizer, event=event):
+        product_b = Product.objects.create(event=event, name='Regular ticket', default_price=42)
+        voucher = Voucher.objects.create(event=event)
+        form = VoucherForm(
+            instance=voucher,
+            data={
+                'code': voucher.code,
+                'max_usages': '1',
+                'price_mode': 'none',
+                'productvar': [str(product.pk), str(product_b.pk)],
+            },
+        )
+
+        assert form.is_valid(), form.errors
+        form.save()
+        voucher.refresh_from_db()
+
+        assert voucher.product is None
+        assert voucher.quota is None
+        assert set(voucher.limit_products.values_list('pk', flat=True)) == {product.pk, product_b.pk}
+        assert voucher.applies_to(product)
+        assert voucher.applies_to(product_b)
+
+        other = Product.objects.create(event=event, name='Other', default_price=10)
+        assert not voucher.applies_to(other)

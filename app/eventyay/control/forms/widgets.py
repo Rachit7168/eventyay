@@ -52,3 +52,28 @@ class Select2ProductVarQuotaMixin(Select2Mixin):
 
 class Select2ProductVarQuota(Select2ProductVarQuotaMixin, forms.Select):
     pass
+
+
+class Select2ProductVarQuotaMultiple(forms.SelectMultiple):
+    template_name = 'pretixcontrol/select2_widget.html'
+
+    def options(self, name, value, attrs=None):
+        if not value:
+            return
+        choice_dict = dict(self.choices)
+        for i, selected in enumerate(value):
+            if selected and selected in choice_dict:
+                yield self.create_option(
+                    None,
+                    selected,
+                    choice_dict[selected],
+                    True,
+                    i,
+                    subindex=None,
+                    attrs=attrs,
+                )
+
+    def optgroups(self, name, value, attrs=None):
+        if value:
+            return [(None, [c], i) for i, c in enumerate(self.options(name, value, attrs))]
+        return
