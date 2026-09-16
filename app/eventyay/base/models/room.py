@@ -68,16 +68,32 @@ def room_has_linked_submissions(room) -> bool:
 
 
 def linked_submission_talks_for_room(room):
-    """Return WIP schedule talk slots linked to submissions in this room."""
+    """
+    Return submission-linked talk slots that block deleting this room.
+
+    Includes every schedule. When the same submission appears more than once,
+    prefer the WIP slot so the delete UI stays one row per session.
+    """
     from django_scopes import scope
 
     with scope(event=room.event):
-        return list(
-            _linked_submission_talkslots(room=room, schedule=room.event.wip_schedule)
-            .select_related('submission')
+        slots = list(
+            _linked_submission_talkslots(room=room)
+            .select_related('submission', 'schedule')
             .prefetch_related('submission__speakers')
             .order_by('start', 'submission__title')
         )
+
+    by_submission = {}
+    for slot in slots:
+        existing = by_submission.get(slot.submission_id)
+        if existing is None:
+            by_submission[slot.submission_id] = slot
+            continue
+        # Prefer WIP (version is null) over released schedule copies.
+        if existing.schedule.version is not None and slot.schedule.version is None:
+            by_submission[slot.submission_id] = slot
+    return list(by_submission.values())
 
 
 def schedule_editor_room_url(event, room) -> str:
@@ -93,16 +109,17 @@ def unassign_linked_sessions_from_room(room) -> int:
     schedule editor unassign action. Released schedule slots only clear the
     room so historical times remain but the room can be deleted.
 
-    Returns the number of WIP sessions unassigned (what the UI lists).
+    Returns the number of distinct linked sessions (matches the delete UI list).
     """
     from django.utils.timezone import now
     from django_scopes import scope
 
     with scope(event=room.event):
         linked = _linked_submission_talkslots(room=room)
+        session_count = linked.values('submission_id').distinct().count()
         wip_schedule = room.event.wip_schedule
         timestamp = now()
-        wip_count = linked.filter(schedule=wip_schedule).update(
+        linked.filter(schedule=wip_schedule).update(
             room=None,
             start=None,
             end=None,
@@ -112,7 +129,7 @@ def unassign_linked_sessions_from_room(room) -> int:
             room=None,
             updated=timestamp,
         )
-        return wip_count
+        return session_count
 
 
 def validate_room_can_be_deleted(room) -> None:
