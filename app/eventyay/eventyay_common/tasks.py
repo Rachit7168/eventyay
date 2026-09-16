@@ -1,4 +1,5 @@
 import base64
+import calendar
 import logging
 from datetime import datetime
 from datetime import timezone as tz
@@ -368,6 +369,13 @@ def calculate_ticket_fee(
     return ticket_fee, final_ticket_fee, voucher_discount
 
 
+def _reminder_datetime(year: int, month: int, day: int, *, tzinfo=None) -> Optional[datetime]:
+    """Build a datetime for ``day`` in ``year``/``month``, or ``None`` if that day does not exist."""
+    if day > calendar.monthrange(year, month)[1]:
+        return None
+    return datetime(year, month, day, tzinfo=tzinfo)
+
+
 def get_next_reminder_datetime(reminder_schedule):
     """
     Get the next reminder datetime based on the reminder schedule.
@@ -377,29 +385,14 @@ def get_next_reminder_datetime(reminder_schedule):
     """
     days = sorted(reminder_schedule)
     today = timezone.localtime()
-    year, month = today.year, today.month
+    cursor = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     # Search current and subsequent months; every month has days 1–28.
     for _ in range(14):
         for day in days:
-            try:
-                reminder_date = today.replace(
-                    year=year,
-                    month=month,
-                    day=day,
-                    hour=0,
-                    minute=0,
-                    second=0,
-                    microsecond=0,
-                )
-            except ValueError:
-                continue
-            if reminder_date > today:
+            reminder_date = _reminder_datetime(cursor.year, cursor.month, day, tzinfo=today.tzinfo)
+            if reminder_date and reminder_date > today:
                 return reminder_date
-        if month == 12:
-            month = 1
-            year += 1
-        else:
-            month += 1
+        cursor += relativedelta(months=1)
     return today
 
 
@@ -442,19 +435,16 @@ def retry_failed_payment(self):
     pending_invoices = BillingInvoice.objects.filter(status=BillingInvoice.STATUS_PENDING)
     today = datetime.now(tz.utc)
     logger.info('Start - running task to retry failed payment: %s', today)
-    timezone = ZoneInfo(settings.TIME_ZONE)
+    local_tz = ZoneInfo(settings.TIME_ZONE)
     for invoice in pending_invoices:
         if invoice.final_ticket_fee <= 0:
             continue
         reminder_dates = invoice.reminder_schedule
         if not reminder_dates or not invoice.stripe_payment_intent_id:
             continue
-        reminder_dates.sort()
-        for reminder_day in reminder_dates:
-            try:
-                reminder_date = datetime(today.year, today.month, reminder_day, tzinfo=timezone)
-            except ValueError:
-                # Skip days that do not exist in the current month (e.g. Feb 30).
+        for reminder_day in sorted(reminder_dates):
+            reminder_date = _reminder_datetime(today.year, today.month, reminder_day, tzinfo=local_tz)
+            if reminder_date is None:
                 continue
             if (
                 not invoice.last_reminder_datetime or invoice.last_reminder_datetime < reminder_date
@@ -475,14 +465,13 @@ def check_billing_status_for_warning(self):
     pending_invoices = BillingInvoice.objects.filter(status=BillingInvoice.STATUS_PENDING, reminder_enabled=True)
     today = datetime.now(tz.utc)
     logger.info('Start - running task to check billing status for warning on: %s', today)
-    timezone = ZoneInfo(settings.TIME_ZONE)
+    local_tz = ZoneInfo(settings.TIME_ZONE)
     for invoice in pending_invoices:
         if invoice.final_ticket_fee <= 0:
             continue
         reminder_dates = invoice.reminder_schedule  # [15, 29]
         if not reminder_dates:
             continue
-        reminder_dates.sort()
         # marked invoice as expired if the due date is passed
         if today > (invoice.created_at + relativedelta(months=1)):
             logger.info('Invoice is expired for event %s', invoice.event.name)
@@ -493,11 +482,9 @@ def check_billing_status_for_warning(self):
             invoice.event.live = False
             invoice.event.save()
             continue
-        for reminder_day in reminder_dates:
-            try:
-                reminder_date = datetime(today.year, today.month, reminder_day, tzinfo=timezone)
-            except ValueError:
-                # Skip days that do not exist in the current month (e.g. Feb 30).
+        for reminder_day in sorted(reminder_dates):
+            reminder_date = _reminder_datetime(today.year, today.month, reminder_day, tzinfo=local_tz)
+            if reminder_date is None:
                 continue
             if (
                 not invoice.last_reminder_datetime or invoice.last_reminder_datetime < reminder_date
