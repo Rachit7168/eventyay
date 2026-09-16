@@ -45,6 +45,9 @@ UNSCHEDULED_LINKED_SUBMISSIONS_MESSAGE = _(
 UNSCHEDULED_ROOM_SCHEDULING_MESSAGE = _(
     'Unscheduled rooms cannot be linked to talk sessions.'
 )
+ROOM_DELETE_LINKED_SESSIONS_MESSAGE = _(
+    'This room has linked schedules/sessions. Move or delete those sessions before deleting the room.'
+)
 _LINKED_SUBMISSION_TALK_FILTER = {'submission__isnull': False}
 
 
@@ -62,6 +65,60 @@ def room_has_linked_submissions(room) -> bool:
         return bool(room.has_linked_sessions)
     with scope(event=room.event):
         return _linked_submission_talkslots(room=room).exists()
+
+
+def linked_submission_talks_for_room(room):
+    """Return WIP schedule talk slots linked to submissions in this room."""
+    from django_scopes import scope
+
+    with scope(event=room.event):
+        return list(
+            _linked_submission_talkslots(room=room, schedule=room.event.wip_schedule)
+            .select_related('submission')
+            .prefetch_related('submission__speakers')
+            .order_by('start', 'submission__title')
+        )
+
+
+def schedule_editor_room_url(event, room) -> str:
+    """Build a schedule-editor URL that focuses a single room."""
+    return f'{event.orga_urls.schedule}?room={room.pk}'
+
+
+def unassign_linked_sessions_from_room(room) -> int:
+    """
+    Remove this room from all submission-linked talk slots.
+
+    WIP slots are fully unscheduled (room/start/end cleared), matching the
+    schedule editor unassign action. Released schedule slots only clear the
+    room so historical times remain but the room can be deleted.
+
+    Returns the number of WIP sessions unassigned (what the UI lists).
+    """
+    from django.utils.timezone import now
+    from django_scopes import scope
+
+    with scope(event=room.event):
+        linked = _linked_submission_talkslots(room=room)
+        wip_schedule = room.event.wip_schedule
+        timestamp = now()
+        wip_count = linked.filter(schedule=wip_schedule).update(
+            room=None,
+            start=None,
+            end=None,
+            updated=timestamp,
+        )
+        linked.exclude(schedule=wip_schedule).update(
+            room=None,
+            updated=timestamp,
+        )
+        return wip_count
+
+
+def validate_room_can_be_deleted(room) -> None:
+    """Raise ValidationError if the room has submission-linked schedule slots."""
+    if room.pk and room_has_linked_submissions(room):
+        raise ValidationError(ROOM_DELETE_LINKED_SESSIONS_MESSAGE)
 
 
 def validate_is_unscheduled_change(room) -> None:

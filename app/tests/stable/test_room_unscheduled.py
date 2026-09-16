@@ -167,3 +167,40 @@ def test_validate_room_config_patch_ignores_read_only_body_fields(event):
         )
     assert validated_data == {'name': 'Updated'}
     assert update_fields == {'name'}
+
+
+@pytest.mark.django_db
+def test_room_cannot_be_deleted_with_linked_sessions(event):
+    from eventyay.base.models import Submission
+    from eventyay.base.models.room import (
+        ROOM_DELETE_LINKED_SESSIONS_MESSAGE,
+        validate_room_can_be_deleted,
+    )
+    from eventyay.base.services.room import soft_delete_room
+
+    with scope(event=event):
+        room = Room.objects.create(event=event, name='Scheduled')
+        empty_room = Room.objects.create(event=event, name='Empty')
+        submission = Submission.objects.create(
+            event=event,
+            title='Talk',
+            submission_type=event.submission_types.first(),
+        )
+        TalkSlot.objects.create(
+            room=room,
+            schedule=event.wip_schedule,
+            submission=submission,
+        )
+        validate_room_can_be_deleted(empty_room)
+        with pytest.raises(ValidationError) as excinfo:
+            validate_room_can_be_deleted(room)
+        assert str(ROOM_DELETE_LINKED_SESSIONS_MESSAGE) in excinfo.value.messages
+
+        with pytest.raises(ValidationError):
+            soft_delete_room(event, room, by_user=None)
+        room.refresh_from_db()
+        assert not room.deleted
+
+        soft_delete_room(event, empty_room, by_user=None)
+        empty_room.refresh_from_db()
+        assert empty_room.deleted
