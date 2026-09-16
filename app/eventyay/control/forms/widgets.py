@@ -54,26 +54,8 @@ class Select2ProductVarQuota(Select2ProductVarQuotaMixin, forms.Select):
     pass
 
 
-class Select2ProductVarQuotaMultiple(forms.SelectMultiple):
-    template_name = 'pretixcontrol/select2_widget.html'
+class MultipleProductVarQuotaWidget(forms.CheckboxSelectMultiple):
+    """Searchable checkbox grid for voucher product / variation / quota scope."""
 
-    def options(self, name, value, attrs=None):
-        if not value:
-            return
-        choice_dict = dict(self.choices)
-        for i, selected in enumerate(value):
-            if selected and selected in choice_dict:
-                yield self.create_option(
-                    None,
-                    selected,
-                    choice_dict[selected],
-                    True,
-                    i,
-                    subindex=None,
-                    attrs=attrs,
-                )
-
-    def optgroups(self, name, value, attrs=None):
-        if value:
-            return [(None, [c], i) for i, c in enumerate(self.options(name, value, attrs))]
-        return
+    template_name = 'pretixcontrol/product_grid_select.html'
+    option_template_name = 'pretixcontrol/multi_languages_grid_option.html'

@@ -43,8 +43,10 @@ def test_voucher_detail_hides_optional_for_valid_until_and_product(client, env):
     assert not _label(doc, 'Valid until').select('.optional')
     assert not _label(doc, 'Product').select('.optional')
     assert _label(doc, 'Comment').select('.optional')
-    selected = doc.select_one('#id_productvar option[selected]')
-    assert selected['value'] == ALL_PRODUCTS
+    assert doc.select_one('.language-grid-widget[data-product-grid-widget]')
+    selected = doc.select_one(f'input[name="productvar"][value="{ALL_PRODUCTS}"]')
+    assert selected is not None
+    assert selected.has_attr('checked')
 
 
 @override_settings(DEBUG=True)

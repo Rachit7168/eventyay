@@ -5,6 +5,7 @@ from io import StringIO
 from django import forms
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.core.validators import EmailValidator
+from django.db.models import Q
 from django.db.models.functions import Upper
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
@@ -15,7 +16,7 @@ from eventyay.base.email import get_available_placeholders
 from eventyay.base.forms import I18nModelForm, PlaceholderValidator
 from eventyay.base.models import Product, Voucher
 from eventyay.control.forms import SplitDateTimeField, SplitDateTimePickerWidget
-from eventyay.control.forms.widgets import Select2, Select2ProductVarQuotaMultiple
+from eventyay.control.forms.widgets import MultipleProductVarQuotaWidget, Select2
 from eventyay.control.signals import voucher_form_validation
 from eventyay.helpers.models import modelcopy
 
@@ -29,7 +30,7 @@ class FakeChoiceField(forms.ChoiceField):
 
 
 class FakeMultipleChoiceField(forms.MultipleChoiceField):
-    """Accept Select2 AJAX values that are not preloaded into ``choices``."""
+    """Accept values that may not be in the preloaded choice list during partial posts."""
 
     def valid_value(self, value):
         return True
@@ -40,6 +41,27 @@ class FakeMultipleChoiceField(forms.MultipleChoiceField):
         if not isinstance(value, (list, tuple)):
             value = [value]
         return [str(v) for v in value if v not in (None, '')]
+
+
+def build_productvar_choices(event):
+    """Build product / variation / quota choices for voucher scope selection."""
+    choices = [(ALL_PRODUCTS, _('All products'))]
+    products = (
+        event.products.filter(Q(category__isnull=True) | Q(category__is_addon=False))
+        .prefetch_related('variations')
+        .order_by('category__position', 'category_id', 'position', 'pk')
+    )
+    for product in products:
+        variations = list(product.variations.all())
+        if variations:
+            choices.append((str(product.pk), _('{product} – Any variation').format(product=product)))
+            for variation in variations:
+                choices.append(('%d-%d' % (product.pk, variation.pk), '%s – %s' % (str(product), variation.value)))
+        else:
+            choices.append((str(product.pk), str(product)))
+    for quota in event.quotas.order_by('name', 'pk'):
+        choices.append(('q-%d' % quota.pk, _('Any product in quota "{quota}"').format(quota=quota)))
+    return choices
 
 
 class VoucherForm(I18nModelForm):
@@ -126,50 +148,9 @@ class VoucherForm(I18nModelForm):
         elif 'subevent':
             del self.fields['subevent']
 
-        choices = []
-        selected = []
-        if 'productvar' in initial or (self.data and 'productvar' in self.data):
-            if self.data and 'productvar' in self.data:
-                raw = self.data.getlist('productvar') if hasattr(self.data, 'getlist') else self.data.get('productvar')
-                if not isinstance(raw, (list, tuple)):
-                    raw = [raw] if raw else []
-            else:
-                raw = initial.get('productvar') or []
-                if not isinstance(raw, (list, tuple)):
-                    raw = [raw] if raw else []
-            selected = [str(v) for v in raw if v]
-            for iv in selected:
-                if iv == ALL_PRODUCTS:
-                    choices.append((ALL_PRODUCTS, _('All products')))
-                elif iv.startswith('q-'):
-                    q = self.instance.event.quotas.get(pk=iv[2:])
-                    choices.append(('q-%d' % q.pk, _('Any product in quota "{quota}"').format(quota=q)))
-                elif '-' in iv:
-                    productid, varid = iv.split('-')
-                    i = self.instance.event.products.get(pk=productid)
-                    v = i.variations.get(pk=varid)
-                    choices.append(('%d-%d' % (i.pk, v.pk), '%s – %s' % (str(i), v.value)))
-                elif iv:
-                    i = self.instance.event.products.get(pk=iv)
-                    if i.variations.exists():
-                        choices.append((str(i.pk), _('{product} – Any variation').format(product=i)))
-                    else:
-                        choices.append((str(i.pk), str(i)))
-
+        choices = build_productvar_choices(instance.event)
         self.fields['productvar'].choices = choices
-        self.fields['productvar'].widget = Select2ProductVarQuotaMultiple(
-            attrs={
-                'data-model-select2': 'generic',
-                'data-select2-url': reverse(
-                    'control:event.vouchers.productselect2',
-                    kwargs={
-                        'event': instance.event.slug,
-                        'organizer': instance.event.organizer.slug,
-                    },
-                ),
-                'data-placeholder': _('All products'),
-            }
-        )
+        self.fields['productvar'].widget = MultipleProductVarQuotaWidget()
         self.fields['productvar'].required = False
         self.fields['productvar'].hide_optional = True
         self.fields['productvar'].widget.choices = self.fields['productvar'].choices
