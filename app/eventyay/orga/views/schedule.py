@@ -452,15 +452,23 @@ class TalkUpdate(PermissionRequired, View):
             else:
                 talk.end = talk.start + dt.timedelta(minutes=talk.submission.get_duration())
             room_pk = data['room'] or getattr(talk.room, 'pk', None)
-            room = rooms_for_talk_assignment(
-                request.event,
-                has_submission=bool(talk.submission_id),
-            ).get(pk=room_pk)
-            talk.room = room
-            if not talk.submission:
-                new_description = LazyI18nString(data.get('title', ''))
-                talk.description = new_description if str(new_description) else talk.description
-            talk.save(update_fields=['start', 'end', 'room', 'description', 'updated'])
+            try:
+                with transaction.atomic():
+                    # Lock the room row with soft_delete_room so a delete cannot
+                    # land between room lookup and talk.save().
+                    room = rooms_for_talk_assignment(
+                        request.event,
+                        has_submission=bool(talk.submission_id),
+                    ).select_for_update().get(pk=room_pk)
+                    talk.room = room
+                    if not talk.submission:
+                        new_description = LazyI18nString(data.get('title', ''))
+                        talk.description = (
+                            new_description if str(new_description) else talk.description
+                        )
+                    talk.save(update_fields=['start', 'end', 'room', 'description', 'updated'])
+            except Room.DoesNotExist:
+                return JsonResponse({'error': 'Room not found'})
             talk.refresh_from_db()
         else:
             talk.start = None

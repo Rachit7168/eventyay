@@ -155,6 +155,27 @@ def test_talk_slot_cannot_use_unscheduled_room(event):
 
 
 @pytest.mark.django_db
+def test_talk_slot_cannot_use_deleted_room(event):
+    with scope(event=event):
+        room = Room.objects.create(event=event, name='Gone', deleted=True)
+        submission = Submission.objects.create(
+            event=event,
+            title='Talk',
+            submission_type=event.submission_types.first(),
+        )
+        with pytest.raises(ValidationError) as excinfo:
+            validate_talk_slot_room(room)
+        assert 'room' in excinfo.value.message_dict
+        slot = TalkSlot(
+            room=room,
+            schedule=event.wip_schedule,
+            submission=submission,
+        )
+        with pytest.raises(ValidationError):
+            slot.save()
+
+
+@pytest.mark.django_db
 def test_validate_room_config_patch_ignores_read_only_body_fields(event):
     from eventyay.base.services.room import validate_room_config_patch
 
