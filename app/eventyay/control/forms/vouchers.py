@@ -43,11 +43,18 @@ class FakeMultipleChoiceField(forms.MultipleChoiceField):
         return [str(v) for v in value if v not in (None, '')]
 
 
-def build_productvar_choices(event):
-    """Build product / variation / quota choices for voucher scope selection."""
+def build_productvar_choices(event, extra_products=None):
+    """Build product / variation / quota choices for voucher scope selection.
+
+    ``extra_products`` keeps currently selected products visible when editing,
+    including legacy add-on selections that new vouchers cannot choose.
+    """
     choices = [(ALL_PRODUCTS, _('All products'))]
+    extra_pks = {p.pk for p in (extra_products or []) if getattr(p, 'pk', None)}
     products = (
-        event.products.filter(Q(category__isnull=True) | Q(category__is_addon=False))
+        event.products.filter(
+            Q(category__isnull=True) | Q(category__is_addon=False) | Q(pk__in=extra_pks)
+        )
         .prefetch_related('variations')
         .order_by('category__position', 'category_id', 'position', 'pk')
     )
@@ -148,7 +155,12 @@ class VoucherForm(I18nModelForm):
         elif 'subevent':
             del self.fields['subevent']
 
-        choices = build_productvar_choices(instance.event)
+        extra_products = []
+        if instance.pk:
+            extra_products.extend(instance.limit_products.all())
+            if instance.product_id:
+                extra_products.append(instance.product)
+        choices = build_productvar_choices(instance.event, extra_products=extra_products)
         self.fields['productvar'].choices = choices
         self.fields['productvar'].widget = MultipleProductVarQuotaWidget()
         self.fields['productvar'].required = False

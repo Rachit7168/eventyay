@@ -506,11 +506,11 @@ def event_has_redeemable_voucher_products(event, subevent=None, channel='web'):
     if event.has_subevents:
         vouchers = list(active_vouchers.filter(
             Q(subevent__in=subevents_to_check) | Q(subevent__isnull=True)
-        ).select_related('product', 'quota'))
+        ).select_related('product', 'quota').prefetch_related('limit_products', 'limit_variations'))
     else:
         vouchers = list(active_vouchers.filter(
             Q(subevent__isnull=True)
-        ).select_related('product', 'quota'))
+        ).select_related('product', 'quota').prefetch_related('limit_products', 'limit_variations'))
 
     if not vouchers:
         event.cache.set(cache_key, False, 10)

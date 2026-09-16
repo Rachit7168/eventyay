@@ -581,9 +581,12 @@ class Voucher(LoggedModel):
             return product.quotas.filter(pk=self.quota_id).exists()
 
         if self.pk:
-            limit_variation_ids = set(self.limit_variations.values_list('pk', flat=True))
-            limit_product_ids = set(self.limit_products.values_list('pk', flat=True))
-            limit_variation_product_ids = set(self.limit_variations.values_list('product_id', flat=True))
+            # Prefer .all() so prefetched relations are reused (values_list bypasses prefetch).
+            limit_variations = list(self.limit_variations.all())
+            limit_products = list(self.limit_products.all())
+            limit_variation_ids = {v.pk for v in limit_variations}
+            limit_product_ids = {p.pk for p in limit_products}
+            limit_variation_product_ids = {v.product_id for v in limit_variations}
         else:
             limit_variation_ids = set()
             limit_product_ids = set()
