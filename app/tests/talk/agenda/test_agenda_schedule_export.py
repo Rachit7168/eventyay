@@ -270,6 +270,7 @@ def test_schedule_speaker_ical_export(
 
 
 @pytest.mark.django_db
+@override_settings(SITE_URL='https://example.com')
 def test_schedule_calendar_redirect_google_calendar(slot, client):
     url = reverse(
         'agenda:export.google-calendar',
@@ -305,6 +306,23 @@ def test_schedule_calendar_redirect_my_google_calendar_anonymous_redirects_to_lo
     response = client.get(url, follow=False)
     assert response.status_code == 302
     assert response['Location'] == build_login_url_with_next(url)
+
+
+@pytest.mark.django_db
+@override_settings(SITE_URL='https://example.com')
+def test_schedule_calendar_redirect_my_google_calendar_authenticated(slot, client, orga_user):
+    url = reverse(
+        'agenda:export.my-google-calendar',
+        kwargs={'event': slot.submission.event.slug},
+    )
+    client.force_login(orga_user)
+    response = client.get(url, follow=False)
+    assert response.status_code == 302
+    assert 'calendar.google.com/calendar/r?' in response['Location']
+    cid = parse_qs(urlparse(response['Location']).query).get('cid', [None])[0]
+    assert cid is not None
+    assert cid.startswith('https://'), cid
+    assert '/schedule/export/schedule-my.ics/' in cid
 
 
 @pytest.mark.django_db
