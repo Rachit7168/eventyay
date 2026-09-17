@@ -43,23 +43,30 @@ class UploadMixin:
     def user(self):
         # Upload is allowed if the user has update or chat rights in any room
         auth = get_authorization_header(self.request).decode().split()
-        if len(auth) != 2:
-            raise PermissionDenied()
+        res = None
+        
+        if len(auth) == 2:
+            if auth[0].lower() == "bearer":
+                token = self.event.decode_token(auth[1])
+                if token:
+                    try:
+                        res = login(event=self.event, token=token)
+                    except AuthError:
+                        pass
+            elif auth[0].lower() == "client":
+                try:
+                    res = login(event=self.event, client_id=auth[1])
+                except AuthError:
+                    pass
 
-        if auth[0].lower() == "bearer":
-            token = self.event.decode_token(auth[1])
-            if not token:
-                raise PermissionDenied()
+        # Fallback to session authentication
+        if not res and getattr(self.request, "user", None) and self.request.user.is_authenticated:
             try:
-                res = login(event=self.event, token=token)
+                res = login(event=self.event, platform_user=self.request.user)
             except AuthError:
-                raise PermissionDenied()
-        elif auth[0].lower() == "client":
-            try:
-                res = login(event=self.event, client_id=auth[1])
-            except AuthError:
-                raise PermissionDenied()
-        else:
+                pass
+
+        if not res:
             raise PermissionDenied()
 
         if any(p.value in res.event_config["permissions"] for p in self.permissions):
@@ -67,7 +74,7 @@ class UploadMixin:
         for room in res.event_config["rooms"]:
             if any(p.value in room["permissions"] for p in self.permissions):
                 return res.user
-        raise PermissionDenied()
+        print("PermissionDenied at line", __import__("inspect").currentframe().f_lineno); raise PermissionDenied()
 
 
 def get_sizes(size, imgsize):
