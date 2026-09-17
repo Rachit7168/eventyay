@@ -84,7 +84,7 @@
 }
 
 /* Select2 appends the menu to body; keep it aligned with composer controls. */
-body > .select2-container .select2-dropdown {
+body > .select2-container.mail-composer-dropdown .select2-dropdown {
   border-color: var(--color-border, #ccc);
   border-radius: 0 0 var(--composer-border-radius, 8px) var(--composer-border-radius, 8px);
   box-shadow: none;
@@ -92,13 +92,13 @@ body > .select2-container .select2-dropdown {
   overflow: hidden;
 }
 
-body > .select2-container .select2-dropdown--above {
+body > .select2-container.mail-composer-dropdown .select2-dropdown--above {
   border-radius: var(--composer-border-radius, 8px) var(--composer-border-radius, 8px) 0 0;
   margin-bottom: -1px;
   margin-top: 0;
 }
 
-body > .select2-container .select2-results__option {
+body > .select2-container.mail-composer-dropdown .select2-results__option {
   border-radius: 0;
   font-size: var(--composer-font-size, 14px);
   padding: 8px 12px;

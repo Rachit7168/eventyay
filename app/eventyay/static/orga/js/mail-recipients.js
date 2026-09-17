@@ -252,6 +252,12 @@ const initRecipientPreview = () => {
         })
     })
 
+    if (window.jQuery) {
+        window.jQuery('.mail-composer select').on('select2:open', function () {
+            window.jQuery('body > .select2-container.select2-container--open').addClass('mail-composer-dropdown')
+        })
+    }
+
     refreshCount()
 }
 
