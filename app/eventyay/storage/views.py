@@ -8,6 +8,7 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.files import File
 from django.core.files.base import ContentFile
 from django.http import JsonResponse
+from django.middleware.csrf import CsrfViewMiddleware
 from django.shortcuts import get_object_or_404
 from django.utils.decorators import method_decorator
 from django.utils.functional import cached_property
@@ -29,6 +30,26 @@ from eventyay.storage.schedule_to_json import convert
 logger = logging.getLogger(__name__)
 
 
+class _CSRFCheck(CsrfViewMiddleware):
+    """CSRF middleware that returns the failure reason instead of an HTML response."""
+
+    def _reject(self, request, reason):
+        return reason
+
+
+def _enforce_csrf(request):
+    """Require a valid CSRF token for session-authenticated uploads."""
+
+    def _dummy_get_response(request):  # pragma: no cover
+        return None
+
+    check = _CSRFCheck(_dummy_get_response)
+    check.process_request(request)
+    reason = check.process_view(request, None, (), {})
+    if reason:
+        raise PermissionDenied("CSRF verification failed.")
+
+
 class UploadMixin:
     @method_decorator(csrf_exempt)
     def dispatch(self, request, *args, **kwargs):
@@ -44,7 +65,7 @@ class UploadMixin:
         # Upload is allowed if the user has update or chat rights in any room
         auth = get_authorization_header(self.request).decode().split()
         res = None
-        
+
         if len(auth) == 2:
             if auth[0].lower() == "bearer":
                 token = self.event.decode_token(auth[1])
@@ -59,8 +80,9 @@ class UploadMixin:
                 except AuthError:
                     pass
 
-        # Fallback to session authentication
+        # Fallback to session authentication (CSRF required; token auth stays exempt)
         if not res and getattr(self.request, "user", None) and self.request.user.is_authenticated:
+            _enforce_csrf(self.request)
             try:
                 res = login(event=self.event, platform_user=self.request.user)
             except AuthError:
@@ -74,7 +96,7 @@ class UploadMixin:
         for room in res.event_config["rooms"]:
             if any(p.value in room["permissions"] for p in self.permissions):
                 return res.user
-        print("PermissionDenied at line", __import__("inspect").currentframe().f_lineno); raise PermissionDenied()
+        raise PermissionDenied()
 
 
 def get_sizes(size, imgsize):
