@@ -107,6 +107,10 @@ def unmodified_image(data, image):
     """Build the upload tuple for an image that is stored without recompression."""
     if hasattr(data, "seek"):
         data.seek(0)
+    # The suffix has to describe the payload, because media servers derive the content
+    # type of a stored file from its path rather than from StoredFile.type.
+    extension = ".jpg" if image.format == "JPEG" else f".{image.format.lower()}"
+    data.name = str(Path(data.name).with_suffix(extension))
     return Image.MIME.get(image.format), data, data.size
 
 
@@ -208,15 +212,21 @@ class UploadView(UploadMixin, View):
         if getattr(image, "is_animated", False) or original_ext not in REWRITABLE_ORIGINAL_EXTENSIONS:
             return unmodified_image(data, image)
 
+        max_dimensions = self.requested_dimensions() or (
+            settings.IMAGE_DEFAULT_MAX_WIDTH,
+            settings.IMAGE_DEFAULT_MAX_HEIGHT,
+        )
         optimized, optimized_ext = encode_optimized(
             image,
             original_ext,
-            max_dimensions=self.requested_dimensions(),
+            max_dimensions=max_dimensions,
             keep_format=True,
         )
-        # Recompressing a lossless image can make it bigger, but JPEG is always re-encoded
-        # so that its EXIF metadata never reaches storage.
-        if optimized_ext == original_ext != ".jpg" and len(optimized) >= data.size:
+        # Recompressing a lossless image can make it bigger, but an image that had to be
+        # scaled down is always stored recompressed, and so is JPEG, whose EXIF metadata
+        # must never reach storage.
+        fits_dimensions = image.width <= max_dimensions[0] and image.height <= max_dimensions[1]
+        if fits_dimensions and optimized_ext == original_ext != ".jpg" and len(optimized) >= data.size:
             return unmodified_image(data, image)
 
         return (
