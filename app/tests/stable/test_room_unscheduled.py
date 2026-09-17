@@ -176,6 +176,37 @@ def test_talk_slot_cannot_use_deleted_room(event):
 
 
 @pytest.mark.django_db
+def test_quick_schedule_form_rejects_deleted_room(event):
+    from eventyay.schedule.forms import QuickScheduleForm
+
+    with scope(event=event):
+        room = Room.objects.create(event=event, name='Stage')
+        submission = Submission.objects.create(
+            event=event,
+            title='Talk',
+            submission_type=event.submission_types.first(),
+        )
+        slot = TalkSlot.objects.create(
+            schedule=event.wip_schedule,
+            submission=submission,
+        )
+        form = QuickScheduleForm(
+            event=event,
+            instance=slot,
+            data={
+                'room': room.pk,
+                'start_date': event.date_from.date().isoformat(),
+                'start_time': '10:00',
+            },
+        )
+        assert form.is_valid(), form.errors
+        room.deleted = True
+        room.save(update_fields=['deleted'])
+        with pytest.raises(Room.DoesNotExist):
+            form.save()
+
+
+@pytest.mark.django_db
 def test_validate_room_config_patch_ignores_read_only_body_fields(event):
     from eventyay.base.services.room import validate_room_config_patch
 
