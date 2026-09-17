@@ -2,6 +2,7 @@ import json
 import os
 from pathlib import Path
 from datetime import timedelta
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 import urllib3
@@ -277,7 +278,10 @@ def test_schedule_calendar_redirect_google_calendar(slot, client):
     response = client.get(url, follow=False)
     assert response.status_code == 302
     assert 'calendar.google.com/calendar/r?' in response['Location']
-    assert 'cid=' in response['Location']
+    cid = parse_qs(urlparse(response['Location']).query).get('cid', [None])[0]
+    assert cid is not None
+    assert cid.startswith('https://'), cid
+    assert '/schedule/export/schedule.ics' in cid
 
 
 @pytest.mark.django_db

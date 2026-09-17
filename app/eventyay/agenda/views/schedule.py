@@ -610,7 +610,9 @@ class CalendarRedirectView(EventPermissionRequired, ScheduleMixin, TemplateView)
             ics_url = f'{ics_url}?featured=true'
 
         if is_google:
-            google_url = f'https://calendar.google.com/calendar/r?{urlencode({"cid": ics_url.replace("https://", "http://")})}'
+            # Keep the ICS URL scheme as-is. Forcing http:// breaks hosts that serve
+            # app paths only over HTTPS (Google then creates an empty calendar).
+            google_url = f'https://calendar.google.com/calendar/r?{urlencode({"cid": ics_url})}'
             return HttpResponseRedirect(google_url)
 
         parsed = urlparse(ics_url)
