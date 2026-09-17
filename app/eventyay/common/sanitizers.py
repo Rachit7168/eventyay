@@ -87,7 +87,7 @@ def _clean(
 
 _PAGE_TAGS: frozenset[str] = _RICH_TEXT_TAGS | frozenset({'img'})
 _PAGE_ATTRIBUTES: dict[str, set[str]] = {
-    'a': {'href'},
+    'a': {'href', 'rel'},
     'img': {'src', 'alt', 'width', 'height', 'title'},
 }
 

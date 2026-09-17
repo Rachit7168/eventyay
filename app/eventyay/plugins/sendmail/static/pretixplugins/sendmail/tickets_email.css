@@ -74,10 +74,8 @@
 
 /*
  * Talks base.css and pretixcontrol both style .alert differently. On this page
- * both sheets load,
-so reset to one Talks-like layout that stays inside the
- * content column (no sidebar overlap,
-no double icon padding).
+ * both sheets load, so reset to one Talks-like layout that stays inside the
+ * content column (no sidebar overlap, no double icon padding).
  */
 #page-wrapper .container-fluid > .alert,
 .mail-composer .alert {
@@ -164,8 +162,7 @@ no double icon padding).
   min-width: 0;
 }
 
-/* Keep field tips/errors under the control,
-not under the label column. */
+/* Keep field tips/errors under the control, not under the label column. */
 .mail-composer .form-group.row > .col-md-9 > .form-text,
 .mail-composer .form-group.row > .col-md-9 > .invalid-feedback,
 .mail-composer .composer-filters .form-group .form-text,

@@ -381,9 +381,37 @@ function buildHeadingMenu(editor) {
     toggle.setAttribute('aria-expanded', String(!open))
   })
 
-  document.addEventListener('click', () => {
+  const onDocumentClick = () => {
     dropdown.hidden = true
     toggle.setAttribute('aria-expanded', 'false')
+  }
+  document.addEventListener('click', onDocumentClick)
+  editor.on('destroy', () => {
+    document.removeEventListener('click', onDocumentClick)
+  })
+
+  wrapper.addEventListener('keydown', (e) => {
+    if (dropdown.hidden) return
+
+    if (e.key === 'Escape') {
+      e.preventDefault()
+      dropdown.hidden = true
+      toggle.setAttribute('aria-expanded', 'false')
+      toggle.focus()
+      return
+    }
+
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault()
+      const currentIdx = optionEls.findIndex(el => el === document.activeElement)
+      let nextIdx = 0
+      if (currentIdx !== -1) {
+        nextIdx = e.key === 'ArrowDown'
+          ? (currentIdx + 1) % optionEls.length
+          : (currentIdx - 1 + optionEls.length) % optionEls.length
+      }
+      optionEls[nextIdx].focus()
+    }
   })
 
   wrapper.syncActive = () => {

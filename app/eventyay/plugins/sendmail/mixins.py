@@ -94,7 +94,9 @@ def calculate_attendee_recipient_count(event, qmf):
     for order in orders.prefetch_related('all_positions__product'):
         order_fallback_needed = False
         attendee_found = False
-        for pos in order.positions.all():
+        for pos in order.all_positions.all():
+            if pos.canceled:
+                continue
             if pos.attendee_email:
                 attendee_found = True
                 unique_emails.add(pos.attendee_email.strip().lower())

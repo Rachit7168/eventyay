@@ -438,7 +438,9 @@ class EmailQueue(models.Model):
             attendee_found = False
             individual_positions = set(filters.individual_attendees) if recipients_mode == "individual" else None
 
-            for pos in order.positions.all():
+            for pos in order.all_positions.all():
+                if pos.canceled:
+                    continue
                 if individual_positions is not None and pos.pk not in individual_positions:
                     continue
                 if pos.attendee_email:
@@ -460,7 +462,9 @@ class EmailQueue(models.Model):
             ):
                 email = order.email.strip().lower()
                 recipients[email]["orders"].add(order.pk)
-                for pos in order.positions.all():
+                for pos in order.all_positions.all():
+                    if pos.canceled:
+                        continue
                     if individual_positions is not None and pos.pk not in individual_positions:
                         continue
                     recipients[email]["positions"].add(pos.pk)
@@ -471,7 +475,9 @@ class EmailQueue(models.Model):
             if recipients_mode in ("both", "orders") and order.email:
                 email = order.email.strip().lower()
                 recipients[email]["orders"].add(order.pk)
-                for pos in order.positions.all():
+                for pos in order.all_positions.all():
+                    if pos.canceled:
+                        continue
                     recipients[email]["positions"].add(pos.pk)
                     recipients[email]["products"].add(pos.product_id)
 

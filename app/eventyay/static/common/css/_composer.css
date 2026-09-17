@@ -912,9 +912,12 @@
   gap: 8px;
   /* Align with Subject/Message inputs (label column is 25%). */
   margin-bottom: 16px;
-  margin-left: 25%;
   padding-bottom: 0;
   padding-right: 15px;
+}
+
+.form-horizontal #mail-language-tabs {
+  margin-left: 25%;
 }
 
 /* Keep chip styles above shared .mail-composer button rules (tickets + talks). */

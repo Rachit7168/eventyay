@@ -606,7 +606,7 @@ class MailForm(ScheduledAtValidationMixin, forms.Form):
             order_fallback_needed = False
             attendee_found = False
 
-            for pos in order.positions.all():
+            for pos in order.all_positions.all():
                 if pos.canceled:
                     continue
                 if individual_positions is not None and pos.pk not in individual_positions:
