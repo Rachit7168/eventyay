@@ -916,7 +916,8 @@
   padding-right: 15px;
 }
 
-.form-horizontal #mail-language-tabs {
+.form-horizontal #mail-language-tabs,
+.mail-composer-horizontal #mail-language-tabs {
   margin-left: 25%;
 }
 
