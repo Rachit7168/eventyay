@@ -5,7 +5,16 @@ from django.urls import reverse
 from django.utils.timezone import now
 from django_scopes import scope
 
-from eventyay.base.models import Event, Organizer, Product, Quota, Team, User, Voucher
+from eventyay.base.models import (
+    Event,
+    Organizer,
+    Product,
+    ProductVariation,
+    Quota,
+    Team,
+    User,
+    Voucher,
+)
 from eventyay.control.forms.vouchers import ALL_PRODUCTS, VoucherForm
 
 
@@ -149,8 +158,6 @@ def test_voucher_form_multi_product_selection(env):
 def test_voucher_form_drops_variations_covered_by_product_wide(env):
     organizer, event, user, product = env
     with scope(organizer=organizer, event=event):
-        from eventyay.base.models import ProductVariation
-
         product_with_vars = Product.objects.create(event=event, name='Shirt', default_price=12)
         red = ProductVariation.objects.create(product=product_with_vars, value='Red', default_price=12)
         ProductVariation.objects.create(product=product_with_vars, value='Blue', default_price=12)
