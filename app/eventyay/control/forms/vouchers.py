@@ -160,6 +160,16 @@ class VoucherForm(I18nModelForm):
             extra_products.extend(instance.limit_products.all())
             if instance.product_id:
                 extra_products.append(instance.product)
+        # Include products from initial productvar (e.g. bulk copy with pk=None).
+        for token in initial.get('productvar') or []:
+            token = str(token)
+            if not token or token == ALL_PRODUCTS or token.startswith('q-'):
+                continue
+            product_id = token.split('-', 1)[0]
+            try:
+                extra_products.append(instance.event.products.get(pk=product_id))
+            except (Product.DoesNotExist, ValueError):
+                continue
         choices = build_productvar_choices(instance.event, extra_products=extra_products)
         self.fields['productvar'].choices = choices
         self.fields['productvar'].widget = MultipleProductVarQuotaWidget()
@@ -219,6 +229,10 @@ class VoucherForm(I18nModelForm):
                 if product.pk not in seen_products:
                     limit_products.append(product)
                     seen_products.add(product.pk)
+
+        # Product-wide "any variation" supersedes specific variation picks for that product.
+        product_wide_ids = {p.pk for p in limit_products}
+        limit_variations = [v for v in limit_variations if v.product_id not in product_wide_ids]
 
         # Single selection keeps the legacy FK fields for API / display compatibility
         if len(limit_products) + len(limit_variations) == 1:
@@ -305,6 +319,12 @@ class VoucherForm(I18nModelForm):
         Voucher.clean_voucher_code(data, self.instance.event, self.instance.pk)
         Voucher.clean_value_and_budget(data)
         if 'seat' in self.fields and data.get('seat'):
+            limit_products = getattr(self, '_limit_products', [])
+            limit_variations = getattr(self, '_limit_variations', [])
+            if limit_products or limit_variations:
+                raise ValidationError(
+                    _('You cannot select a specific seat together with multiple products.')
+                )
             self.instance.seat = Voucher.clean_seat_id(
                 data,
                 self.instance.product,
