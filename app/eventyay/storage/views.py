@@ -81,7 +81,7 @@ class UploadMixin:
                     pass
 
         # Fallback to session authentication (CSRF required; token auth stays exempt)
-        if not res and getattr(self.request, "user", None) and self.request.user.is_authenticated:
+        if not auth and not res and getattr(self.request, "user", None) and self.request.user.is_authenticated:
             _enforce_csrf(self.request)
             try:
                 res = login(event=self.event, platform_user=self.request.user)
