@@ -1,11 +1,11 @@
 import logging
 from io import BytesIO
+from pathlib import Path
 
 from asgiref.sync import async_to_sync
 
 from django.conf import settings
 from django.core.exceptions import PermissionDenied, ValidationError
-from django.core.files import File
 from django.core.files.base import ContentFile
 from django.http import JsonResponse
 from django.middleware.csrf import CsrfViewMiddleware
@@ -15,11 +15,15 @@ from django.utils.functional import cached_property
 from django.utils.timezone import now
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
-from PIL import Image, ImageOps
-from PIL.Image import Resampling
+from PIL import Image
 from rest_framework.authentication import get_authorization_header
 
 from eventyay.base.models import Event
+from eventyay.common.image import (
+    IMAGE_EXTENSIONS,
+    REWRITABLE_ORIGINAL_EXTENSIONS,
+    encode_optimized,
+)
 from eventyay.consts import SizeKey
 from eventyay.core.permissions import Permission
 from eventyay.base.services.user import AuthError, login
@@ -30,20 +34,20 @@ from eventyay.storage.schedule_to_json import convert
 logger = logging.getLogger(__name__)
 
 
-class _CSRFCheck(CsrfViewMiddleware):
+class CSRFCheck(CsrfViewMiddleware):
     """CSRF middleware that returns the failure reason instead of an HTML response."""
 
     def _reject(self, request, reason):
         return reason
 
 
-def _enforce_csrf(request):
+def enforce_csrf(request):
     """Require a valid CSRF token for session-authenticated uploads."""
 
-    def _dummy_get_response(request):  # pragma: no cover
+    def dummy_get_response(request):  # pragma: no cover
         return None
 
-    check = _CSRFCheck(_dummy_get_response)
+    check = CSRFCheck(dummy_get_response)
     check.process_request(request)
     reason = check.process_view(request, None, (), {})
     if reason:
@@ -82,7 +86,7 @@ class UploadMixin:
 
         # Fallback to session authentication (CSRF required; token auth stays exempt)
         if not auth and not res and getattr(self.request, "user", None) and self.request.user.is_authenticated:
-            _enforce_csrf(self.request)
+            enforce_csrf(self.request)
             try:
                 res = login(event=self.event, platform_user=self.request.user)
             except AuthError:
@@ -99,22 +103,11 @@ class UploadMixin:
         raise PermissionDenied()
 
 
-def get_sizes(size, imgsize):
-    wfactor = min(1, size[0] / imgsize[0])
-    hfactor = min(1, size[1] / imgsize[1])
-
-    if wfactor == hfactor:
-        return int(imgsize[0] * hfactor), int(imgsize[1] * wfactor)
-    elif wfactor < hfactor:
-        return size[0], int(imgsize[1] * wfactor)
-    else:
-        return int(imgsize[0] * hfactor), size[1]
-
-
-def resize_image(image, size):
-    new_size = get_sizes(size, image.size)
-    image = image.resize(new_size, resample=Resampling.LANCZOS)
-    return image
+def unmodified_image(data, image):
+    """Build the upload tuple for an image that is stored without recompression."""
+    if hasattr(data, "seek"):
+        data.seek(0)
+    return Image.MIME.get(image.format), data, data.size
 
 
 class UploadView(UploadMixin, View):
@@ -173,7 +166,7 @@ class UploadView(UploadMixin, View):
         sf = StoredFile.objects.create(
             event=self.event,
             date=now(),
-            filename=request.FILES["file"].name,
+            filename=file.name,
             type=content_type,
             file=file,
             public=True,
@@ -206,49 +199,42 @@ class UploadView(UploadMixin, View):
         if hasattr(file, "seek"):
             file.seek(0)
 
-        image = original_image = Image.open(file)
-        image_modified = False
+        image = Image.open(file)
+        original_ext = Path(data.name).suffix.lower()
+        if original_ext == ".jpeg":
+            original_ext = ".jpg"
 
-        # before we resize or resave anything
-        if image.format == "JPEG":
-            image = ImageOps.exif_transpose(image)
-            image_modified = True
+        # Animated images lose their frames when re-encoded, so they are stored as they are.
+        if getattr(image, "is_animated", False) or original_ext not in REWRITABLE_ORIGINAL_EXTENSIONS:
+            return unmodified_image(data, image)
 
-        if self.request.POST.get("width") and self.request.POST.get("height"):
-            try:
-                image = resize_image(
-                    original_image,
-                    (
-                        int(self.request.POST.get("width")),
-                        int(self.request.POST.get("height")),
-                    ),
-                )
-                image_modified = True
-            except ValueError:
-                pass
-
-        o = BytesIO()
-        o.name = data.name
-        if image.format == "JPEG":
-            image_without_exif = Image.new(image.mode, image.size)
-            image_without_exif.putdata(image.getdata())
-            image_without_exif.save(
-                o, format="JPEG", quality=95
-            )  # Pillow's default JPEG quality is 75
-        elif not image_modified:
-            size = len(data)
-            if hasattr(data, "seek"):
-                data.seek(0)
-            return Image.MIME.get(image.format), data, size
-        else:
-            image.save(o, format=original_image.format)
-
-        o.seek(0)
-        return (
-            Image.MIME.get(original_image.format),
-            File(o, name=data.name),
-            len(o.getvalue()),
+        optimized, optimized_ext = encode_optimized(
+            image,
+            original_ext,
+            max_dimensions=self.requested_dimensions(),
+            keep_format=True,
         )
+        # Recompressing a lossless image can make it bigger, but JPEG is always re-encoded
+        # so that its EXIF metadata never reaches storage.
+        if optimized_ext == original_ext != ".jpg" and len(optimized) >= data.size:
+            return unmodified_image(data, image)
+
+        return (
+            IMAGE_EXTENSIONS[optimized_ext][0],
+            ContentFile(optimized, name=str(Path(data.name).with_suffix(optimized_ext))),
+            len(optimized),
+        )
+
+    def requested_dimensions(self):
+        """Bounding box the client asked the stored image to fit into, if any."""
+        width = self.request.POST.get("width")
+        height = self.request.POST.get("height")
+        if not (width and height):
+            return None
+        try:
+            return int(width), int(height)
+        except ValueError:
+            return None
 
 
 class ScheduleImportView(UploadMixin, View):

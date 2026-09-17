@@ -1,34 +1,124 @@
+from io import BytesIO
+from types import SimpleNamespace
+
 import pytest
 from django.core.exceptions import PermissionDenied
-from django.test import RequestFactory
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.middleware.csrf import get_token
+from django.test import Client, RequestFactory
+from django.urls import reverse
+from PIL import Image
 
-from eventyay.storage.views import _enforce_csrf
+from eventyay.base.models.storage_model import StoredFile
+from eventyay.core.permissions import Permission
+from eventyay.storage.views import enforce_csrf
 
 
-def test_session_upload_csrf_rejects_missing_token():
+def png_upload(name="avatar.png", size=(600, 400)):
+    """An upload whose payload is noisy enough to have a meaningful file size."""
+    buffer = BytesIO()
+    Image.effect_noise(size, 32).convert("RGB").save(buffer, format="PNG")
+    return SimpleUploadedFile(name, buffer.getvalue(), content_type="image/png")
+
+
+@pytest.fixture
+def session_client(user):
+    """A client authenticated by session only, with CSRF checks turned on."""
+    client = Client(enforce_csrf_checks=True)
+    client.force_login(user)
+    return client
+
+
+@pytest.fixture
+def granted_upload_permission(user, monkeypatch):
+    """
+    Grant upload permission to the session user.
+
+    The video login service needs a fully provisioned video event, which is not what
+    these tests are about, so only its permission payload is stubbed out.
+    """
+    monkeypatch.setattr(
+        "eventyay.storage.views.login",
+        lambda **kwargs: SimpleNamespace(
+            user=user,
+            event_config={"permissions": [Permission.ROOM_CHAT_SEND.value], "rooms": []},
+        ),
+    )
+
+
+def upload_with_csrf_token(client, event, csrf_cookie_name, **data):
+    csrftoken = get_token(RequestFactory().get("/"))
+    client.cookies[csrf_cookie_name] = csrftoken
+    return client.post(
+        reverse("storage:upload", kwargs={"event_id": event.id}),
+        data=data,
+        HTTP_X_CSRFTOKEN=csrftoken,
+    )
+
+
+def test_enforce_csrf_rejects_missing_token():
     request = RequestFactory().post("/storage/evt/upload/")
     with pytest.raises(PermissionDenied, match="CSRF verification failed"):
-        _enforce_csrf(request)
+        enforce_csrf(request)
 
 
 @pytest.mark.django_db
-def test_session_upload_success_with_csrf_token(client, event, organizer_client):
-    # organizer_client is already authenticated as a user with event permissions
-    from django.urls import reverse
-    from django.core.files.uploadedfile import SimpleUploadedFile
-
-    # Make a GET request to obtain the CSRF cookie
-    organizer_client.get("/")
-    csrftoken = organizer_client.cookies["csrftoken"].value
-
-    file = SimpleUploadedFile("test.png", b"file_content", content_type="image/png")
-    upload_url = reverse("storage:upload", kwargs={"event_id": event.id})
-    
-    response = organizer_client.post(
-        upload_url,
-        data={"file": file},
-        HTTP_X_CSRFTOKEN=csrftoken,
+def test_session_upload_rejects_missing_csrf_token(event, session_client, granted_upload_permission):
+    response = session_client.post(
+        reverse("storage:upload", kwargs={"event_id": event.id}),
+        data={"file": png_upload()},
     )
-    
+
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_session_upload_resizes_to_requested_dimensions(
+    event, session_client, granted_upload_permission, settings, tmp_path
+):
+    settings.MEDIA_ROOT = str(tmp_path)
+    upload = png_upload()
+
+    response = upload_with_csrf_token(
+        session_client, event, settings.CSRF_COOKIE_NAME, file=upload, width="96", height="96"
+    )
+
     assert response.status_code == 201
     assert "url" in response.json()
+    stored_file = StoredFile.objects.get()
+    assert stored_file.type == "image/png"
+    assert stored_file.file.size < upload.size
+    with Image.open(stored_file.file) as stored_image:
+        assert max(stored_image.size) <= 96
+
+
+@pytest.mark.django_db
+def test_session_upload_strips_jpeg_metadata(event, session_client, granted_upload_permission, settings, tmp_path):
+    settings.MEDIA_ROOT = str(tmp_path)
+    image = Image.effect_noise((200, 100), 32).convert("RGB")
+    exif = image.getexif()
+    exif[274] = 3  # orientation: rotated by 180 degrees
+    buffer = BytesIO()
+    image.save(buffer, format="JPEG", exif=exif)
+    upload = SimpleUploadedFile("photo.jpg", buffer.getvalue(), content_type="image/jpeg")
+
+    response = upload_with_csrf_token(session_client, event, settings.CSRF_COOKIE_NAME, file=upload)
+
+    assert response.status_code == 201
+    stored_file = StoredFile.objects.get()
+    assert stored_file.type == "image/jpeg"
+    assert stored_file.filename == "photo.jpg"
+    with Image.open(stored_file.file) as stored_image:
+        assert not dict(stored_image.getexif())
+
+
+@pytest.mark.django_db
+def test_session_upload_caps_oversized_image(event, session_client, granted_upload_permission, settings, tmp_path):
+    settings.MEDIA_ROOT = str(tmp_path)
+    upload = png_upload(size=(settings.IMAGE_DEFAULT_MAX_WIDTH + 400, 100))
+
+    response = upload_with_csrf_token(session_client, event, settings.CSRF_COOKIE_NAME, file=upload)
+
+    assert response.status_code == 201
+    with Image.open(StoredFile.objects.get().file) as stored_image:
+        assert stored_image.width == settings.IMAGE_DEFAULT_MAX_WIDTH
