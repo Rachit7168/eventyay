@@ -18,9 +18,9 @@ def test_giftcard_checkout_prepare_removes_stale_mismatched_card(event):
     prov = GiftCardPayment(event)
     
     request = MagicMock()
-    request.POST = {}
+    request.POST = {'giftcard': valid_gc.secret}
     
-    cs = {'gift_cards': [valid_gc.pk, stale_gc.pk], 'payment': 'giftcard'}
+    cs = {'gift_cards': [stale_gc.pk], 'payment': 'giftcard'}
     cart = {
         'positions': [MagicMock(total=Decimal('50.00'))],
         'invoice_address': None,
@@ -28,8 +28,7 @@ def test_giftcard_checkout_prepare_removes_stale_mismatched_card(event):
     }
     
     with patch('eventyay.base.payment.get_cart', return_value=[]), \
-         patch('eventyay.base.payment.cart_session', return_value=cs), \
-         patch('eventyay.base.payment.get_fees', return_value=[]):
+         patch('eventyay.base.payment.cart_session', return_value=cs):
          
          prov.checkout_prepare(request, cart)
          
