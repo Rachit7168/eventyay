@@ -1250,6 +1250,7 @@ class GiftCardPayment(BasePaymentProvider):
         return True
 
     def checkout_prepare(self, request: HttpRequest, cart: Dict[str, Any]) -> Union[bool, str, None]:
+        from .models import GiftCard
         for p in get_cart(request):
             if p.product.issue_giftcard:
                 messages.error(
@@ -1302,7 +1303,11 @@ class GiftCardPayment(BasePaymentProvider):
                 cart['raw'],
             )
             total += sum([f.value for f in fees])
-            remainder = total
+            
+            used_gcs = self.event.organizer.accepted_gift_cards.filter(pk__in=cs['gift_cards'])
+            gc_total = sum(g.value for g in used_gcs)
+            remainder = total - gc_total
+            
             if remainder > Decimal('0.00'):
                 del cs['payment']
                 messages.success(
@@ -1339,6 +1344,7 @@ class GiftCardPayment(BasePaymentProvider):
             )
 
     def payment_prepare(self, request: HttpRequest, payment: OrderPayment) -> Union[bool, str, None]:
+        from .models import GiftCard
         for p in payment.order.positions.all():
             if p.product.issue_giftcard:
                 messages.error(
