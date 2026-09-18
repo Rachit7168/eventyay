@@ -1207,8 +1207,6 @@ class GiftCardPayment(BasePaymentProvider):
         return get_template('pretixcontrol/giftcards/checkout_confirm.html').render({})
 
     def refund_control_render(self, request, refund) -> str:
-        from .models import GiftCard
-
         if 'gift_card' in refund.info_data:
             gc = GiftCard.objects.get(pk=refund.info_data.get('gift_card'))
             template = get_template('pretixcontrol/giftcards/payment.html')
@@ -1221,8 +1219,6 @@ class GiftCardPayment(BasePaymentProvider):
             return template.render(ctx)
 
     def payment_control_render(self, request, payment) -> str:
-        from .models import GiftCard
-
         if 'gift_card' in payment.info_data:
             gc = GiftCard.objects.get(pk=payment.info_data.get('gift_card'))
             template = get_template('pretixcontrol/giftcards/payment.html')
@@ -1235,8 +1231,6 @@ class GiftCardPayment(BasePaymentProvider):
             return template.render(ctx)
 
     def api_payment_details(self, payment: OrderPayment):
-        from .models import GiftCard
-
         try:
             gc = GiftCard.objects.get(pk=payment.info_data.get('gift_card'))
         except GiftCard.DoesNotExist:
@@ -1250,7 +1244,6 @@ class GiftCardPayment(BasePaymentProvider):
         return True
 
     def checkout_prepare(self, request: HttpRequest, cart: Dict[str, Any]) -> Union[bool, str, None]:
-        from .models import GiftCard
         for p in get_cart(request):
             if p.product.issue_giftcard:
                 messages.error(
@@ -1344,7 +1337,6 @@ class GiftCardPayment(BasePaymentProvider):
             )
 
     def payment_prepare(self, request: HttpRequest, payment: OrderPayment) -> Union[bool, str, None]:
-        from .models import GiftCard
         for p in payment.order.positions.all():
             if p.product.issue_giftcard:
                 messages.error(
@@ -1433,8 +1425,6 @@ class GiftCardPayment(BasePaymentProvider):
 
     @transaction.atomic()
     def execute_refund(self, refund: OrderRefund):
-        from .models import GiftCard
-
         gc = GiftCard.objects.get(pk=refund.info_data.get('gift_card') or refund.payment.info_data.get('gift_card'))
         trans = gc.transactions.create(value=refund.amount, order=refund.order, refund=refund)
         refund.info_data = {
