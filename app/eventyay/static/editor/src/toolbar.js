@@ -489,9 +489,13 @@ function buildPlaceholderMenu(editor, placeholders) {
     toggle.setAttribute('aria-expanded', String(!open))
   })
 
-  document.addEventListener('click', () => {
+  const onDocumentClick = () => {
     dropdown.hidden = true
     toggle.setAttribute('aria-expanded', 'false')
+  }
+  document.addEventListener('click', onDocumentClick)
+  editor.on('destroy', () => {
+    document.removeEventListener('click', onDocumentClick)
   })
 
   wrapper.append(toggle, dropdown)
