@@ -1,0 +1,11 @@
+{% load i18n %}
+<div class="form-group">
+    <label class="col-md-3 control-label" for="giftcard">{% trans "Gift card code" %}</label>
+    <div class="col-md-9">
+        <input type="text" class="form-control" name="giftcard" id="giftcard"
+               placeholder="{% trans "Gift card code" %}">
+        <p class="help-block">
+            {% trans "You can enter your gift card code here. If the value of your gift card is not enough to cover the full amount of your order, you can then select another payment method for the rest." %}
+        </p>
+    </div>
+</div>

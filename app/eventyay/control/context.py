@@ -125,6 +125,9 @@ def _default_context(request):
         if request.GET.get('subevent', ''):
             # Do not use .get() for lazy evaluation
             ctx['selected_subevents'] = request.event.subevents.filter(pk=request.GET.get('subevent'))
+    elif getattr(request, 'organizer', None) and 'organizer' in url.kwargs and request.user.is_authenticated:
+        from eventyay.eventyay_common.navigation import get_organizer_navigation
+        ctx['nav_items'] = get_organizer_navigation(request)
     elif request.user.is_authenticated:
         ctx['nav_items'] = get_global_navigation(request)
 
