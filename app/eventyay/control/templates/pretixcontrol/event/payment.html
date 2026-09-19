@@ -6,6 +6,7 @@
     {{ block.super }}
     <link rel="stylesheet" type="text/css" href="{% static 'pretixcontrol/css/tickets-mobile.css' %}" />
     <link rel="stylesheet" type="text/css" href="{% static 'pretixcontrol/css/payment-providers.css' %}" />
+    <script type="text/javascript" src="{% static 'pretixcontrol/js/payment-providers.js' %}"></script>
 {% endblock %}
 {% block inside %}
     {% trans "Payment settings" as header_title %}
