@@ -204,7 +204,7 @@
 
 .badge-enabled  { background-color: #dcfce7; color: #15803d; }
 .badge-disabled { background-color: #fee2e2; color: #b91c1c; }
-.badge-connected { background-color: #e0f2fe; color: #0284c7; }
+.badge-connected { background-color: #2185d0; color: #ffffff; border: 1px solid #1a6da8; }
 .badge-not-connected { background-color: #f1f5f9; color: #475569; }
 
 .provider-settings-btn {
