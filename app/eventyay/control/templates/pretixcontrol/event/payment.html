@@ -101,6 +101,11 @@
                                                     </p>
                                                 </div>
                                             </details>
+                                            
+                                            {# Sales channel indicators #}
+                                            {% for channel in provider.sales_channels %}
+                                                <span class="fa fa-{{ channel.icon }} text-muted" data-toggle="tooltip" title="{% trans channel.verbose_name %}"></span>
+                                            {% endfor %}
 
                                         </div>
                                         <div class="provider-row-right">
@@ -179,16 +184,4 @@
                 {% trans "Save" %}
             </button>
         </div>
-    </form>
-
-    <script>
-        // Close any open help panel when clicking outside of it
-        document.addEventListener('click', function (e) {
-            document.querySelectorAll('.provider-help-details[open]').forEach(function (el) {
-                if (!el.contains(e.target)) {
-                    el.removeAttribute('open');
-                }
-            });
-        });
-    </script>
 {% endblock %}
