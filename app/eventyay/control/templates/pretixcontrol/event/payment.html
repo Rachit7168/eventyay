@@ -110,6 +110,19 @@
 
                                         </div>
                                         <div class="provider-row-right">
+                                            {% if provider.identifier == 'stripe' %}
+                                                {% if provider.settings.publishable_key or provider.settings.connect_client_id or provider.settings.stripe_account %}
+                                                    <span class="provider-badge badge-connected"><i class="fa fa-link"></i> {% trans "Connected" %}</span>
+                                                {% else %}
+                                                    <span class="provider-badge badge-not-connected" title="{% trans 'Please configure your Stripe account settings' %}"><i class="fa fa-chain-broken"></i> {% trans "Not connected" %}</span>
+                                                {% endif %}
+                                            {% elif provider.identifier == 'paypal' %}
+                                                {% if provider.settings.client_id or provider.settings.secret %}
+                                                    <span class="provider-badge badge-connected"><i class="fa fa-link"></i> {% trans "Connected" %}</span>
+                                                {% else %}
+                                                    <span class="provider-badge badge-not-connected" title="{% trans 'Please configure your PayPal account settings' %}"><i class="fa fa-chain-broken"></i> {% trans "Not connected" %}</span>
+                                                {% endif %}
+                                            {% endif %}
                                             {% if provider.show_enabled %}
                                                 <span class="provider-badge badge-enabled">
                                                     <i class="fa fa-check"></i> {% trans "Enabled" %}
