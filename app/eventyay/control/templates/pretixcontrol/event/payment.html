@@ -62,8 +62,8 @@
                                             <span class="provider-name">{{ provider.verbose_name }}</span>
 
                                             {# ? button — CSS-only details/summary disclosure #}
-                                            <details class="provider-help-details">
-                                                <summary class="provider-help-btn" title="{% trans 'Learn more' %}">?</summary>
+                                            <div class="provider-help-details" tabindex="0">
+                                                <span class="provider-help-btn" title="{% trans 'Learn more' %}">?</span>
                                                 <div class="provider-help-panel">
                                                     <div class="provider-help-panel-arrow"></div>
                                                     <p class="provider-help-desc">
@@ -101,13 +101,8 @@
                                                         {% endif %}
                                                     </p>
                                                 </div>
-                                            </details>
+                                            </div>
                                             
-                                            {# Sales channel indicators #}
-                                            {% for channel in provider.sales_channels %}
-                                                <span class="fa fa-{{ channel.icon }} text-muted" data-toggle="tooltip" title="{% trans channel.verbose_name %}"></span>
-                                            {% endfor %}
-
                                         </div>
                                         <div class="provider-row-right">
                                             {% if 'stripe' in provider.identifier %}
@@ -133,8 +128,8 @@
                                                 </span>
                                             {% endif %}
                                             <a href="{% url 'control:event.settings.payment.provider' event=request.event.slug organizer=request.organizer.slug provider=provider.identifier %}"
-                                               class="provider-settings-btn">
-                                                <i class="fa fa-cog"></i> {% trans "Settings" %}
+                                               class="provider-settings-btn" title="{% trans 'Settings' %}">
+                                                <i class="fa fa-cog"></i>
                                             </a>
                                         </div>
                                     </div>

@@ -100,14 +100,7 @@
     position: relative;
     display: inline-block;
     flex-shrink: 0;
-}
-
-/* Hide the browser's default triangle marker */
-.provider-help-details > summary {
-    list-style: none;
-}
-.provider-help-details > summary::-webkit-details-marker {
-    display: none;
+    outline: none;
 }
 
 .provider-help-btn {
@@ -135,14 +128,21 @@
     outline: none;
 }
 
-.provider-help-details[open] .provider-help-btn {
+.provider-help-details:focus-within .provider-help-btn,
+.provider-help-details:hover .provider-help-btn {
     color: #fff;
     background: #2563eb;
     border-color: #2563eb;
 }
 
+.provider-help-details:focus-within .provider-help-panel,
+.provider-help-details:hover .provider-help-panel {
+    display: block;
+}
+
 /* ── Help panel (the popup) ───────────────────────── */
 .provider-help-panel {
+    display: none;
     position: absolute;
     top: calc(100% + 8px);
     left: 0;
@@ -232,6 +232,7 @@
     color: #111827;
     text-decoration: none;
 }
+
 
 /* ── Best-for row ─────────────────────────────────── */
 .provider-best-for {
