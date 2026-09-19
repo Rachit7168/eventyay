@@ -32,7 +32,7 @@
                                     <div class="provider-logo bg-paypal">
                                         <i class="fa fa-paypal"></i>
                                     </div>
-                                {% elif provider.identifier == 'stripe' %}
+                                {% elif 'stripe' in provider.identifier %}
                                     <div class="provider-logo bg-stripe">
                                         <i class="fa fa-cc-stripe icon-lg"></i>
                                     </div>
@@ -71,7 +71,7 @@
                                                             {% trans "Allow attendees to pay directly to your bank account." %}
                                                         {% elif provider.identifier == 'paypal' %}
                                                             {% trans "Allow attendees to pay using their PayPal account." %}
-                                                        {% elif provider.identifier == 'stripe' %}
+                                                        {% elif 'stripe' in provider.identifier %}
                                                             {% trans "Accept online card payments and supported digital payments." %}
                                                         {% elif provider.identifier == 'bitpay' %}
                                                             {% trans "Accept cryptocurrency payments through BitPay." %}
@@ -88,7 +88,7 @@
                                                             {% trans "Attendees will receive bank details after placing the order. You may need to confirm the payment manually." %}
                                                         {% elif provider.identifier == 'paypal' %}
                                                             {% trans "Attendees will be redirected to PayPal to complete their payment securely." %}
-                                                        {% elif provider.identifier == 'stripe' %}
+                                                        {% elif 'stripe' in provider.identifier %}
                                                             {% trans "Payments are securely processed by Stripe. Attendees can pay using cards and other supported payment methods." %}
                                                         {% elif provider.identifier == 'bitpay' %}
                                                             {% trans "Attendees can pay using supported cryptocurrencies via BitPay." %}
@@ -110,7 +110,7 @@
 
                                         </div>
                                         <div class="provider-row-right">
-                                            {% if provider.identifier == 'stripe' %}
+                                            {% if 'stripe' in provider.identifier %}
                                                 {% if provider.settings.publishable_key or provider.settings.connect_client_id or provider.settings.stripe_account %}
                                                     <span class="provider-badge badge-connected"><i class="fa fa-link"></i> {% trans "Connected" %}</span>
                                                 {% else %}
@@ -146,7 +146,7 @@
                                             {% trans "Offline payments and manual workflows." %}
                                         {% elif provider.identifier == 'paypal' %}
                                             {% trans "Attendees who prefer PayPal." %}
-                                        {% elif provider.identifier == 'stripe' %}
+                                        {% elif 'stripe' in provider.identifier %}
                                             {% trans "Fast, automatic online payments." %}
                                         {% elif provider.identifier == 'bitpay' %}
                                             {% trans "Events that want to support cryptocurrency payments." %}
