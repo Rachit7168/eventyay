@@ -1,0 +1,127 @@
+{% extends "orga/base.html" %}
+
+{% load compress %}
+{% load staff_session %}
+{% load i18n %}
+{% load rules %}
+{% load static %}
+
+{% block scripts %}
+    {% if form.biography %}
+        <script src="{% static "vendored/marked.min.js" %}" defer></script>
+        <script defer src="{% static "vendored/purify.min.js" %}"></script>
+    {% endif %}
+    <script defer src="{% static 'cfp/js/talk_dependencies.js' %}"></script>
+    {% if social_media_formset %}
+        <script defer src="{% static "js/jquery.js" %}"></script>
+        <script defer src="{% static "js/jquery.formset.js" %}"></script>
+        <script defer src="{% static "cfp/js/animateFormset.js" %}"></script>
+        <script type="module" src="{% static 'common/js/speaker_social_links.js' %}"></script>
+    {% endif %}
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            var addSessionCheckbox = document.getElementById("id_add_session");
+            var sessionSection = document.getElementById("session_section");
+            
+            function toggleSessionSection() {
+                if (addSessionCheckbox && sessionSection) {
+                    var inputs = sessionSection.querySelectorAll('input, select, textarea');
+                    if (addSessionCheckbox.checked) {
+                        sessionSection.style.display = "block";
+                        for (var i = 0; i < inputs.length; i++) {
+                            inputs[i].disabled = false;
+                        }
+                    } else {
+                        sessionSection.style.display = "none";
+                        for (var i = 0; i < inputs.length; i++) {
+                            inputs[i].disabled = true;
+                        }
+                    }
+                }
+            }
+            
+            if (addSessionCheckbox) {
+                addSessionCheckbox.addEventListener("change", toggleSessionSection);
+                toggleSessionSection();
+            }
+
+            var noEmailCheckbox = document.getElementById("id_no_email");
+            var emailInput = document.getElementById("id_email");
+            
+            function toggleEmailRequired() {
+                if (noEmailCheckbox && emailInput) {
+                    var asterisk = emailInput.closest('.form-group').querySelector('label span.text-danger');
+                    if (noEmailCheckbox.checked) {
+                        emailInput.required = false;
+                        emailInput.closest('.form-group').style.display = 'none';
+                        if (asterisk) asterisk.style.display = 'none';
+                    } else {
+                        emailInput.required = true;
+                        emailInput.closest('.form-group').style.display = '';
+                        if (asterisk) asterisk.style.display = 'inline';
+                    }
+                }
+            }
+            
+            if (noEmailCheckbox) {
+                noEmailCheckbox.addEventListener("change", toggleEmailRequired);
+                toggleEmailRequired();
+            }
+        });
+    </script>
+{% endblock scripts %}
+
+{% block extra_title %}{% translate "Add speaker" %} :: {% endblock extra_title %}
+
+{% block content %}
+    <nav id="event-nav" class="header-nav">
+        <div class="navigation">
+            <div class="navigation-title">
+                <h2 class="d-flex align-items-baseline">
+                    {% translate "Add new speaker" %}
+                </h2>
+            </div>
+            {% include "orga/event/component_link.html" %}
+        </div>
+    </nav>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {% include "common/forms/errors.html" %}
+
+        {% for field in form %}
+            {% if field.name == 'avatar' %}
+                {% include "common/avatar.html" with user=form.instance.user form=form %}
+            {% elif field.name == 'get_gravatar' %}
+                {# already handled by avatar.html #}
+            {% elif field.name == 'availabilities' %}
+                {% include "common/availabilities.html" %}
+                {{ field.as_field_group }}
+            {% elif field.name == 'social_links' %}
+                {% include "common/speaker_social_links_formset.html" %}
+            {% else %}
+                {{ field.as_field_group }}
+            {% endif %}
+        {% endfor %}
+        
+        <div class="form-group row">
+            <div class="col-md-3"></div>
+            <div class="col-md-9">
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" id="id_add_session" name="add_session" {% if request.POST.add_session %}checked{% endif %}>
+                    <label class="form-check-label" for="id_add_session">{% translate "Also create a session for this speaker" %}</label>
+                </div>
+            </div>
+        </div>
+
+        <div id="session_section" style="display: none;">
+            <h3>{% translate "Session Details" %}</h3>
+            {% for field in session_form %}
+                {{ field.as_field_group }}
+            {% endfor %}
+            {{ session_questions_form }}
+        </div>
+
+        {% include "orga/includes/submit_row.html" %}
+
+    </form>
+{% endblock content %}
