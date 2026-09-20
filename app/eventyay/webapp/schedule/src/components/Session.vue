@@ -44,7 +44,7 @@ a.c-linear-schedule-session(:class="{faved, 'has-date': showDate, 'short-session
 		.tags-box(v-if="showTags && session.tags && session.tags.length")
 			.tags(v-for="tag_item of session.tags")
 				.tag-item(:style="{'background-color': tag_item.color, 'color': getContrastColor(tag_item.color)}") {{ tag_item.tag }}
-		.abstract(v-if="showAbstract", v-html="abstractText")
+		.abstract(v-if="showAbstract", v-html="abstractText", @click.stop)
 		.bottom-info
 			.track(v-if="session.track", :class="{'single-line-clamped': isGridVeryShort}", :title="gridMetaTitle(getLocalizedString(session.track.name))") {{ getLocalizedString(session.track.name) }}
 			.room(v-if="showRoom && session.room", :title="getLocalizedString(session.room.name)") {{ getLocalizedString(session.room.name) }}
