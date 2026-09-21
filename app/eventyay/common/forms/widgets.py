@@ -136,6 +136,14 @@ class RichTextWidget(Textarea):
         attrs.setdefault('data-tiptap-profile', 'richtext')
         super().__init__(attrs=attrs)
 
+    def value_from_datadict(self, data, files, name):
+        value = super().value_from_datadict(data, files, name)
+        if value and isinstance(value, str):
+            from django.utils.html import strip_tags
+            if not strip_tags(value).strip():
+                return ''
+        return value
+
 
 class MarkdownWidget(RichTextWidget):
     """Backward-compatible alias for RichTextWidget.
@@ -158,6 +166,19 @@ class I18nRichTextWidget(I18nTextarea):
         attrs = attrs.copy() if attrs is not None else {}
         attrs.setdefault('data-tiptap-profile', 'richtext')
         super().__init__(locales=locales, field=field, attrs=attrs)
+
+    def value_from_datadict(self, data, files, name):
+        value = super().value_from_datadict(data, files, name)
+        if value:
+            from django.utils.html import strip_tags
+            if isinstance(value, list):
+                return [
+                    '' if isinstance(v, str) and not strip_tags(v).strip() else v
+                    for v in value
+                ]
+            if isinstance(value, str) and not strip_tags(value).strip():
+                return ''
+        return value
 
     def render(self, name: str, value, attrs=None, renderer=None) -> str:
         if self.is_localized:
