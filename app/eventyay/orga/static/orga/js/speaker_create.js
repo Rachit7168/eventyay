@@ -6,12 +6,12 @@ export function initSpeakerCreate() {
         if (addSessionCheckbox && sessionSection) {
             const inputs = sessionSection.querySelectorAll('input, select, textarea');
             if (addSessionCheckbox.checked) {
-                sessionSection.style.display = "block";
+                sessionSection.classList.remove("d-none");
                 for (let i = 0; i < inputs.length; i++) {
                     inputs[i].disabled = false;
                 }
             } else {
-                sessionSection.style.display = "none";
+                sessionSection.classList.add("d-none");
                 for (let i = 0; i < inputs.length; i++) {
                     inputs[i].disabled = true;
                 }
@@ -33,12 +33,12 @@ export function initSpeakerCreate() {
             const asterisk = formGroup ? formGroup.querySelector('label span.text-danger') : null;
             if (noEmailCheckbox.checked) {
                 emailInput.required = false;
-                if (formGroup) formGroup.style.display = 'none';
-                if (asterisk) asterisk.style.display = 'none';
+                if (formGroup) formGroup.classList.add('d-none');
+                if (asterisk) asterisk.classList.add('d-none');
             } else {
                 emailInput.required = true;
-                if (formGroup) formGroup.style.display = '';
-                if (asterisk) asterisk.style.display = 'inline';
+                if (formGroup) formGroup.classList.remove('d-none');
+                if (asterisk) asterisk.classList.remove('d-none');
             }
         }
     }
