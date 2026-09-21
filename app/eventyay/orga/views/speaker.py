@@ -326,6 +326,7 @@ class SpeakerCreate(SpeakerSocialLinksMixin, EventPermissionRequired, ActionFrom
                 )
 
             if add_session:
+                self.session_form.instance.event = self.request.event
                 session = self.session_form.save()
                 self.session_questions_form.submission = session
                 self.session_questions_form.save()
