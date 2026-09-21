@@ -115,6 +115,7 @@
                                     {% for submission in profile.user.list_sessions %}
                                         <li>
                                             <a href="{{ submission.orga_urls.base }}" title="{{ submission.title }}">{{ submission.title }}</a>
+                                            {% include 'cfp/event/fragment_state.html' with state=submission.state as_badge=True %}
                                         </li>
                                     {% endfor %}
                                 </ul>
