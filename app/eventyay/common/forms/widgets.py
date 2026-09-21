@@ -131,6 +131,9 @@ class RichTextWidget(Textarea):
 
     template_name = 'common/widgets/richtext.html'
 
+    def use_required_attribute(self, initial):
+        return False
+
     def __init__(self, attrs=None):
         attrs = attrs.copy() if attrs is not None else {}
         attrs.setdefault('data-tiptap-profile', 'richtext')
@@ -161,6 +164,9 @@ class I18nRichTextWidget(I18nTextarea):
     Wraps each locale textarea in a ``[data-tiptap-wrapper]`` container so the
     shared editor bundle can mount one rich text editor per language.
     """
+
+    def use_required_attribute(self, initial):
+        return False
 
     def __init__(self, locales, field, attrs=None, **kwargs):
         attrs = attrs.copy() if attrs is not None else {}
