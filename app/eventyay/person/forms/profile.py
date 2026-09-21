@@ -259,7 +259,7 @@ class SpeakerProfileForm(
         ]
 
     def clean_email(self):
-        if self.cleaned_data.get('no_email'):
+        if self.cleaned_data.get('no_email') or not self.with_email:
             return None
         email = self.cleaned_data.get('email')
         if not email:
@@ -267,7 +267,8 @@ class SpeakerProfileForm(
         qs = User.objects.all()
         if self.user:
             qs = qs.exclude(pk=self.user.pk)
-        if qs.filter(email__iexact=email).exists():
+        existing_user = qs.filter(email__iexact=email).first()
+        if existing_user and existing_user.profiles.filter(event=self.event).exists():
             raise ValidationError(get_email_address_error())
         return email
 
@@ -314,15 +315,22 @@ class SpeakerProfileForm(
     def save(self, **kwargs):
         if not self.user:
             email = self.cleaned_data.get('email')
-            self.user = User(
-                email=email,
-                locale=self.event.locale,
-                timezone=self.event.timezone,
-            )
+            existing_user = None
             if email:
-                self.user.pw_reset_token = get_random_string(32)
-                self.user.pw_reset_time = now() + dt.timedelta(days=60)
-            self.user.save()
+                existing_user = User.objects.filter(email__iexact=email).first()
+                
+            if existing_user:
+                self.user = existing_user
+            else:
+                self.user = User(
+                    email=email,
+                    locale=self.event.locale,
+                    timezone=self.event.timezone,
+                )
+                if email:
+                    self.user.pw_reset_token = get_random_string(32)
+                    self.user.pw_reset_time = now() + dt.timedelta(days=60)
+                self.user.save()
 
         avatar_changed = 'avatar' in self.changed_data
         old_thumbnails_to_delete = []

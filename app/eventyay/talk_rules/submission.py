@@ -476,8 +476,6 @@ def submission_comments_active(user, obj):
 
 def speaker_profiles_for_user(event, user, submissions=None):
     from eventyay.base.models import SpeakerProfile, User
-    from eventyay.talk_rules.person import is_only_reviewer
-    from eventyay.talk_rules.tracks import get_allowed_tracks
 
     if submissions is not None:
         return SpeakerProfile.objects.filter(event=event, user__in=User.objects.filter(submissions__in=submissions))

@@ -13,62 +13,9 @@
     {% endif %}
     <script defer src="{% static 'cfp/js/talk_dependencies.js' %}"></script>
     {% if social_media_formset %}
-        <script defer src="{% static "js/jquery.js" %}"></script>
-        <script defer src="{% static "js/jquery.formset.js" %}"></script>
-        <script defer src="{% static "cfp/js/animateFormset.js" %}"></script>
         <script type="module" src="{% static 'common/js/speaker_social_links.js' %}"></script>
     {% endif %}
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            var addSessionCheckbox = document.getElementById("id_add_session");
-            var sessionSection = document.getElementById("session_section");
-            
-            function toggleSessionSection() {
-                if (addSessionCheckbox && sessionSection) {
-                    var inputs = sessionSection.querySelectorAll('input, select, textarea');
-                    if (addSessionCheckbox.checked) {
-                        sessionSection.style.display = "block";
-                        for (var i = 0; i < inputs.length; i++) {
-                            inputs[i].disabled = false;
-                        }
-                    } else {
-                        sessionSection.style.display = "none";
-                        for (var i = 0; i < inputs.length; i++) {
-                            inputs[i].disabled = true;
-                        }
-                    }
-                }
-            }
-            
-            if (addSessionCheckbox) {
-                addSessionCheckbox.addEventListener("change", toggleSessionSection);
-                toggleSessionSection();
-            }
-
-            var noEmailCheckbox = document.getElementById("id_no_email");
-            var emailInput = document.getElementById("id_email");
-            
-            function toggleEmailRequired() {
-                if (noEmailCheckbox && emailInput) {
-                    var asterisk = emailInput.closest('.form-group').querySelector('label span.text-danger');
-                    if (noEmailCheckbox.checked) {
-                        emailInput.required = false;
-                        emailInput.closest('.form-group').style.display = 'none';
-                        if (asterisk) asterisk.style.display = 'none';
-                    } else {
-                        emailInput.required = true;
-                        emailInput.closest('.form-group').style.display = '';
-                        if (asterisk) asterisk.style.display = 'inline';
-                    }
-                }
-            }
-            
-            if (noEmailCheckbox) {
-                noEmailCheckbox.addEventListener("change", toggleEmailRequired);
-                toggleEmailRequired();
-            }
-        });
-    </script>
+    <script type="module" src="{% static 'orga/js/speaker_create.js' %}"></script>
 {% endblock scripts %}
 
 {% block extra_title %}{% translate "Add speaker" %} :: {% endblock extra_title %}

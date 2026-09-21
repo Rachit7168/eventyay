@@ -284,49 +284,57 @@ class SpeakerCreate(SpeakerSocialLinksMixin, EventPermissionRequired, ActionFrom
 
     @transaction.atomic
     def form_valid(self, form):
-        if not self.social_media_formset_is_valid():
-            return self.form_invalid(form)
-
-        add_session = self.request.POST.get('add_session') == 'on'
-
-        if add_session:
-            if not self.session_form.is_valid() or not self.session_questions_form.is_valid():
-                messages.error(self.request, phrases.base.error_saving_changes)
+        with scope(event=self.request.event):
+            if not self.social_media_formset_is_valid():
                 return self.form_invalid(form)
 
-        self.object = form.save()
-        user = self.object.user
+            add_session = self.request.POST.get('add_session') == 'on'
 
-        self.save_social_media_formset(profile=self.object)
+            if add_session:
+                if not self.session_form.is_valid() or not self.session_questions_form.is_valid():
+                    messages.error(self.request, phrases.base.error_saving_changes)
+                    return self.form_invalid(form)
 
-        if not form.cleaned_data.get('no_email') and user.email:
-            context = {
-                'user': user,
-                'event': self.request.event,
-                'invitation_link': build_absolute_uri(
-                    'cfp:event.new_recover',
-                    kwargs={'organizer': self.request.event.organizer.slug, 'event': self.request.event.slug, 'token': user.pw_reset_token},
+            from django.db import IntegrityError
+            try:
+                with transaction.atomic():
+                    self.object = form.save()
+            except IntegrityError:
+                form.add_error('email', forms.ValidationError(get_email_address_error()))
+                return self.form_invalid(form)
+
+            user = self.object.user
+
+            self.save_social_media_formset(profile=self.object)
+
+            if not form.cleaned_data.get('no_email') and user.email:
+                context = {
+                    'user': user,
+                    'event': self.request.event,
+                    'invitation_link': build_absolute_uri(
+                        'cfp:event.new_recover',
+                        kwargs={'organizer': self.request.event.organizer.slug, 'event': self.request.event.slug, 'token': user.pw_reset_token},
+                    )
+                }
+                template = self.request.event.get_mail_template(MailTemplateRoles.NEW_SPEAKER_INVITE)
+                template.to_mail(
+                    user=user,
+                    event=self.request.event,
+                    context=context,
+                    context_kwargs={'user': user, 'event': self.request.event},
+                    locale=self.request.event.locale,
                 )
-            }
-            template = self.request.event.get_mail_template(MailTemplateRoles.NEW_SPEAKER_INVITE)
-            template.to_mail(
-                user=user,
-                event=self.request.event,
-                context=context,
-                context_kwargs={'user': user, 'event': self.request.event},
-                locale=self.request.event.locale,
-            )
 
-        if add_session:
-            session = self.session_form.save()
-            self.session_questions_form.submission = session
-            self.session_questions_form.save()
-            session.speakers.add(user)
-            messages.success(self.request, _('Speaker and session created successfully.'))
-        else:
-            messages.success(self.request, _('Speaker created successfully.'))
+            if add_session:
+                session = self.session_form.save()
+                self.session_questions_form.submission = session
+                self.session_questions_form.save()
+                session.speakers.add(user)
+                messages.success(self.request, _('Speaker and session created successfully.'))
+            else:
+                messages.success(self.request, _('Speaker created successfully.'))
 
-        return redirect(self.get_success_url())
+            return redirect(self.get_success_url())
 
 
 @method_decorator(gravatar_csp(), name='dispatch')
