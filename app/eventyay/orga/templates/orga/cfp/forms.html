@@ -881,6 +881,98 @@
                         </tr>
                         {% endwith %}
 
+                        {# Job Title #}
+                        {% with field=sform.cfp_ask_job_title %}
+                        <tr dragsort-id="job_title">
+                            <th>
+                                <div class="font-weight-bold">{% translate "Job Title" %}</div>
+                                <div class="small text-muted font-weight-normal mt-1">{{ question_texts.job_title }}</div>
+                            </th>
+                            <td class="text-center">
+                                <label class="toggle-switch" data-field-id="{{ field.auto_id }}"
+                                    aria-label="{% translate 'Toggle active state for Job Title' %}">
+                                    <input type="checkbox" {% if field.value != 'do_not_ask' %}checked{% endif %}
+                                        aria-label="{% translate 'Active toggle for Job Title' %}">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                                <input type="hidden" name="{{ field.html_name }}" value="{{ field.value }}"
+                                    id="{{ field.auto_id }}" data-is-question-field="true">
+                            </td>
+                            <td class="text-center">
+                                <div class="required-status-wrapper" data-current="{% if field.value == 'required' %}required{% else %}optional{% endif %}">
+                                    <select class="required-status-dropdown" data-field-id="{{ field.auto_id }}"
+                                        data-current="{% if field.value == 'required' %}required{% else %}optional{% endif %}"
+                                        aria-label="{% translate 'Required status for Job Title' %}">
+                                        <option value="optional" {% if field.value == 'optional' or field.value == 'do_not_ask' %}selected{% endif %}>Optional</option>
+                                        <option value="required" {% if field.value == 'required' %}selected{% endif %}>
+                                            Required</option>
+                                    </select>
+                                </div>
+                            </td>
+                            <td>{{ sform.cfp_job_title_min_length.as_field_group }}</td>
+                            <td>{{ sform.cfp_job_title_max_length.as_field_group }}</td>
+                            <td class="text-center">
+                                <label class="toggle-switch" aria-label="{% translate 'Toggle public state for Job Title' %}">
+                                    <input type="checkbox" name="{{ sform.cfp_public_job_title.html_name }}" {% if sform.cfp_public_job_title.value %}checked{% endif %}
+                                        aria-label="{% translate 'Public toggle for Job Title' %}">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </td>
+                            <td class="text-center">{{ field_counts.job_title }}</td>
+                            <td class="text-right">
+                                <button type="button" draggable="true" class="btn btn-sm btn-primary dragsort-button" title="{% translate 'Move item' %}">
+                                    <i class="fa fa-arrows"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% endwith %}
+
+                        {# Organization #}
+                        {% with field=sform.cfp_ask_organization %}
+                        <tr dragsort-id="organization">
+                            <th>
+                                <div class="font-weight-bold">{% translate "Organization" %}</div>
+                                <div class="small text-muted font-weight-normal mt-1">{{ question_texts.organization }}</div>
+                            </th>
+                            <td class="text-center">
+                                <label class="toggle-switch" data-field-id="{{ field.auto_id }}"
+                                    aria-label="{% translate 'Toggle active state for Organization' %}">
+                                    <input type="checkbox" {% if field.value != 'do_not_ask' %}checked{% endif %}
+                                        aria-label="{% translate 'Active toggle for Organization' %}">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                                <input type="hidden" name="{{ field.html_name }}" value="{{ field.value }}"
+                                    id="{{ field.auto_id }}" data-is-question-field="true">
+                            </td>
+                            <td class="text-center">
+                                <div class="required-status-wrapper" data-current="{% if field.value == 'required' %}required{% else %}optional{% endif %}">
+                                    <select class="required-status-dropdown" data-field-id="{{ field.auto_id }}"
+                                        data-current="{% if field.value == 'required' %}required{% else %}optional{% endif %}"
+                                        aria-label="{% translate 'Required status for Organization' %}">
+                                        <option value="optional" {% if field.value == 'optional' or field.value == 'do_not_ask' %}selected{% endif %}>Optional</option>
+                                        <option value="required" {% if field.value == 'required' %}selected{% endif %}>
+                                            Required</option>
+                                    </select>
+                                </div>
+                            </td>
+                            <td>{{ sform.cfp_organization_min_length.as_field_group }}</td>
+                            <td>{{ sform.cfp_organization_max_length.as_field_group }}</td>
+                            <td class="text-center">
+                                <label class="toggle-switch" aria-label="{% translate 'Toggle public state for Organization' %}">
+                                    <input type="checkbox" name="{{ sform.cfp_public_organization.html_name }}" {% if sform.cfp_public_organization.value %}checked{% endif %}
+                                        aria-label="{% translate 'Public toggle for Organization' %}">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </td>
+                            <td class="text-center">{{ field_counts.organization }}</td>
+                            <td class="text-right">
+                                <button type="button" draggable="true" class="btn btn-sm btn-primary dragsort-button" title="{% translate 'Move item' %}">
+                                    <i class="fa fa-arrows"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% endwith %}
+
                         {# Avatar #}
                         {% with field=sform.cfp_ask_avatar %}
                         <tr dragsort-id="avatar">

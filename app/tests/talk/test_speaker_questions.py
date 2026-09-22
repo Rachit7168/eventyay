@@ -2,7 +2,9 @@ import pytest
 from django_scopes import scope, scopes_disabled
 
 from eventyay.base.models import Event, TalkQuestion, TalkQuestionTarget, TalkQuestionVariant
+from eventyay.base.models.cfp import default_fields
 from eventyay.person.forms.profile import SpeakerProfileForm
+from eventyay.person.services import build_public_speaker_role
 
 
 @pytest.mark.django_db
@@ -36,12 +38,64 @@ def test_speaker_profile_form_no_duplicate_fields_and_reviewer_visibility(event,
 
 
 @pytest.mark.django_db
-def test_new_events_do_not_seed_job_title_or_organization(event):
+def test_new_events_have_default_speaker_role_fields(event):
     with scope(event=event):
-        assert not TalkQuestion.all_objects.filter(
-            event=event,
-            import_key__in=['speaker_job_title', 'speaker_organization'],
-        ).exists()
+        defaults = default_fields()
+        assert event.cfp.fields['job_title'] == defaults['job_title']
+        assert event.cfp.fields['organization'] == defaults['organization']
+
+
+@pytest.mark.django_db
+def test_speaker_profile_form_includes_default_role_fields(event, speaker):
+    with scope(event=event):
+        form = SpeakerProfileForm(event=event, user=speaker)
+        assert 'job_title' in form.fields
+        assert 'organization' in form.fields
+
+
+@pytest.mark.django_db
+def test_build_public_speaker_role_formats_values(event, speaker):
+    with scope(event=event):
+        profile = speaker.event_profile(event)
+        profile.job_title = 'Founder'
+        profile.organization = 'FOSSASIA'
+        profile.save(update_fields=['job_title', 'organization'])
+
+        event.cfp.fields['job_title']['public'] = True
+        event.cfp.fields['organization']['public'] = True
+        event.cfp.save(update_fields=['fields'])
+
+        assert build_public_speaker_role(profile, event) == 'Founder, FOSSASIA'
+
+
+@pytest.mark.django_db
+def test_build_public_speaker_role_single_value_without_separator(event, speaker):
+    with scope(event=event):
+        profile = speaker.event_profile(event)
+        profile.job_title = 'Founder'
+        profile.organization = ''
+        profile.save(update_fields=['job_title', 'organization'])
+
+        event.cfp.fields['job_title']['public'] = True
+        event.cfp.fields['organization']['public'] = True
+        event.cfp.save(update_fields=['fields'])
+
+        assert build_public_speaker_role(profile, event) == 'Founder'
+
+
+@pytest.mark.django_db
+def test_build_public_speaker_role_respects_public_toggle(event, speaker):
+    with scope(event=event):
+        profile = speaker.event_profile(event)
+        profile.job_title = 'Founder'
+        profile.organization = 'FOSSASIA'
+        profile.save(update_fields=['job_title', 'organization'])
+
+        event.cfp.fields['job_title']['public'] = False
+        event.cfp.fields['organization']['public'] = True
+        event.cfp.save(update_fields=['fields'])
+
+        assert build_public_speaker_role(profile, event) == 'FOSSASIA'
 
 
 @pytest.mark.django_db
@@ -79,5 +133,6 @@ def test_event_clone_reuses_matching_import_key(event):
     with scope(event=dest_event):
         q_dest.refresh_from_db()
         assert q_dest.active is False
-        assert str(q_dest.question) == 'Shared field'
+        assert q_dest.question == 'Shared field'
         assert TalkQuestion.all_objects.filter(event=dest_event, import_key='shared_import_key').count() == 1
+
