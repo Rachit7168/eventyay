@@ -49,13 +49,15 @@ class SpeakerProfile(PretalxModel):
     )
     job_title = models.CharField(
         max_length=255,
-        verbose_name=_('Job Title'),
+        verbose_name=_('Job title/role'),
+        help_text=_('What is your official job title?'),
         null=True,
         blank=True,
     )
     organization = models.CharField(
         max_length=255,
         verbose_name=_('Organization'),
+        help_text=_('What organization or company do you represent?'),
         null=True,
         blank=True,
     )

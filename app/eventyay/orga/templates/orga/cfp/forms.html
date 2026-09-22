@@ -881,18 +881,18 @@
                         </tr>
                         {% endwith %}
 
-                        {# Job Title #}
+                        {# Job title/role #}
                         {% with field=sform.cfp_ask_job_title %}
                         <tr dragsort-id="job_title">
                             <th>
-                                <div class="font-weight-bold">{% translate "Job Title" %}</div>
+                                <div class="font-weight-bold">{% translate "Job title/role" %}</div>
                                 <div class="small text-muted font-weight-normal mt-1">{{ question_texts.job_title }}</div>
                             </th>
                             <td class="text-center">
                                 <label class="toggle-switch" data-field-id="{{ field.auto_id }}"
-                                    aria-label="{% translate 'Toggle active state for Job Title' %}">
+                                    aria-label="{% translate 'Toggle active state for Job title/role' %}">
                                     <input type="checkbox" {% if field.value != 'do_not_ask' %}checked{% endif %}
-                                        aria-label="{% translate 'Active toggle for Job Title' %}">
+                                        aria-label="{% translate 'Active toggle for Job title/role' %}">
                                     <span class="toggle-slider"></span>
                                 </label>
                                 <input type="hidden" name="{{ field.html_name }}" value="{{ field.value }}"
@@ -902,7 +902,7 @@
                                 <div class="required-status-wrapper" data-current="{% if field.value == 'required' %}required{% else %}optional{% endif %}">
                                     <select class="required-status-dropdown" data-field-id="{{ field.auto_id }}"
                                         data-current="{% if field.value == 'required' %}required{% else %}optional{% endif %}"
-                                        aria-label="{% translate 'Required status for Job Title' %}">
+                                        aria-label="{% translate 'Required status for Job title/role' %}">
                                         <option value="optional" {% if field.value == 'optional' or field.value == 'do_not_ask' %}selected{% endif %}>Optional</option>
                                         <option value="required" {% if field.value == 'required' %}selected{% endif %}>
                                             Required</option>
@@ -912,9 +912,9 @@
                             <td>{{ sform.cfp_job_title_min_length.as_field_group }}</td>
                             <td>{{ sform.cfp_job_title_max_length.as_field_group }}</td>
                             <td class="text-center">
-                                <label class="toggle-switch" aria-label="{% translate 'Toggle public state for Job Title' %}">
+                                <label class="toggle-switch" aria-label="{% translate 'Toggle public state for Job title/role' %}">
                                     <input type="checkbox" name="{{ sform.cfp_public_job_title.html_name }}" {% if sform.cfp_public_job_title.value %}checked{% endif %}
-                                        aria-label="{% translate 'Public toggle for Job Title' %}">
+                                        aria-label="{% translate 'Public toggle for Job title/role' %}">
                                     <span class="toggle-slider"></span>
                                 </label>
                             </td>

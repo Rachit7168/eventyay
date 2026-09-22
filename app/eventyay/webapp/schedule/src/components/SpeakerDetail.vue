@@ -20,6 +20,14 @@
 			h2.field-heading {{ t.biography }}
 			.field-content
 				markdown-content(:markdown="resolvedSpeaker.biography")
+		.field-section(v-if="speakerJobTitle")
+			h2.field-heading {{ t.job_title }}
+			.field-content
+				span {{ speakerJobTitle }}
+		.field-section(v-if="speakerOrganization")
+			h2.field-heading {{ t.organization }}
+			.field-content
+				span {{ speakerOrganization }}
 		.field-section(v-for="answer in longAnswers", :key="answer.id")
 			h2.field-heading {{ getLocalizedString(answer.question.question) || String(answer.question.question) }}
 			.field-content
@@ -125,6 +133,8 @@ export default {
 				yes: m.yes || this.$t('Yes'),
 				no: m.no || this.$t('No'),
 				biography: m.biography || this.$t('Biography'),
+				job_title: m.job_title || this.$t('Job title/role'),
+				organization: m.organization || this.$t('Organization'),
 			}
 		},
 		resolvedSpeaker() {
@@ -194,6 +204,27 @@ export default {
 		effectiveSpeakerApiContent() {
 			return this.resolvedSpeaker?.apiContent || this.fetchedApiContent
 		},
+		speakerJobTitle() {
+			const value = this.effectiveSpeakerApiContent?.job_title || this.resolvedSpeaker?.job_title
+			return (typeof value === 'string' ? value : '').trim()
+		},
+		speakerOrganization() {
+			const value = this.effectiveSpeakerApiContent?.organization || this.resolvedSpeaker?.organization
+			return (typeof value === 'string' ? value : '').trim()
+		},
+		builtinAnswerLabels() {
+			const labels = new Set()
+			if (this.speakerJobTitle) {
+				labels.add('job title')
+				labels.add('job title/role')
+				labels.add(String(this.t.job_title || '').trim().toLowerCase())
+			}
+			if (this.speakerOrganization) {
+				labels.add('organization')
+				labels.add(String(this.t.organization || '').trim().toLowerCase())
+			}
+			return labels
+		},
 		speakerDetailReady() {
 			return this.resolvedSpeaker && (this.effectiveSpeakerApiContent || this.apiContentLoaded || !this.computedApiBaseUrl)
 		},
@@ -213,13 +244,15 @@ export default {
 			const answers = this.effectiveSpeakerApiContent?.answers
 			if (!Array.isArray(answers)) return []
 			return answers.filter(a => a.question && a.question.is_public !== false &&
-				(a.question.variant === 'text' || a.question.variant === 'string'))
+				(a.question.variant === 'text' || a.question.variant === 'string') &&
+				!this.isBuiltinFieldAnswer(a))
 		},
 		inlineAnswers() {
 			const answers = this.effectiveSpeakerApiContent?.answers
 			if (!Array.isArray(answers)) return []
 			return answers.filter(a => a.question && a.question.is_public !== false &&
-				a.question.variant !== 'text' && a.question.variant !== 'string')
+				a.question.variant !== 'text' && a.question.variant !== 'string' &&
+				!this.isBuiltinFieldAnswer(a))
 		},
 		socialLinks() {
 			const links = this.effectiveSpeakerApiContent?.social_links
@@ -252,6 +285,12 @@ export default {
 		}
 	},
 	methods: {
+		isBuiltinFieldAnswer(answer) {
+			const question = answer?.question?.question
+			if (!question) return false
+			const label = String(this.getLocalizedString(question) || question).trim().toLowerCase()
+			return this.builtinAnswerLabels.has(label)
+		},
 		onFav(id) {
 			if (this.scheduleFav) this.scheduleFav(id)
 			this.$emit('fav', id)
