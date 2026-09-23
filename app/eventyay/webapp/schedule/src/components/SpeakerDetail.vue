@@ -211,19 +211,7 @@ export default {
 			const value = this.effectiveSpeakerApiContent?.organization || this.resolvedSpeaker?.organization
 			return (typeof value === 'string' ? value : '').trim()
 		},
-		builtinAnswerLabels() {
-			const labels = new Set()
-			if (this.speakerJobTitle) {
-				labels.add('job title')
-				labels.add('job title/role')
-				labels.add(String(this.t.job_title || '').trim().toLowerCase())
-			}
-			if (this.speakerOrganization) {
-				labels.add('organization')
-				labels.add(String(this.t.organization || '').trim().toLowerCase())
-			}
-			return labels
-		},
+
 		speakerDetailReady() {
 			return this.resolvedSpeaker && (this.effectiveSpeakerApiContent || this.apiContentLoaded || !this.computedApiBaseUrl)
 		},
@@ -243,15 +231,13 @@ export default {
 			const answers = this.effectiveSpeakerApiContent?.answers
 			if (!Array.isArray(answers)) return []
 			return answers.filter(a => a.question && a.question.is_public !== false &&
-				(a.question.variant === 'text' || a.question.variant === 'string') &&
-				!this.isBuiltinFieldAnswer(a))
+				(a.question.variant === 'text' || a.question.variant === 'string'))
 		},
 		inlineAnswers() {
 			const answers = this.effectiveSpeakerApiContent?.answers
 			if (!Array.isArray(answers)) return []
 			return answers.filter(a => a.question && a.question.is_public !== false &&
-				a.question.variant !== 'text' && a.question.variant !== 'string' &&
-				!this.isBuiltinFieldAnswer(a))
+				a.question.variant !== 'text' && a.question.variant !== 'string')
 		},
 		socialLinks() {
 			const links = this.effectiveSpeakerApiContent?.social_links
@@ -284,12 +270,7 @@ export default {
 		}
 	},
 	methods: {
-		isBuiltinFieldAnswer(answer) {
-			const question = answer?.question?.question
-			if (!question) return false
-			const label = String(this.getLocalizedString(question) || question).trim().toLowerCase()
-			return this.builtinAnswerLabels.has(label)
-		},
+
 		onFav(id) {
 			if (this.scheduleFav) this.scheduleFav(id)
 			this.$emit('fav', id)
