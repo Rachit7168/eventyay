@@ -3,6 +3,7 @@ import logging
 from django.contrib import messages
 from django.db import transaction
 from django.db.models import Q
+from django.db.models.functions import Lower
 from django.http import HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
@@ -165,6 +166,7 @@ class OrganizerSpeakerList(
 
 SPEAKER_AUTOCOMPLETE_MIN_LENGTH = 3
 SPEAKER_AUTOCOMPLETE_LIMIT = 8
+SPEAKER_AUTOCOMPLETE_CANDIDATE_LIMIT = SPEAKER_AUTOCOMPLETE_LIMIT * 2
 
 
 def speaker_autocomplete_results(*, event: Event, search: str) -> list[dict[str, str]]:
@@ -199,26 +201,34 @@ def speaker_autocomplete_results(*, event: Event, search: str) -> list[dict[str,
 
     with scope(event=event, organizer=event.organizer):
         name_or_email = Q(fullname__icontains=query) | Q(email__icontains=query)
-        users = User.objects.filter(
-            name_or_email,
-            Q(profiles__event=event) | Q(submissions__event=event),
-        ).distinct()
+        users = (
+            User.objects.filter(
+                name_or_email,
+                Q(profiles__event=event) | Q(submissions__event=event),
+            )
+            .distinct()
+            .order_by(Lower('fullname'), Lower('email'))
+            [:SPEAKER_AUTOCOMPLETE_CANDIDATE_LIMIT]
+        )
         for user in users:
             add_result(email=user.email, name=user.fullname)
 
+        no_attendee_email = Q(attendee_email__isnull=True) | Q(attendee_email='')
         attendee_match = (
             Q(attendee_email__icontains=query)
             | Q(attendee_name_cached__icontains=query)
-            | Q(order__email__icontains=query)
+            | (Q(order__email__icontains=query) & no_attendee_email)
         )
         positions = (
             OrderPosition.objects.filter(
                 attendee_match,
                 order__event=event,
                 order__status__in=(Order.STATUS_PAID, Order.STATUS_PENDING),
+                product__admission=True,
             )
             .select_related('order')
-            .order_by('pk')
+            .order_by(Lower('attendee_name_cached'), Lower('attendee_email'), 'pk')
+            [:SPEAKER_AUTOCOMPLETE_CANDIDATE_LIMIT]
         )
         for position in positions:
             add_result(

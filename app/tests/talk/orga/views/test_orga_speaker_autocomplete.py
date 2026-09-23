@@ -14,10 +14,13 @@ def _autocomplete(client, event, search):
     return client.get(_autocomplete_url(event), data={'search': search})
 
 
-def _create_attendee(event, *, email, name, status=Order.STATUS_PAID):
-    with scopes_disabled():
-        product = Product.objects.create(event=event, name='Ticket', default_price=10, admission=True)
-        order = Order.objects.create(
+def _event_scope(event):
+    return scope(event=event, organizer=event.organizer)
+
+
+def _create_order(event, *, email, status=Order.STATUS_PAID):
+    with _event_scope(event):
+        return Order.objects.create(
             event=event,
             status=status,
             datetime=now(),
@@ -26,12 +29,33 @@ def _create_attendee(event, *, email, name, status=Order.STATUS_PAID):
             email=email,
             locale='en',
         )
+
+
+def _create_product(event, *, admission=True, name='Ticket'):
+    with _event_scope(event):
+        return Product.objects.create(event=event, name=name, default_price=10, admission=admission)
+
+
+def _create_attendee(
+    event,
+    *,
+    email,
+    name,
+    status=Order.STATUS_PAID,
+    admission=True,
+    order=None,
+    product=None,
+    attendee_email=None,
+):
+    with _event_scope(event):
+        product = product or _create_product(event, admission=admission)
+        order = order or _create_order(event, email=email, status=status)
         return OrderPosition.objects.create(
             order=order,
             product=product,
             price=10,
-            attendee_name_parts={'_legacy': name},
-            attendee_email=email,
+            attendee_name_parts={'_legacy': name} if name else {},
+            attendee_email=email if attendee_email is None else attendee_email,
             tax_rate=0,
             tax_value=0,
         )
@@ -75,7 +99,7 @@ def test_orga_autocomplete_returns_event_speaker(orga_client, event, speaker):
 
 @pytest.mark.django_db
 def test_orga_autocomplete_returns_proposal_submitter(orga_client, event, speaker, submission):
-    with scopes_disabled():
+    with scope(event=event):
         speaker.profiles.filter(event=event).delete()
 
     response = _autocomplete(orga_client, event, 'jane@speaker')
@@ -148,6 +172,53 @@ def test_orga_autocomplete_excludes_same_organizer_other_event(orga_client, even
     emails = [result['email'] for result in response.json()['results']]
     assert speaker.email in emails
     assert sibling_user.email not in emails
+
+
+@pytest.mark.django_db
+def test_orga_autocomplete_purchaser_email_does_not_return_named_attendees(orga_client, event):
+    order = _create_order(event, email='buyer@example.com')
+    product = _create_product(event)
+    _create_attendee(event, email='bob@example.com', name='Bob Guest', order=order, product=product)
+    _create_attendee(event, email='carol@example.com', name='Carol Guest', order=order, product=product)
+
+    response = _autocomplete(orga_client, event, 'buyer@example')
+
+    assert response.status_code == 200
+    emails = [result['email'] for result in response.json()['results']]
+    assert emails == []
+
+
+@pytest.mark.django_db
+def test_orga_autocomplete_purchaser_email_matches_ticket_without_attendee_email(orga_client, event):
+    _create_attendee(
+        event,
+        email='buyer@example.com',
+        name='Solo Buyer',
+        attendee_email='',
+    )
+
+    response = _autocomplete(orga_client, event, 'buyer@example')
+
+    assert response.status_code == 200
+    content = response.json()
+    assert content['count'] == 1
+    assert content['results'][0]['email'] == 'buyer@example.com'
+    assert content['results'][0]['name'] == 'Solo Buyer'
+
+
+@pytest.mark.django_db
+def test_orga_autocomplete_excludes_merchandise_purchaser(orga_client, event):
+    _create_attendee(
+        event,
+        email='shirt.buyer@example.com',
+        name='Shirt Buyer',
+        admission=False,
+    )
+
+    response = _autocomplete(orga_client, event, 'shirt.buyer')
+
+    assert response.status_code == 200
+    assert response.json()['results'] == []
 
 
 @pytest.mark.django_db
