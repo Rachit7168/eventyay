@@ -17,7 +17,9 @@ from django.forms import (
     Widget,
 )
 from django.utils.datastructures import MultiValueDict
-from django.utils.html import escape
+from html import unescape as html_unescape
+
+from django.utils.html import escape, strip_tags
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 from i18nfield.forms import I18nTextarea
@@ -142,8 +144,7 @@ class RichTextWidget(Textarea):
     def value_from_datadict(self, data, files, name):
         value = super().value_from_datadict(data, files, name)
         if value and isinstance(value, str):
-            from django.utils.html import strip_tags
-            if not strip_tags(value).strip():
+            if not html_unescape(strip_tags(value)).strip():
                 return ''
         return value
 
@@ -176,13 +177,12 @@ class I18nRichTextWidget(I18nTextarea):
     def value_from_datadict(self, data, files, name):
         value = super().value_from_datadict(data, files, name)
         if value:
-            from django.utils.html import strip_tags
             if isinstance(value, list):
                 return [
-                    '' if isinstance(v, str) and not strip_tags(v).strip() else v
+                    '' if isinstance(v, str) and not html_unescape(strip_tags(v)).strip() else v
                     for v in value
                 ]
-            if isinstance(value, str) and not strip_tags(value).strip():
+            if isinstance(value, str) and not html_unescape(strip_tags(value)).strip():
                 return ''
         return value
 

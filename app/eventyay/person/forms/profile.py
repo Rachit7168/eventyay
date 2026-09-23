@@ -315,14 +315,16 @@ class SpeakerProfileForm(
         return data
 
     def save(self, **kwargs):
+        self._user_was_preexisting = False
         if not self.user:
             email = self.cleaned_data.get('email')
             existing_user = None
             if email:
                 existing_user = User.objects.filter(email__iexact=email).first()
-                
+
             if existing_user:
                 self.user = existing_user
+                self._user_was_preexisting = True
             else:
                 self.user = User(
                     email=email,
@@ -333,6 +335,18 @@ class SpeakerProfileForm(
                     self.user.pw_reset_token = get_random_string(32)
                     self.user.pw_reset_time = now() + dt.timedelta(days=60)
                 self.user.save()
+
+        if self._user_was_preexisting:
+            # Do not mutate the pre-existing account's global data (name, avatar, email, etc.).
+            # The organizer only has permission to create a SpeakerProfile, not to edit
+            # another user's account. We only need the user attached to the profile.
+            self.instance.event = self.event
+            self.instance.user = self.user
+            result = super().save(**kwargs)
+            for key, value in self.cleaned_data.items():
+                if key.startswith('question_'):
+                    self.save_questions(key, value)
+            return result
 
         avatar_changed = 'avatar' in self.changed_data
         old_thumbnails_to_delete = []

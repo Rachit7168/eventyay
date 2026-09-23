@@ -1,14 +1,19 @@
+import datetime as dt
+
 from django.conf import settings
 from django.contrib import messages
-from django.db import transaction
+from django import forms
+from django.db import IntegrityError, transaction
 from django.db.models import Count, Exists, F, OuterRef, Prefetch, Q
 from django.db.models.expressions import OrderBy
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect
+from django.utils.crypto import get_random_string
 from django.utils.decorators import method_decorator
 from django.utils.functional import cached_property
 from urllib.parse import urlencode
 from django.utils.http import url_has_allowed_host_and_scheme
+from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import DetailView, FormView, ListView, View
 from django_context_decorator import context
@@ -45,6 +50,7 @@ from eventyay.person.forms import (
     SpeakerInformationForm,
     SpeakerProfileForm,
 )
+from eventyay.person.forms.profile import get_email_address_error
 from eventyay.person.social_link_mixin import SpeakerSocialLinksMixin
 from eventyay.submission.forms import TalkQuestionsForm
 from eventyay.talk_rules.person import is_only_reviewer
@@ -252,6 +258,9 @@ class SpeakerCreate(SpeakerSocialLinksMixin, EventPermissionRequired, ActionFrom
         kwargs.update({'event': self.request.event, 'user': self.object})
         if not self.request.user.has_perm('base.orga_view_speaker_emails', self.request.event):
             kwargs['with_email'] = False
+            # Force no_email=True so the invitation branch is never reached with a None email.
+            kwargs.setdefault('initial', {})
+            kwargs['initial']['no_email'] = True
         kwargs['ignore_first_time_exclude'] = True
         return kwargs
 
@@ -259,6 +268,17 @@ class SpeakerCreate(SpeakerSocialLinksMixin, EventPermissionRequired, ActionFrom
         context = super().get_context_data(**kwargs)
         context.update(self.get_social_links_context())
         return context
+
+    @context
+    @cached_property
+    def existing_sessions(self):
+        """Queryset of event sessions available for linking (efficient – only loads pk/title/code)."""
+        return (
+            self.request.event.submissions
+            .exclude(state__in=(SubmissionStates.DELETED, SubmissionStates.DRAFT))
+            .only('pk', 'title', 'code')
+            .order_by('title')
+        )
 
     @context
     @cached_property
@@ -289,13 +309,27 @@ class SpeakerCreate(SpeakerSocialLinksMixin, EventPermissionRequired, ActionFrom
                 return self.form_invalid(form)
 
             add_session = self.request.POST.get('add_session') == 'on'
+            link_existing_session = self.request.POST.get('link_existing_session') == 'on'
 
             if add_session:
                 if not self.session_form.is_valid() or not self.session_questions_form.is_valid():
                     messages.error(self.request, phrases.base.error_saving_changes)
                     return self.form_invalid(form)
 
-            from django.db import IntegrityError
+            existing_session = None
+            if link_existing_session:
+                session_pk = self.request.POST.get('existing_session_id')
+                if session_pk:
+                    try:
+                        existing_session = (
+                            self.request.event.submissions
+                            .exclude(state__in=(SubmissionStates.DELETED, SubmissionStates.DRAFT))
+                            .get(pk=session_pk)
+                        )
+                    except (Submission.DoesNotExist, ValueError):
+                        form.add_error(None, forms.ValidationError(_('The selected session does not exist.')))
+                        return self.form_invalid(form)
+
             try:
                 with transaction.atomic():
                     self.object = form.save()
@@ -304,6 +338,13 @@ class SpeakerCreate(SpeakerSocialLinksMixin, EventPermissionRequired, ActionFrom
                 return self.form_invalid(form)
 
             user = self.object.user
+
+            # For pre-existing accounts, ensure the invitation token is fresh
+            # so the recovery URL we build is actually usable.
+            if getattr(form, '_user_was_preexisting', False) and user.email:
+                user.pw_reset_token = get_random_string(32)
+                user.pw_reset_time = now() + dt.timedelta(days=60)
+                user.save(update_fields=['pw_reset_token', 'pw_reset_time'])
 
             self.save_social_media_formset(profile=self.object)
 
@@ -332,6 +373,9 @@ class SpeakerCreate(SpeakerSocialLinksMixin, EventPermissionRequired, ActionFrom
                 self.session_questions_form.save()
                 session.speakers.add(user)
                 messages.success(self.request, _('Speaker and session created successfully.'))
+            elif existing_session:
+                existing_session.speakers.add(user)
+                messages.success(self.request, _('Speaker added and linked to existing session successfully.'))
             else:
                 messages.success(self.request, _('Speaker created successfully.'))
 
