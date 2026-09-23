@@ -1104,17 +1104,7 @@ class Schedule(PretalxModel):
                 'code': user.code,
                 'name': user.fullname or None,
                 'biography': getattr(profile, 'biography', '') if show_biography else '',
-<<<<<<< HEAD
                 'speaker_role': build_public_speaker_role(profile, self.event) if profile else '',
-                'avatar': (user.get_avatar_url(event=self.event) if include_avatar else None),
-                'avatar_thumbnail_default': (
-                    user.get_avatar_url(event=self.event, thumbnail='default') if include_avatar else None
-                ),
-                'avatar_thumbnail_tiny': (
-                    user.get_avatar_url(event=self.event, thumbnail='tiny') if include_avatar else None
-                ),
-=======
->>>>>>> upstream/dev
                 'is_featured': bool(getattr(profile, 'is_featured', False)),
                 'featured_position': getattr(profile, 'position', None),
             }
