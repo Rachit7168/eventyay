@@ -88,7 +88,7 @@
                     {% translate "Session" %}
                 </label>
                 <div class="col-md-9">
-                    <select id="id_existing_session_id" name="existing_session_id" class="form-control enhanced" disabled>
+                    <select id="id_existing_session_id" name="existing_session_id" class="form-control enhanced">
                         <option value="">{% translate "— choose a session —" %}</option>
                         {% for session in existing_sessions %}
                             <option value="{{ session.pk }}"

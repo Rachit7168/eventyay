@@ -29,17 +29,19 @@
 
       if (sessionSection) {
         sessionSection.classList.toggle('d-none', !addChecked);
-        // Enable/disable all inputs inside so they don't submit stale data
+        // Disable inputs in the hidden new-session section so stale data
+        // isn't included in the POST when the section is not visible.
         sessionSection.querySelectorAll('input, select, textarea').forEach(function (el) {
           el.disabled = !addChecked;
         });
       }
 
       if (existingSessionSection) {
+        // For the existing-session section we only toggle visibility.
+        // The enhanced select widget can't be re-enabled via .disabled after
+        // it has already initialised, so we rely solely on d-none to hide it.
+        // The server ignores existing_session_id when link_existing_session is off.
         existingSessionSection.classList.toggle('d-none', !linkChecked);
-        existingSessionSection.querySelectorAll('input, select').forEach(function (el) {
-          el.disabled = !linkChecked;
-        });
       }
     }
 
