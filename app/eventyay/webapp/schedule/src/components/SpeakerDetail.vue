@@ -14,7 +14,6 @@
 			.speaker-content-area
 				.speaker-title
 					h2 {{ resolvedSpeaker.name || t.speaker_fallback }}
-					p.speaker-role(v-if="resolvedSpeaker.speaker_role") {{ resolvedSpeaker.speaker_role }}
 				speaker-social-links(:links="socialLinks", alignment="flex-start")
 		.field-section.biography-section(v-if="resolvedSpeaker.biography")
 			h2.field-heading {{ t.biography }}

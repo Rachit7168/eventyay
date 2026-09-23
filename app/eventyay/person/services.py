@@ -30,8 +30,10 @@ def build_public_speaker_role(profile, event):
         job_title = (profile.job_title or '').strip()
         if job_title:
             parts.append(job_title)
+
     if cfp.request_organization and cfp.is_field_public('organization'):
         organization = (profile.organization or '').strip()
         if organization:
             parts.append(organization)
+
     return ', '.join(parts)

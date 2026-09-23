@@ -424,13 +424,6 @@ def speaker_dict_from_profile(
         'name': user.fullname or None,
         'biography': (profile.biography or '') if include_biography else '',
         'speaker_role': build_public_speaker_role(profile, event),
-        'avatar': user.get_avatar_url(event=event) if include_avatar else None,
-        'avatar_thumbnail_default': (
-            user.get_avatar_url(event=event, thumbnail='default') if include_avatar else None
-        ),
-        'avatar_thumbnail_tiny': (
-            user.get_avatar_url(event=event, thumbnail='tiny') if include_avatar else None
-        ),
         'is_featured': is_featured,
         'featured_position': profile.position if is_featured else None,
     }
@@ -557,8 +550,6 @@ def merge_featured_speakers_into_schedule_data(event, schedule_data, featured_pr
             existing['featured_position'] = profile.position
             if speaker_data.get('biography') and not existing.get('biography'):
                 existing['biography'] = speaker_data['biography']
-            if speaker_data.get('speaker_role') and not existing.get('speaker_role'):
-                existing['speaker_role'] = speaker_data['speaker_role']
             for field in ('avatar', 'avatar_thumbnail_default', 'avatar_thumbnail_tiny'):
                 if speaker_data.get(field) and not existing.get(field):
                     existing[field] = speaker_data[field]
