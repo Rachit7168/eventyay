@@ -1167,8 +1167,8 @@ class Renderer:
                             currency_font = ff
                             break
                     if not currency_font:
-                        text_content = re.sub(r'(?<=\d)\s*' + re.escape(sym), '\u00A0' + ev.currency, text_content)
-                        text_content = re.sub(re.escape(sym) + r'\s*(?=\d)', ev.currency + '\u00A0', text_content)
+                        text_content = re.sub(r'(?<=\d)[ \t]*' + re.escape(sym), '\u00A0' + ev.currency, text_content)
+                        text_content = re.sub(re.escape(sym) + r'[ \t]*(?=\d)', ev.currency + '\u00A0', text_content)
 
         font, text_content = resolve_textarea_font(font, text_content)
 
