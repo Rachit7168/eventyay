@@ -64,3 +64,25 @@ def test_generate_pdf(env0):
         assert ftype == 'application/pdf'
         pdf = PdfReader(BytesIO(buf))
         assert len(pdf.pages) == 1
+
+
+@pytest.mark.django_db
+def test_generate_pdf_currency_symbol_fallback(env0):
+    event, order = env0
+    event.currency = 'INR'
+    event.save()
+    with scope(organizer=event.organizer):
+        event.settings.set('ticketoutput_pdf_code_x', 30)
+        event.settings.set('ticketoutput_pdf_code_y', 50)
+        event.settings.set('ticketoutput_pdf_code_s', 2)
+        o = PdfTicketOutput(event)
+        fname, ftype, buf = o.generate(order.positions.first())
+        assert ftype == 'application/pdf'
+        pdf = PdfReader(BytesIO(buf))
+        assert len(pdf.pages) == 1
+        
+        text = ''
+        for page in pdf.pages:
+            text += page.extract_text()
+            
+        assert '₹' in text

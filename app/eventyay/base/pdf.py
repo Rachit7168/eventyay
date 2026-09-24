@@ -1141,6 +1141,32 @@ class Renderer:
             self._style_cache = {}
 
         text_content = self._get_text_content(op, order, o) or ''
+
+        # Currency symbol fallback
+        currency_sym = None
+        currency_font = None
+        ev = self._get_ev(op, order)
+        if ev and hasattr(ev, 'currency'):
+            from babel.numbers import get_currency_symbol
+            from django.utils import translation
+            sym = get_currency_symbol(ev.currency, locale=translation.get_language()[:2])
+            if sym and sym != ev.currency and sym in text_content:
+                if not font_supports_text(font, sym):
+                    for ff in ['NotoSansDevanagari', 'NotoSansCJK', 'NotoSansKR', 'NotoSansThai', 'NotoSansHebrew', 'NotoNaskhArabic']:
+                        target_ff = ff + ' B' if o.get('bold') else ff
+                        if font_supports_text(target_ff, sym):
+                            currency_sym = sym
+                            currency_font = target_ff
+                            break
+                        elif o.get('bold') and font_supports_text(ff, sym):
+                            currency_sym = sym
+                            currency_font = ff
+                            break
+                    if not currency_font:
+                        text_content = re.sub(r'(?<=\d)\s*' + re.escape(sym), '\u00A0' + ev.currency, text_content)
+                        text_content = re.sub(re.escape(sym) + r'\s*(?=\d)', ev.currency + '\u00A0', text_content)
+                        text_content = text_content.replace(sym, ev.currency)
+
         font, text_content = resolve_textarea_font(font, text_content)
 
         fontsize = float(o['fontsize'])
@@ -1192,7 +1218,8 @@ class Renderer:
         text = thai_pattern.sub(r'<font name="NotoSansThai">\1</font>', text)
         text = hebrew_pattern.sub(r'<font name="NotoSansHebrew">\1</font>', text)
 
-
+        if currency_sym and currency_font:
+            text = text.replace(currency_sym, f'<font name="{currency_font}">{currency_sym}</font>')
         p = Paragraph(text, style=style)
         w, h = p.wrapOn(canvas, float(o['width']) * mm, 1000 * mm)
         # p_size = p.wrap(float(o['width']) * mm, 1000 * mm)
