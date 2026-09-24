@@ -1149,7 +1149,11 @@ class Renderer:
         if ev and hasattr(ev, 'currency'):
             from babel.numbers import get_currency_symbol
             from django.utils import translation
-            sym = get_currency_symbol(ev.currency, locale=translation.get_language()[:2])
+            
+            target_locale = o.get('locale') or translation.get_language()
+            target_locale = target_locale[:2] if target_locale else 'en'
+            sym = get_currency_symbol(ev.currency, locale=target_locale)
+            
             if sym and sym != ev.currency and sym in text_content:
                 if not font_supports_text(font, sym):
                     for ff in ['NotoSansDevanagari', 'NotoSansCJK', 'NotoSansKR', 'NotoSansThai', 'NotoSansHebrew', 'NotoNaskhArabic']:
@@ -1165,7 +1169,6 @@ class Renderer:
                     if not currency_font:
                         text_content = re.sub(r'(?<=\d)\s*' + re.escape(sym), '\u00A0' + ev.currency, text_content)
                         text_content = re.sub(re.escape(sym) + r'\s*(?=\d)', ev.currency + '\u00A0', text_content)
-                        text_content = text_content.replace(sym, ev.currency)
 
         font, text_content = resolve_textarea_font(font, text_content)
 

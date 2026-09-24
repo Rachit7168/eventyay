@@ -75,7 +75,27 @@ def test_generate_pdf_currency_symbol_fallback(env0):
         event.settings.set('ticketoutput_pdf_code_x', 30)
         event.settings.set('ticketoutput_pdf_code_y', 50)
         event.settings.set('ticketoutput_pdf_code_s', 2)
+        
         o = PdfTicketOutput(event)
+        # Force a font that lacks the currency symbol
+        o.override_layout = [
+            {
+                'type': 'textarea',
+                'left': '10.00',
+                'bottom': '10.00',
+                'fontsize': '16.0',
+                'color': [0, 0, 0, 1],
+                'fontfamily': 'Open Sans',
+                'bold': False,
+                'italic': False,
+                'width': '100.00',
+                'content': 'price',
+                'text': '',
+                'align': 'left',
+            }
+        ]
+        
+        # Test font fallback
         fname, ftype, buf = o.generate(order.positions.first())
         assert ftype == 'application/pdf'
         pdf = PdfReader(BytesIO(buf))
@@ -86,3 +106,13 @@ def test_generate_pdf_currency_symbol_fallback(env0):
             text += page.extract_text()
             
         assert '₹' in text
+
+        # Test ISO code fallback when no font supports the symbol
+        from unittest.mock import patch
+        with patch('eventyay.base.pdf.font_supports_text', return_value=False):
+            fname, ftype, buf = o.generate(order.positions.first())
+            pdf = PdfReader(BytesIO(buf))
+            text = ''
+            for page in pdf.pages:
+                text += page.extract_text()
+            assert 'INR' in text
