@@ -2016,7 +2016,57 @@ body:has(.td-dashboard) #page-content {
   margin: 0
 }
 .cd-search .event-dropdown {
-  width: 100%
+  width: 100%;
+  padding: .5rem 0;
+  border-radius: .4rem;
+  box-shadow: 0 8px 24px rgb(15 23 42 / .15);
+  border: 1px solid var(--cd-border);
+  background: var(--cd-surface);
+  max-height: 25rem;
+  overflow-y: auto;
+}
+.cd-search .event-dropdown li a {
+  display: flex;
+  flex-direction: column;
+  padding: .85rem 1.25rem;
+  color: var(--color-text,#0d0f10);
+  border-bottom: 1px solid color-mix(in srgb,var(--cd-border) 60%,transparent);
+  transition: background var(--cd-ease);
+}
+.cd-search .event-dropdown li:last-child a {
+  border-bottom: none;
+}
+.cd-search .event-dropdown li a:hover,
+.cd-search .event-dropdown li.active a {
+  background: color-mix(in srgb,var(--cd-primary) 8%,var(--cd-surface));
+  text-decoration: none;
+}
+.cd-search .event-dropdown .search-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: .3rem;
+  color: var(--cd-primary);
+}
+.cd-search .event-dropdown .search-detail {
+  font-size: 1.05rem;
+  color: var(--cd-muted);
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  margin-bottom: .2rem;
+}
+.cd-search .event-dropdown .search-detail:last-child {
+  margin-bottom: 0;
+}
+.cd-search .event-dropdown .search-detail .fa {
+  width: 1.25rem;
+  text-align: center;
+  opacity: .8;
+}
+.cd-search .event-dropdown li.loading {
+  padding: 1.5rem;
+  text-align: center;
+  color: var(--cd-muted);
 }
 .cd-card-grid {
   display: grid;
@@ -2035,9 +2085,9 @@ body:has(.td-dashboard) #page-content {
 .cd-action-card {
   display: grid;
   grid-template-columns: auto minmax(0,1fr);
-  grid-template-areas: 'icon body' 'icon link';
+  grid-template-areas: 'icon link' 'icon body';
   column-gap: 1.2rem;
-  row-gap: .8rem;
+  row-gap: .25rem;
   align-content: start;
   height: 100%;
   padding: 1.75rem 1.7rem;
@@ -2095,18 +2145,19 @@ body:has(.td-dashboard) #page-content {
   color: var(--cd-muted);
   line-height: 1.55;
   font-size: 1.15rem;
-  align-self: end;
+  align-self: start;
 }
 .cd-action-card__link {
   grid-area: link;
   display: inline-flex;
   align-items: center;
   gap: .4rem;
-  font-size: 1.15rem;
-  font-weight: 600;
+  font-size: 1.45rem;
+  font-weight: 700;
   color: var(--cd-primary);
   text-decoration: none;
-  transition: gap var(--cd-ease),color var(--cd-ease)
+  transition: gap var(--cd-ease),color var(--cd-ease);
+  align-self: end;
 }
 .cd-action-card__link:focus,
 .cd-action-card__link:hover {
