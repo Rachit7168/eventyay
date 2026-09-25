@@ -2016,14 +2016,21 @@ body:has(.td-dashboard) #page-content {
   margin: 0
 }
 .cd-search .event-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 1050;
+  margin-top: .5rem;
   width: 100%;
   padding: .5rem 0;
-  border-radius: .4rem;
-  box-shadow: 0 8px 24px rgb(15 23 42 / .15);
-  border: 1px solid var(--cd-border);
+  border-radius: .5rem;
+  box-shadow: 0 10px 30px rgb(15 23 42 / .2);
+  border: 1px solid color-mix(in srgb,var(--cd-border) 80%,#000);
   background: var(--cd-surface);
-  max-height: 25rem;
+  max-height: 22rem;
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .cd-search .event-dropdown li a {
   display: flex;
