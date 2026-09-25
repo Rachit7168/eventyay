@@ -1155,12 +1155,12 @@ class Renderer:
             if sym and sym != ev.currency and sym in text_content:
                 text_content = re.sub(
                     r'(?<=\d)(\s*)' + re.escape(sym),
-                    lambda m: (m.group(1) if '\n' in m.group(1) else '\u00A0') + ev.currency,
+                    lambda m: (m.group(1) if m.group(1) else '\u00A0') + ev.currency,
                     text_content
                 )
                 text_content = re.sub(
                     re.escape(sym) + r'(\s*)(?=\d)',
-                    lambda m: ev.currency + (m.group(1) if '\n' in m.group(1) else '\u00A0'),
+                    lambda m: ev.currency + (m.group(1) if m.group(1) else '\u00A0'),
                     text_content
                 )
 
