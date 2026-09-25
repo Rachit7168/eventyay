@@ -29,17 +29,13 @@
       <h2 id="organiser-quick-actions-title">{% trans "Quick actions" %}</h2>
       <div class="cd-card-grid cd-card-grid--actions">
         {% for action in create_actions %}
-          <article class="cd-action-card">
+          <a class="cd-action-card" href="{{ action.url }}">
             <div class="cd-action-card__icon cd-action-card__icon--{{ action.tone }}" aria-hidden="true">
               <span class="fa fa-{{ action.icon }}"></span>
             </div>
             <h3>{{ action.title }}</h3>
             <p>{{ action.description }}</p>
-            <a class="cd-action-card__link" href="{{ action.url }}">
-              {{ action.title }}
-              <span aria-hidden="true">></span>
-            </a>
-          </article>
+          </a>
         {% endfor %}
       </div>
     </section>

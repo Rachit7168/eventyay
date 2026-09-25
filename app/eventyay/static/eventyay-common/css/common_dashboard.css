@@ -2035,7 +2035,7 @@ body:has(.td-dashboard) #page-content {
 .cd-action-card {
   display: grid;
   grid-template-columns: auto minmax(0,1fr);
-  grid-template-areas: 'icon title' 'icon body' 'icon link';
+  grid-template-areas: 'icon title' 'icon body';
   column-gap: 1.2rem;
   row-gap: .5rem;
   align-content: start;
@@ -2046,12 +2046,17 @@ body:has(.td-dashboard) #page-content {
   border-radius: var(--cd-radius);
   background: var(--cd-surface);
   box-shadow: var(--cd-shadow);
-  transition: border-color var(--cd-ease),box-shadow var(--cd-ease),transform var(--cd-ease)
+  transition: border-color var(--cd-ease),box-shadow var(--cd-ease),transform var(--cd-ease);
+  text-decoration: none;
+  color: inherit;
 }
+.cd-action-card:focus,
 .cd-action-card:hover {
   border-color: var(--cd-border-strong);
   box-shadow: var(--cd-shadow-hover);
-  transform: translateY(-3px)
+  transform: translateY(-3px);
+  text-decoration: none;
+  color: inherit;
 }
 .cd-action-card__icon {
   grid-area: icon;
@@ -2097,24 +2102,7 @@ body:has(.td-dashboard) #page-content {
   line-height: 1.55;
   font-size: 1.15rem
 }
-.cd-action-card__link {
-  grid-area: link;
-  display: inline-flex;
-  align-items: center;
-  gap: .4rem;
-  margin-top: .4rem;
-  font-size: 1.15rem;
-  font-weight: 600;
-  color: var(--cd-primary);
-  text-decoration: none;
-  transition: gap var(--cd-ease),color var(--cd-ease)
-}
-.cd-action-card__link:focus,
-.cd-action-card__link:hover {
-  text-decoration: underline;
-  gap: .6rem;
-  color: color-mix(in srgb,var(--cd-primary) 80%,#000)
-}
+
 .cd-event-card {
   display: flex;
   flex-direction: column;
