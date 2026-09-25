@@ -1153,17 +1153,16 @@ class Renderer:
                 sym = get_currency_symbol(ev.currency, locale=target_locale)
             
             if sym and sym != ev.currency and sym in text_content:
-                if not font_supports_text(font, sym):
-                    text_content = re.sub(
-                        r'(?<=\d)(\s*)' + re.escape(sym),
-                        lambda m: (m.group(1) if '\n' in m.group(1) else '\u00A0') + ev.currency,
-                        text_content
-                    )
-                    text_content = re.sub(
-                        re.escape(sym) + r'(\s*)(?=\d)',
-                        lambda m: ev.currency + (m.group(1) if '\n' in m.group(1) else '\u00A0'),
-                        text_content
-                    )
+                text_content = re.sub(
+                    r'(?<=\d)(\s*)' + re.escape(sym),
+                    lambda m: (m.group(1) if '\n' in m.group(1) else '\u00A0') + ev.currency,
+                    text_content
+                )
+                text_content = re.sub(
+                    re.escape(sym) + r'(\s*)(?=\d)',
+                    lambda m: ev.currency + (m.group(1) if '\n' in m.group(1) else '\u00A0'),
+                    text_content
+                )
 
         font, text_content = resolve_textarea_font(font, text_content)
 
