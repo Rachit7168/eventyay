@@ -13,8 +13,10 @@ from functools import partial
 from io import BytesIO
 
 from arabic_reshaper import ArabicReshaper
+from babel.numbers import get_currency_symbol
 from bidi.algorithm import get_display
 from django.conf import settings
+from django.utils import translation
 from django.contrib.staticfiles import finders
 from django.dispatch import receiver
 from django.utils.formats import date_format
@@ -1147,9 +1149,6 @@ class Renderer:
         currency_font = None
         ev = self._get_ev(op, order)
         if ev and hasattr(ev, 'currency'):
-            from babel.numbers import get_currency_symbol
-            from django.utils import translation
-            
             target_locale = o.get('locale') or translation.get_language()
             target_locale = target_locale[:2] if target_locale else 'en'
             sym = get_currency_symbol(ev.currency, locale=target_locale)
@@ -1177,6 +1176,7 @@ class Renderer:
                             lambda m: ev.currency + (m.group(1) if '\n' in m.group(1) else '\u00A0'),
                             text_content
                         )
+                        text_content = text_content.replace(sym, ev.currency)
 
         font, text_content = resolve_textarea_font(font, text_content)
 

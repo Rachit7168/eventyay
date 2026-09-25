@@ -116,3 +116,28 @@ def test_generate_pdf_currency_symbol_fallback(env0):
             for page in pdf.pages:
                 text += page.extract_text()
             assert 'INR' in text
+
+        # Test ISO code fallback when no font supports the symbol and there are no adjacent digits
+        with patch('eventyay.base.pdf.font_supports_text', return_value=False):
+            o.override_layout = [
+                {
+                    'type': 'textarea',
+                    'left': '10.00',
+                    'bottom': '10.00',
+                    'fontsize': '16.0',
+                    'color': [0, 0, 0, 1],
+                    'fontfamily': 'Open Sans',
+                    'bold': False,
+                    'italic': False,
+                    'width': '100.00',
+                    'content': 'other',
+                    'text': 'Currency: ₹',
+                    'align': 'left',
+                }
+            ]
+            fname, ftype, buf = o.generate(order.positions.first())
+            pdf = PdfReader(BytesIO(buf))
+            text = ''
+            for page in pdf.pages:
+                text += page.extract_text()
+            assert 'Currency: INR' in text
