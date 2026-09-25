@@ -213,27 +213,35 @@ def speaker_autocomplete_results(*, event: Event, search: str) -> list[dict[str,
         for user in users:
             add_result(email=user.email, name=user.fullname)
 
+        from django.db.models import Min, Value
+        from django.db.models.functions import Coalesce, NullIf
+
         no_attendee_email = Q(attendee_email__isnull=True) | Q(attendee_email='')
         attendee_match = (
             Q(attendee_email__icontains=query)
             | Q(attendee_name_cached__icontains=query)
             | (Q(order__email__icontains=query) & no_attendee_email)
         )
-        positions = (
+        
+        effective_email = Coalesce(NullIf('attendee_email', Value('')), 'order__email')
+        
+        attendee_data = (
             OrderPosition.objects.filter(
                 attendee_match,
                 order__event=event,
                 order__status__in=(Order.STATUS_PAID, Order.STATUS_PENDING),
                 product__admission=True,
             )
-            .select_related('order')
-            .order_by(Lower('attendee_name_cached'), Lower('attendee_email'), 'pk')
+            .annotate(effective_email=effective_email)
+            .values('effective_email')
+            .annotate(name=Min('attendee_name_cached'))
+            .order_by('effective_email')
             [:SPEAKER_AUTOCOMPLETE_CANDIDATE_LIMIT]
         )
-        for position in positions:
+        for data in attendee_data:
             add_result(
-                email=position.attendee_email or position.order.email,
-                name=position.attendee_name,
+                email=data['effective_email'],
+                name=data['name'],
             )
 
     ordered = sorted(
