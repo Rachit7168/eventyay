@@ -1149,9 +1149,10 @@ class Renderer:
         currency_font = None
         ev = self._get_ev(op, order)
         if ev and hasattr(ev, 'currency'):
-            target_locale = o.get('locale') or translation.get_language()
-            target_locale = target_locale[:2] if target_locale else 'en'
-            sym = get_currency_symbol(ev.currency, locale=target_locale)
+            with language(o.get('locale') or translation.get_language(), self.event.settings.region):
+                target_locale = translation.get_language()
+                target_locale = target_locale[:2] if target_locale else 'en'
+                sym = get_currency_symbol(ev.currency, locale=target_locale)
             
             if sym and sym != ev.currency and sym in text_content:
                 if not font_supports_text(font, sym):
@@ -1176,7 +1177,6 @@ class Renderer:
                             lambda m: ev.currency + (m.group(1) if '\n' in m.group(1) else '\u00A0'),
                             text_content
                         )
-                        text_content = text_content.replace(sym, ev.currency)
 
         font, text_content = resolve_textarea_font(font, text_content)
 
