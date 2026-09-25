@@ -3,6 +3,7 @@ from decimal import Decimal
 from io import BytesIO
 
 import pytest
+from unittest.mock import patch
 from django.utils.timezone import now
 from django_scopes import scope
 from pypdf import PdfReader
@@ -55,7 +56,7 @@ def env0():
 @pytest.mark.django_db
 def test_generate_pdf(env0):
     event, order = env0
-    with scope(organizer=event.organizer):
+    with scope(organizer=event.organizer, event=event):
         event.settings.set('ticketoutput_pdf_code_x', 30)
         event.settings.set('ticketoutput_pdf_code_y', 50)
         event.settings.set('ticketoutput_pdf_code_s', 2)
@@ -71,7 +72,7 @@ def test_generate_pdf_currency_symbol_fallback(env0):
     event, order = env0
     event.currency = 'INR'
     event.save()
-    with scope(organizer=event.organizer):
+    with scope(organizer=event.organizer, event=event):
         event.settings.set('ticketoutput_pdf_code_x', 30)
         event.settings.set('ticketoutput_pdf_code_y', 50)
         event.settings.set('ticketoutput_pdf_code_s', 2)
@@ -108,7 +109,6 @@ def test_generate_pdf_currency_symbol_fallback(env0):
         assert '₹' in text
 
         # Test ISO code fallback when no font supports the symbol
-        from unittest.mock import patch
         with patch('eventyay.base.pdf.font_supports_text', return_value=False):
             fname, ftype, buf = o.generate(order.positions.first())
             pdf = PdfReader(BytesIO(buf))
