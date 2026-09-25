@@ -1854,7 +1854,7 @@ body:has(.td-dashboard) #page-content {
 }
 .common-dashboard__view-all {
   white-space: nowrap;
-  font-size: 1.05rem;
+  font-size: 1.35rem;
   font-weight: 600;
   color: var(--cd-primary);
   text-decoration: none;
