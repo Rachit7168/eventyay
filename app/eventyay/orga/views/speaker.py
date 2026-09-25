@@ -329,6 +329,9 @@ class SpeakerCreate(SpeakerSocialLinksMixin, EventPermissionRequired, ActionFrom
                     except (Submission.DoesNotExist, ValueError):
                         form.add_error(None, forms.ValidationError(_('The selected session does not exist.')))
                         return self.form_invalid(form)
+                else:
+                    form.add_error(None, forms.ValidationError(_('Please select an existing session to link.')))
+                    return self.form_invalid(form)
 
             try:
                 with transaction.atomic():
@@ -339,9 +342,11 @@ class SpeakerCreate(SpeakerSocialLinksMixin, EventPermissionRequired, ActionFrom
 
             user = self.object.user
 
+            is_preexisting = getattr(form, '_user_was_preexisting', False)
+
             # For pre-existing accounts, ensure the invitation token is fresh
             # so the recovery URL we build is actually usable.
-            if getattr(form, '_user_was_preexisting', False) and user.email:
+            if is_preexisting and user.email:
                 user.pw_reset_token = get_random_string(32)
                 user.pw_reset_time = now() + dt.timedelta(days=60)
                 user.save(update_fields=['pw_reset_token', 'pw_reset_time'])
@@ -364,6 +369,8 @@ class SpeakerCreate(SpeakerSocialLinksMixin, EventPermissionRequired, ActionFrom
                     context=context,
                     context_kwargs={'user': user, 'event': self.request.event},
                     locale=self.request.event.locale,
+                    commit=not is_preexisting,
+                    skip_queue=is_preexisting,
                 )
 
             if add_session:

@@ -342,6 +342,7 @@ class SpeakerProfileForm(
             # another user's account. We only need the user attached to the profile.
             self.instance.event = self.event
             self.instance.user = self.user
+            self.speaker = self.user
             result = super().save(**kwargs)
             for key, value in self.cleaned_data.items():
                 if key.startswith('question_'):
@@ -385,6 +386,7 @@ class SpeakerProfileForm(
 
         self.instance.event = self.event
         self.instance.user = self.user
+        self.speaker = self.user
         result = super().save(**kwargs)
 
         if avatar_changed:
