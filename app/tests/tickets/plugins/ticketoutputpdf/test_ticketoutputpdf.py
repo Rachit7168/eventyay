@@ -96,27 +96,19 @@ def test_generate_pdf_currency_symbol_fallback(env0):
             }
         ]
         
-        # Test font fallback
-        fname, ftype, buf = o.generate(order.positions.first())
-        assert ftype == 'application/pdf'
-        pdf = PdfReader(BytesIO(buf))
-        assert len(pdf.pages) == 1
-        
-        text = ''
-        for page in pdf.pages:
-            text += page.extract_text()
-            
-        assert '₹' in text
-        # Verify the fallback font is used
-        assert b'NotoSansDevanagari' in buf
-
-        # Test ISO code fallback when no font supports the symbol
+        # Test font fallback (it should still output the symbol because Open Sans doesn't support ₹, but wait, we are removing the fallback font logic!
+        # If Open Sans doesn't support ₹, and we removed the fallback font logic, then it should ALWAYS substitute it with the ISO code!)
+        # So we just test that the ISO code fallback works when the primary font doesn't support the symbol.
         with patch('eventyay.base.pdf.font_supports_text', return_value=False):
             fname, ftype, buf = o.generate(order.positions.first())
+            assert ftype == 'application/pdf'
             pdf = PdfReader(BytesIO(buf))
+            assert len(pdf.pages) == 1
+            
             text = ''
             for page in pdf.pages:
                 text += page.extract_text()
+                
             # Verify the fallback regex substitutes the ISO code
             assert 'INR' in text
             # Ensure the symbol does not appear in the PDF bytes when ISO code is used
