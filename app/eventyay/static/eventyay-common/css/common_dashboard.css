@@ -2030,7 +2030,7 @@ body:has(.td-dashboard) #page-content {
   gap: 1.5rem
 }
 .cd-card-grid--dense {
-  grid-template-columns: repeat(auto-fill,minmax(min(100%,25rem),1fr))
+  grid-template-columns: repeat(auto-fill,minmax(min(100%,30rem),1fr))
 }
 .cd-action-card {
   display: grid;
@@ -2151,7 +2151,7 @@ body:has(.td-dashboard) #page-content {
   padding: .35rem .7rem;
   border-radius: 999px;
   border: 1px solid transparent;
-  font-size: .82rem;
+  font-size: 1.05rem;
   font-weight: 700;
   line-height: 1.2;
   letter-spacing: .01em;
@@ -2205,7 +2205,7 @@ body:has(.td-dashboard) #page-content {
 }
 .cd-event-card__title {
   margin: 0;
-  font-size: 1.65rem;
+  font-size: 2.25rem;
   font-weight: 700;
   line-height: 1.35;
   letter-spacing: -.015em;
@@ -2227,7 +2227,7 @@ body:has(.td-dashboard) #page-content {
 .cd-event-card__meta {
   margin: 0;
   color: var(--cd-muted);
-  font-size: 1.25rem;
+  font-size: 1.45rem;
   display: flex;
   align-items: flex-start;
   gap: .55rem;
@@ -2254,7 +2254,7 @@ body:has(.td-dashboard) #page-content {
   padding: .55rem .95rem;
   border-radius: 999px;
   border: 1px solid transparent;
-  font-size: 1.1rem;
+  font-size: 1.25rem;
   font-weight: 600;
   line-height: 1.2
 }
@@ -2279,7 +2279,7 @@ body:has(.td-dashboard) #page-content {
   display: inline-flex;
   align-items: center;
   gap: .4rem;
-  font-size: 1.3rem;
+  font-size: 1.5rem;
   font-weight: 600;
   color: var(--cd-primary);
   text-decoration: none;
@@ -2300,14 +2300,14 @@ body:has(.td-dashboard) #page-content {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 2.75rem;
-  padding: .55rem .5rem;
+  min-height: 3.25rem;
+  padding: .75rem .5rem;
   border: none;
   border-radius: .3rem;
   background: var(--cd-primary);
   box-shadow: 0 4px 12px color-mix(in srgb,var(--cd-primary) 28%,transparent);
   color: #fff;
-  font-size: 1.25rem;
+  font-size: 1.45rem;
   text-decoration: none;
   cursor: pointer;
   transition: filter var(--cd-ease),transform var(--cd-ease),box-shadow var(--cd-ease)
@@ -2481,7 +2481,7 @@ body:has(.td-dashboard) #page-content {
 @media (max-width:1100px) {
   .cd-card-grid,
   .cd-card-grid--dense {
-    grid-template-columns: repeat(auto-fill,minmax(min(100%,18.5rem),1fr))
+    grid-template-columns: repeat(auto-fill,minmax(min(100%,24rem),1fr))
   }
 }
 @media (max-width:767px) {
