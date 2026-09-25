@@ -91,21 +91,28 @@ $(function () {
                                 )
                             );
                         } else {
+                            var contentDiv = $("<div>").addClass("event-result-item");
+                            if (res.icon) {
+                                contentDiv.append($("<img>").attr("src", res.icon).addClass("event-icon"));
+                            } else {
+                                contentDiv.append($("<div>").addClass("event-icon event-icon--placeholder").append($("<span>").addClass("fa fa-calendar fa-2x")));
+                            }
+                            var textDiv = $("<div>").addClass("event-text").append(
+                                $("<span>").addClass("event-name-full").append($("<div>").text(res.name).html())
+                            ).append(
+                                $("<span>").addClass("event-organizer search-detail").append(
+                                    $("<span>").addClass("fa fa-users fa-fw")
+                                ).append(" ").append($("<div>").text(res.organizer).html())
+                            ).append(
+                                $("<span>").addClass("event-daterange search-detail").append(
+                                    $("<span>").addClass("fa fa-calendar fa-fw")
+                                ).append(" ").append(res.date_range)
+                            );
+                            contentDiv.append(textDiv);
+
                             $container.append(
                                 $("<li>").append(
-                                    $("<a>").attr("href", res.url).append(
-                                        $("<div>").append(
-                                            $("<span>").addClass("event-name-full").append($("<div>").text(res.name).html())
-                                        ).append(
-                                            $("<span>").addClass("event-organizer").append(
-                                                $("<span>").addClass("fa fa-users fa-fw")
-                                            ).append(" ").append($("<div>").text(res.organizer).html())
-                                        ).append(
-                                            $("<span>").addClass("event-daterange").append(
-                                                $("<span>").addClass("fa fa-calendar fa-fw")
-                                            ).append(" ").append(res.date_range)
-                                        )
-                                    ).on("mousedown", function (event) {
+                                    $("<a>").attr("href", res.url).append(contentDiv).on("mousedown", function (event) {
                                         if ($(this).length) {
                                             location.href = $(this).attr("href");
                                         }
@@ -156,6 +163,7 @@ $(function () {
                 }
                 $selected.removeClass("active");
                 $next.addClass("active");
+                if ($next[0]) $next[0].scrollIntoView({ block: 'nearest' });
                 event.preventDefault();
                 event.stopPropagation();
                 return true;
@@ -169,6 +177,7 @@ $(function () {
                 }
                 $selected.removeClass("active");
                 $prev.addClass("active");
+                if ($prev[0]) $prev[0].scrollIntoView({ block: 'nearest' });
                 event.preventDefault();
                 event.stopPropagation();
                 return true;
