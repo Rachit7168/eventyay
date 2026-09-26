@@ -1152,14 +1152,14 @@ class Renderer:
                 target_locale = target_locale[:2] if target_locale else 'en'
                 sym = get_currency_symbol(ev.currency, locale=target_locale)
             
-            if sym and sym != ev.currency and sym in text_content:
+            if sym and sym != ev.currency and sym in text_content and not font_supports_text(font, sym):
                 text_content = re.sub(
-                    r'(?<=\d)(\s*)' + re.escape(sym),
+                    r'(?<=\d)(\s*)' + re.escape(sym) + r'(?![a-zA-Z])',
                     lambda m: (m.group(1) if m.group(1) else '\u00A0') + ev.currency,
                     text_content
                 )
                 text_content = re.sub(
-                    re.escape(sym) + r'(\s*)(?=\d)',
+                    r'(?<![a-zA-Z])' + re.escape(sym) + r'(\s*)(?=\d)',
                     lambda m: ev.currency + (m.group(1) if m.group(1) else '\u00A0'),
                     text_content
                 )

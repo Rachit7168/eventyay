@@ -67,7 +67,7 @@ def test_generate_pdf(env0):
 
 
 @pytest.mark.django_db
-def test_generate_pdf_currency_symbol_fallback(env0):
+def test_generate_pdf_currency_symbol_fallback(env0, monkeypatch):
     event, order = env0
     event.currency = 'INR'
     event.save()
@@ -95,7 +95,8 @@ def test_generate_pdf_currency_symbol_fallback(env0):
             }
         ]
         
-        # Test ISO code fallback is applied unconditionally (no font support check)
+        # Test 1: Font does NOT support symbol (fallback applies)
+        monkeypatch.setattr('eventyay.base.pdf.font_supports_text', lambda f, t: False)
         fname, ftype, buf = o.generate(order.positions.first())
         assert ftype == 'application/pdf'
         pdf = PdfReader(BytesIO(buf))
@@ -109,3 +110,15 @@ def test_generate_pdf_currency_symbol_fallback(env0):
         assert 'INR' in text
         # Ensure the symbol does not appear in the PDF bytes when ISO code is used
         assert b'\xe2\x82\xb9' not in buf
+
+        # Test 2: Font DOES support symbol (fallback is NOT applied)
+        monkeypatch.setattr('eventyay.base.pdf.font_supports_text', lambda f, t: True)
+        fname2, ftype2, buf2 = o.generate(order.positions.first())
+        assert ftype2 == 'application/pdf'
+        pdf2 = PdfReader(BytesIO(buf2))
+        
+        text2 = ''
+        for page in pdf2.pages:
+            text2 += page.extract_text()
+            
+        assert 'INR' not in text2
