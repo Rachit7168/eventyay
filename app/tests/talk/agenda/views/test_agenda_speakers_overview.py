@@ -2,6 +2,7 @@ import json
 from unittest.mock import patch
 
 import pytest
+from bs4 import BeautifulSoup
 from django.core.cache import cache
 from django.test import RequestFactory
 from django.test.utils import override_settings
@@ -62,8 +63,6 @@ def test_speakers_overview_html_has_meta_not_full_schedule(client, event, speake
     assert 'pretalx-schedule-data' not in response.text
     assert 'pretalx-speakers-meta' in response.text
     assert 'view="speakers"' in response.text
-    from bs4 import BeautifulSoup
-
     main_container = BeautifulSoup(response.text, 'html.parser').find(id='main-container')
     assert main_container is not None
     assert {'main-schedule', 'speakers-overview'} <= set(main_container.get('class', []))
