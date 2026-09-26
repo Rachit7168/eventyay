@@ -1996,6 +1996,10 @@ body:has(.td-dashboard) #page-content {
   box-shadow: 0 0 0 3px color-mix(in srgb,var(--cd-primary) 18%,#fff);
   outline: 0
 }
+.common-dashboard .cd-search .cd-search__input.form-control::placeholder,
+.common-dashboard .cd-search .form-control::placeholder {
+  font-size: 1.4rem;
+}
 .cd-search__submit {
   min-width: 8rem;
   height: 3.45rem;
@@ -2189,7 +2193,7 @@ body:has(.td-dashboard) #page-content {
   margin: 0;
   color: var(--cd-muted);
   line-height: 1.55;
-  font-size: 1.15rem;
+  font-size: 1.3rem;
   align-self: start;
 }
 .cd-action-card__link {
@@ -2247,7 +2251,7 @@ body:has(.td-dashboard) #page-content {
   padding: .35rem .7rem;
   border-radius: 999px;
   border: 1px solid transparent;
-  font-size: 1.05rem;
+  font-size: 1.25rem;
   font-weight: 700;
   line-height: 1.2;
   letter-spacing: .01em;
@@ -2403,7 +2407,7 @@ body:has(.td-dashboard) #page-content {
   background: var(--cd-primary);
   box-shadow: 0 4px 12px color-mix(in srgb,var(--cd-primary) 28%,transparent);
   color: #fff;
-  font-size: 1.45rem;
+  font-size: 1.85rem;
   text-decoration: none;
   cursor: pointer;
   transition: filter var(--cd-ease),transform var(--cd-ease),box-shadow var(--cd-ease)
