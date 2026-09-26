@@ -28,7 +28,7 @@ from django.utils.functional import cached_property
 from django.utils.timezone import get_current_timezone_name
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import FormView, ListView, TemplateView
-from django_scopes import scope, scopes_disabled
+from django_scopes import scope
 from zoneinfo import ZoneInfo
 from rest_framework import views
 from django.views import View
@@ -186,7 +186,7 @@ class EventList(PaginationMixin, ListView):
                 
         page_event_ids = [e.pk for e in ctx['events']]
         
-        with scopes_disabled():
+        with scope(event__in=page_event_ids):
             submission_counts = list(
                 Submission.objects.filter(event_id__in=page_event_ids)
                 .values('event_id', 'state')
@@ -201,6 +201,7 @@ class EventList(PaginationMixin, ListView):
             
             speaker_totals = list(
                 SpeakerRole.objects.filter(submission__event_id__in=page_event_ids)
+                .exclude(submission__state__in=['draft', 'deleted'])
                 .values('submission__event_id')
                 .annotate(count=Count('user_id', distinct=True))
             )

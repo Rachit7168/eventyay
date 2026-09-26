@@ -46,6 +46,9 @@
         </ul>
         <div class="advanced-filter-search" data-advanced-filter-search>
             <form class="filter-form advanced-filter-search-form" action="" method="get">
+                {% if filter_form.status.value %}
+                    <input type="hidden" name="status" value="{{ filter_form.status.value }}">
+                {% endif %}
                 <div class="advanced-filter-search-bar">
                     <div class="input-group advanced-filter-search-query-group">
                         <input id="id_query" type="text" name="query" class="form-control" placeholder="{% trans 'Search events…' %}" aria-label="{% trans 'Search events…' %}" value="{{ filter_form.query.value|default_if_none:'' }}">
@@ -118,7 +121,7 @@
                     <a href="?{% url_replace request 'ordering' 'date_to' %}"><i class="fa fa-caret-up"></i></a>
                 </th>
                 <th style="width: 10%;">
-                    {% trans "Tickets" %}
+                    {% trans "Paid tickets / quota" %}
                     <a href="?{% url_replace request 'ordering' '-total_quota' %}"><i class="fa fa-caret-down"></i></a>
                     <a href="?{% url_replace request 'ordering' 'total_quota' %}"><i class="fa fa-caret-up"></i></a>
                 </th>
