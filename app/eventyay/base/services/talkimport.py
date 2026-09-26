@@ -371,6 +371,117 @@ def _load_mapped_questions(event: Event, settings: dict, *, target: str) -> tupl
     return question_mappings, question_cache
 
 
+def _parse_new_question_specs(settings: dict) -> list[dict]:
+    raw_specs = settings.get('new_questions') or []
+    if isinstance(raw_specs, str):
+        try:
+            raw_specs = json.loads(raw_specs)
+        except ValueError:
+            return []
+    if not isinstance(raw_specs, list):
+        return []
+    specs = []
+    allowed_variants = {
+        TalkQuestionVariant.STRING,
+        TalkQuestionVariant.TEXT,
+        TalkQuestionVariant.NUMBER,
+        TalkQuestionVariant.BOOLEAN,
+        TalkQuestionVariant.URL,
+        TalkQuestionVariant.VIDEO,
+        TalkQuestionVariant.DATE,
+        TalkQuestionVariant.DATETIME,
+        TalkQuestionVariant.COUNTRY,
+        TalkQuestionVariant.PHONE_NUMBER,
+    }
+    for item in raw_specs:
+        if not isinstance(item, dict):
+            continue
+        header = str(item.get('header') or '').strip()
+        label = str(item.get('label') or header).strip()
+        mapping = str(item.get('mapping') or '').strip()
+        variant = str(item.get('variant') or TalkQuestionVariant.STRING).strip()
+        if not header or not label:
+            continue
+        if variant not in allowed_variants:
+            variant = TalkQuestionVariant.STRING
+        if not mapping:
+            mapping = f'csv:{header}'
+        if not mapping.startswith('csv:'):
+            continue
+        specs.append(
+            {
+                'header': header,
+                'label': label[:800],
+                'variant': variant,
+                'mapping': mapping,
+            }
+        )
+    return specs
+
+
+def _find_question_by_label(event: Event, target: str, label: str) -> TalkQuestion | None:
+    needle = label.strip().casefold()
+    if not needle:
+        return None
+    for question in TalkQuestion.objects.filter(event=event, target=target, active=True):
+        if str(question.question).strip().casefold() == needle:
+            return question
+    return None
+
+
+def _get_or_create_csv_question(event: Event, target: str, spec: dict, caches: dict) -> TalkQuestion:
+    existing = _find_question_by_label(event, target, spec['label'])
+    if existing:
+        return existing
+    key = _normalize_extra_key(spec['label']) or 'custom_field'
+    cache_key = (target, key)
+    created_cache = caches.setdefault('import_questions', {})
+    if cache_key in created_cache:
+        return created_cache[cache_key]
+    import_key = _build_import_question_key(target, key)
+    question = TalkQuestion.all_objects.filter(event=event, target=target, import_key=import_key).first()
+    if question is None:
+        question = TalkQuestion.objects.create(
+            event=event,
+            target=target,
+            import_key=import_key,
+            is_imported=False,
+            active=True,
+            question_required=TalkQuestionRequired.OPTIONAL,
+            variant=spec['variant'],
+            question=spec['label'],
+            is_public=False,
+            contains_personal_data=False,
+            is_visible_to_reviewers=True,
+            position=_next_import_question_position(event, target, caches),
+        )
+    created_cache[cache_key] = question
+    return question
+
+
+def _apply_new_question_mappings(
+    event: Event,
+    settings: dict,
+    question_mappings: list[tuple[int, str]],
+    question_cache: dict,
+    *,
+    target: str,
+    caches: dict,
+) -> tuple[list[tuple[int, str]], dict]:
+    mapped_ids = {question_id for question_id, _mapping in question_mappings}
+    for spec in _parse_new_question_specs(settings):
+        question = _get_or_create_csv_question(event, target, spec, caches)
+        if question.pk in mapped_ids:
+            continue
+        question_mappings.append((question.pk, spec['mapping']))
+        option_lookup = None
+        if question.variant in _CHOICE_QUESTION_VARIANTS:
+            option_lookup = {str(option.answer).strip().casefold(): option for option in question.options.all()}
+        question_cache[question.pk] = (question, option_lookup)
+        mapped_ids.add(question.pk)
+    return question_mappings, question_cache
+
+
 def _option_lookup_for_question(question: TalkQuestion, option_lookup: dict | None) -> dict:
     if option_lookup is not None:
         return option_lookup
@@ -710,7 +821,19 @@ def import_speakers(self, event: Event, fileid: str, settings: dict, locale: str
                 caches = {
                     'question_mappings': question_mappings,
                     'question_cache': question_cache,
+                    'import_questions': {},
+                    'import_question_positions': {},
                 }
+                question_mappings, question_cache = _apply_new_question_mappings(
+                    event,
+                    settings,
+                    question_mappings,
+                    question_cache,
+                    target=TalkQuestionTarget.SPEAKER,
+                    caches=caches,
+                )
+                caches['question_mappings'] = question_mappings
+                caches['question_cache'] = question_cache
 
                 created = 0
                 updated = 0
@@ -1150,6 +1273,16 @@ def import_submissions(self, event: Event, fileid: str, settings: dict, locale: 
                 question_mappings, question_cache = _load_mapped_questions(
                     event, settings, target=TalkQuestionTarget.SUBMISSION
                 )
+                caches.setdefault('import_questions', {})
+                caches.setdefault('import_question_positions', {})
+                question_mappings, question_cache = _apply_new_question_mappings(
+                    event,
+                    settings,
+                    question_mappings,
+                    question_cache,
+                    target=TalkQuestionTarget.SUBMISSION,
+                    caches=caches,
+                )
                 caches['question_mappings'] = question_mappings
                 caches['question_cache'] = question_cache
 
@@ -1436,10 +1569,17 @@ def _import_submission_row(event, settings, record, acting_user, speaker_cache=N
                 data={'title': title, 'code': submission.code},
                 user=acting_user,
             )
+    except ImportExecutionError:
+        if was_created and submission.pk:
+            try:
+                submission.delete(force=True)
+            except (IntegrityError, OperationalError):
+                logger.exception('Failed to clean up submission after import error: %s', submission.pk)
+        raise
     except (IntegrityError, DataError) as exc:
         if was_created and submission.pk:
             try:
-                submission.delete()
+                submission.delete(force=True)
             except (IntegrityError, OperationalError):
                 logger.exception('Failed to clean up submission after import error: %s', submission.pk)
         logger.exception('Failed to finalize imported session "%s" for event %s', title, event.slug)
