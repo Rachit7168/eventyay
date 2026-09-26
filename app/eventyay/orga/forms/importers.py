@@ -1,4 +1,5 @@
 import json
+import re
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 
@@ -27,6 +28,9 @@ IMPORTABLE_QUESTION_VARIANTS: tuple[tuple[str, str], ...] = (
     (TalkQuestionVariant.DATETIME, _('Date and time')),
     (TalkQuestionVariant.COUNTRY, _('Country List')),
     (TalkQuestionVariant.PHONE_NUMBER, _('Phone number')),
+    (TalkQuestionVariant.CHOICES, _('Radio button (Choose one option)')),
+    (TalkQuestionVariant.MULTIPLE, _('Checkbox (Choose one or several options)')),
+    (TalkQuestionVariant.SELECT, _('Select (one option)')),
 )
 IMPORTABLE_QUESTION_VARIANT_VALUES = frozenset(value for value, _label in IMPORTABLE_QUESTION_VARIANTS)
 SKIP_NEW_QUESTION_HEADERS = frozenset(
@@ -73,6 +77,60 @@ def _preserve_initial_value(value):
     if isinstance(value, (bool, list, dict)) or value is None:
         return value
     return str(value)
+
+
+_BOOLEAN_SAMPLE_VALUES = frozenset({'yes', 'no', 'true', 'false', '1', '0', 'y', 'n', 'ja', 'oui'})
+_DATE_SAMPLE_RE = re.compile(r'^\d{4}-\d{2}-\d{2}$')
+_DATETIME_SAMPLE_RE = re.compile(r'^\d{4}-\d{2}-\d{2}[tT ]')
+_PHONE_SAMPLE_RE = re.compile(r"^'?\+?[\d][\d\s()./-]{6,}$")
+_NUMBER_SAMPLE_RE = re.compile(r'^-?\d+(?:\.\d+)?$')
+
+
+def csv_sample_values(rows: Iterable[Mapping], headers: Iterable[str], *, limit: int = 25) -> dict[str, list[str]]:
+    samples = {header: [] for header in headers}
+    for index, row in enumerate(rows):
+        if index >= limit:
+            break
+        for header in samples:
+            value = str(row.get(header) or '').strip()
+            if value:
+                samples[header].append(value)
+    return samples
+
+
+def infer_csv_question_variant(header: str, samples: Iterable[str] | None = None) -> str:
+    header_key = normalize_header_value(header)
+    if any(token in header_key for token in ('video', 'clip', 'youtube', 'vimeo')):
+        return TalkQuestionVariant.VIDEO
+    if any(token in header_key for token in ('phone', 'tel', 'oncall', 'on call')):
+        return TalkQuestionVariant.PHONE_NUMBER
+    if 'country' in header_key:
+        return TalkQuestionVariant.COUNTRY
+    if any(token in header_key for token in ('datetime', 'availability', 'overnight')):
+        return TalkQuestionVariant.DATETIME
+    if 'date' in header_key:
+        return TalkQuestionVariant.DATE
+    values = [str(value).strip() for value in (samples or []) if str(value).strip()]
+    if not values:
+        return TalkQuestionVariant.STRING
+    lowered = [value.casefold() for value in values]
+    if all(value in _BOOLEAN_SAMPLE_VALUES for value in lowered):
+        return TalkQuestionVariant.BOOLEAN
+    if all(_DATE_SAMPLE_RE.match(value) for value in values):
+        return TalkQuestionVariant.DATE
+    if all(_DATETIME_SAMPLE_RE.match(value) for value in values):
+        return TalkQuestionVariant.DATETIME
+    if all(value.startswith(('http://', 'https://')) for value in values):
+        if any(token in value for value in lowered for token in ('youtu', 'vimeo')):
+            return TalkQuestionVariant.VIDEO
+        return TalkQuestionVariant.URL
+    if all(_PHONE_SAMPLE_RE.match(value) for value in values):
+        return TalkQuestionVariant.PHONE_NUMBER
+    if all(_NUMBER_SAMPLE_RE.match(value) for value in values):
+        return TalkQuestionVariant.NUMBER
+    if any('\n' in value or len(value) > 200 for value in values):
+        return TalkQuestionVariant.TEXT
+    return TalkQuestionVariant.STRING
 
 
 def question_header_suggestions(question) -> list[str]:
@@ -299,9 +357,8 @@ class ImportQuestionMappingMixin:
             enabled_initial = self._initial_data.get(enabled_name)
             if enabled_initial is None:
                 enabled_initial = bool(saved) or auto_create
-            variant_initial = self._initial_data.get(variant_name) or (saved or {}).get(
-                'variant', TalkQuestionVariant.STRING
-            )
+            inferred_variant = infer_csv_question_variant(header, getattr(self, 'sample_values', {}).get(header))
+            variant_initial = self._initial_data.get(variant_name) or (saved or {}).get('variant') or inferred_variant
             label_initial = self._initial_data.get(label_name) or (saved or {}).get('label', header)
 
             self.fields[enabled_name] = forms.BooleanField(
@@ -422,6 +479,12 @@ SPEAKER_IMPORT_FIELDS: list[ImportField] = [
         suggestions=['social links', 'social media', 'social media links'],
     ),
     ImportField(
+        identifier='is_featured',
+        label=_('Featured'),
+        help_text=_('Mark featured speakers with Yes/No or True/False values.'),
+        suggestions=['featured', 'is featured'],
+    ),
+    ImportField(
         identifier='avatar_url',
         label=_('Profile picture URL'),
         help_text=_('A URL pointing to the speaker\'s profile picture. The image will be downloaded and saved.'),
@@ -462,9 +525,10 @@ SPEAKER_IMPORT_FIELDS: list[ImportField] = [
 class SpeakerImportProcessForm(ImportQuestionMappingMixin, forms.Form):
     question_target = TalkQuestionTarget.SPEAKER
 
-    def __init__(self, *args, headers=None, event=None, initial=None, **kwargs):
+    def __init__(self, *args, headers=None, event=None, initial=None, sample_values=None, **kwargs):
         self.headers = headers or []
         self.event = event
+        self.sample_values = sample_values or {}
         initial_data = _normalize_initial(initial)
         kwargs['initial'] = initial_data
         super().__init__(*args, **kwargs)
@@ -640,9 +704,10 @@ SESSION_IMPORT_FIELDS: list[ImportField] = [
 class SessionImportProcessForm(ImportQuestionMappingMixin, forms.Form):
     question_target = TalkQuestionTarget.SUBMISSION
 
-    def __init__(self, *args, headers=None, event=None, initial=None, **kwargs):
+    def __init__(self, *args, headers=None, event=None, initial=None, sample_values=None, **kwargs):
         self.headers = headers or []
         self.event = event
+        self.sample_values = sample_values or {}
         initial_data = _normalize_initial(initial)
         kwargs['initial'] = initial_data
         super().__init__(*args, **kwargs)

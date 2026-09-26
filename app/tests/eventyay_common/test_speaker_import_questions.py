@@ -17,10 +17,30 @@ from eventyay.base.services.talkimport import (
     _import_speaker_row,
     _import_submission_row,
     _load_mapped_questions,
+    _resolve_country_code,
+    _sanitize_import_text,
+    _serialize_answer_value,
     _set_question_answer,
 )
 from eventyay.common.social_links import format_social_links_for_csv, parse_social_links_from_csv
-from eventyay.orga.forms.importers import SpeakerImportProcessForm
+from eventyay.orga.forms.importers import SpeakerImportProcessForm, infer_csv_question_variant
+
+
+def test_infer_csv_question_variant_from_samples():
+    assert infer_csv_question_variant('Years studying trauma or folklore', ['12', '8']) == QuestionVariant.NUMBER
+    assert infer_csv_question_variant('Comfortable with jump-scare demonstrations', ['Yes', 'No']) == QuestionVariant.BOOLEAN
+    assert infer_csv_question_variant('Date you first documented the phenomenon', ['2019-03-14']) == QuestionVariant.DATE
+    assert infer_csv_question_variant('Country of practice', ['United States of America']) == QuestionVariant.COUNTRY
+    assert infer_csv_question_variant('On-call contact', ["'+1-212-555-0148"]) == QuestionVariant.PHONE_NUMBER
+    assert infer_csv_question_variant('Sixty-second introduction video', ['https://youtu.be/abc']) == QuestionVariant.VIDEO
+
+
+def test_import_helpers_normalize_country_phone_and_boolean():
+    assert _sanitize_import_text("'+1-212-555-0148") == '+1-212-555-0148'
+    assert _resolve_country_code('United States of America') == 'US'
+    assert _resolve_country_code('us') == 'US'
+    assert _serialize_answer_value('No', QuestionVariant.BOOLEAN) == 'False'
+    assert _serialize_answer_value('Yes', QuestionVariant.BOOLEAN) == 'True'
 
 
 def test_parse_social_links_from_exported_csv():
@@ -484,6 +504,61 @@ def test_import_submission_row_deletes_new_submission_on_invalid_choice(event, u
 
         assert not Submission.objects.filter(event=event, title='A new talk').exists()
         assert not Answer.objects.filter(question=question).exists()
+
+
+@pytest.mark.django_db
+def test_import_speaker_row_normalizes_country_phone_date_and_featured(event, user):
+    with scope(event=event):
+        country = _create_question(
+            event,
+            question='Country of practice',
+            variant=QuestionVariant.COUNTRY,
+            target=TalkQuestionTarget.SPEAKER,
+        )
+        phone = _create_question(
+            event,
+            question='On-call contact',
+            variant=QuestionVariant.PHONE_NUMBER,
+            target=TalkQuestionTarget.SPEAKER,
+        )
+        when = _create_question(
+            event,
+            question='Date you first documented the phenomenon',
+            variant=QuestionVariant.DATE,
+            target=TalkQuestionTarget.SPEAKER,
+        )
+        caches = {
+            'question_mappings': [
+                (country.pk, 'csv:country'),
+                (phone.pk, 'csv:phone'),
+                (when.pk, 'csv:documented'),
+            ],
+            'question_cache': {
+                country.pk: (country, None),
+                phone.pk: (phone, None),
+                when.pk: (when, None),
+            },
+        }
+
+        created = _import_speaker_row(
+            event,
+            _speaker_settings(is_featured='csv:featured'),
+            _speaker_row(
+                country='United States of America',
+                phone="'+1-212-555-0148",
+                documented='2019-03-14',
+                featured='True',
+            ),
+            user,
+            caches=caches,
+        )
+
+        assert created is True
+        profile = SpeakerProfile.objects.get(event=event, user__email='imported.speaker@example.org')
+        assert profile.is_featured is True
+        assert Answer.objects.get(question=country, person=profile.user).answer == 'US'
+        assert Answer.objects.get(question=phone, person=profile.user).answer == '+1-212-555-0148'
+        assert Answer.objects.get(question=when, person=profile.user).answer == '2019-03-14'
 
 
 @pytest.mark.django_db

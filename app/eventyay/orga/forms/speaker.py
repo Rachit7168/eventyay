@@ -76,6 +76,12 @@ class SpeakerExportForm(ExportForm):
         label=_('Social links'),
         help_text=_('Active social media and website links, formatted as network: URL.'),
     )
+    is_featured = forms.BooleanField(
+        required=False,
+        initial=True,
+        label=_('Featured'),
+        help_text=_('Show this speaker in public list of featured speakers.'),
+    )
 
     class Meta:
         model = User
@@ -110,6 +116,7 @@ class SpeakerExportForm(ExportForm):
             'job_title',
             'organization',
             'social_links',
+            'is_featured',
             'avatar',
             'avatar_source',
             'avatar_license',
@@ -151,6 +158,9 @@ class SpeakerExportForm(ExportForm):
 
     def _get_social_links_value(self, obj):
         return format_social_links_for_csv(obj._profile.social_links.all())
+
+    def _get_is_featured_value(self, obj):
+        return obj._profile.is_featured
 
     def _get_submission_ids_value(self, obj):
         return [sub.code for sub in obj.event_submissions]

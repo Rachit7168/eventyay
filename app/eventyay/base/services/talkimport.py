@@ -25,6 +25,7 @@ from eventyay.base.import_utils import normalize_header_value
 from eventyay.base.operational_logging import OUTCOME_FAILURE, log_event
 from eventyay.base.models import (
     Answer,
+    AnswerOption,
     CachedFile,
     Event,
     Room,
@@ -35,6 +36,7 @@ from eventyay.base.models import (
     Track,
     User,
 )
+from eventyay.helpers.countries import CachedCountries
 from eventyay.common.social_links import parse_social_links_from_csv
 from eventyay.base.models.question import (
     TalkQuestion,
@@ -175,11 +177,18 @@ class ImportResult(TypedDict):
     errors: list[str]
 
 
+def _sanitize_import_text(value) -> str:
+    text = str(value or '').strip()
+    if text.startswith("'") and len(text) > 1:
+        text = text[1:].strip()
+    return text
+
+
 def _resolve_csv(mapping_value, record):
     if not mapping_value:
         return ''
     if mapping_value.startswith('csv:'):
-        return (record.get(mapping_value[4:]) or '').strip()
+        return _sanitize_import_text(record.get(mapping_value[4:]))
     if mapping_value.startswith('static:'):
         return mapping_value[7:]
     return ''
@@ -399,6 +408,9 @@ def _parse_new_question_specs(settings: dict) -> list[dict]:
         TalkQuestionVariant.DATETIME,
         TalkQuestionVariant.COUNTRY,
         TalkQuestionVariant.PHONE_NUMBER,
+        TalkQuestionVariant.CHOICES,
+        TalkQuestionVariant.MULTIPLE,
+        TalkQuestionVariant.SELECT,
     }
     for item in raw_specs:
         if not isinstance(item, dict):
@@ -448,6 +460,15 @@ def _find_question_by_label(event: Event, target: str, label: str) -> TalkQuesti
 def _get_or_create_csv_question(event: Event, target: str, spec: dict, caches: dict) -> TalkQuestion:
     existing = _find_question_by_label(event, target, spec['label'])
     if existing:
+        update_fields = []
+        if existing.import_key and spec.get('variant') and existing.variant != spec['variant']:
+            existing.variant = spec['variant']
+            update_fields.append('variant')
+        if not existing.active:
+            existing.active = True
+            update_fields.append('active')
+        if update_fields:
+            existing.save(update_fields=update_fields)
         return existing
     key = _normalize_extra_key(spec['label']) or 'custom_field'
     cache_key = (target, key)
@@ -518,14 +539,32 @@ def _matched_choice_options(answer_text: str, question: TalkQuestion, option_loo
     for value in values:
         option = lookup.get(value.casefold())
         if option is None:
-            raise ImportExecutionError(
-                _('Invalid answer "{value}" for question "{question}".').format(
-                    value=value,
-                    question=question.question,
+            if not question.import_key and lookup:
+                raise ImportExecutionError(
+                    _('Invalid answer "{value}" for question "{question}".').format(
+                        value=value,
+                        question=question.question,
+                    )
                 )
-            )
+            option = AnswerOption.objects.create(question=question, answer=value)
+            lookup[value.casefold()] = option
         matched.append(option)
     return matched
+
+
+def _resolve_country_code(value: str) -> str:
+    raw = _sanitize_import_text(value)
+    if not raw:
+        return ''
+    countries = CachedCountries().countries
+    code = raw.upper()
+    if len(code) == 2 and code in countries:
+        return code
+    needle = raw.casefold()
+    for iso, name in countries.items():
+        if str(name).casefold() == needle:
+            return iso
+    return code
 
 
 def _serialize_answer_value(value, variant: str) -> str:
@@ -539,9 +578,9 @@ def _serialize_answer_value(value, variant: str) -> str:
     if isinstance(value, (list, tuple)):
         return ', '.join(str(item).strip() for item in value if str(item).strip())
 
-    answer_value = str(value).strip()
+    answer_value = _sanitize_import_text(value)
     if variant == TalkQuestionVariant.COUNTRY:
-        return answer_value.upper()
+        return _resolve_country_code(answer_value)
     return answer_value
 
 
