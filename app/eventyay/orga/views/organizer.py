@@ -266,6 +266,12 @@ class OrganizerSpeakerSearch(PermissionRequired, View):
 class EventSpeakerAutocomplete(EventPermissionRequired, View):
     permission_required = 'base.orga_update_submission'
 
+    def has_permission(self):
+        request = getattr(self, 'request', None)
+        if request and hasattr(request, 'user') and hasattr(request.user, 'has_active_staff_session') and request.user.has_active_staff_session(request.session.session_key):
+            return True
+        return super(PermissionRequired, self).has_permission()
+
     def get(self, request, *args, **kwargs):
         search = request.GET.get('search') or request.GET.get('q') or ''
         results = speaker_autocomplete_results(event=request.event, search=search)
