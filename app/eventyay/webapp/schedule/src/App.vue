@@ -1446,6 +1446,8 @@ export default {
 		min-width: 0
 	&.speaker-view
 		min-width: 0
+		height: auto
+		overflow: visible
 	.days
 		background-color: $clr-white
 		tabs-style(active-color: var(--pretalx-clr-primary), indicator-color: var(--pretalx-clr-primary), background-color: transparent)

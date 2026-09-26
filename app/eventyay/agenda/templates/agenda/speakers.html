@@ -9,7 +9,7 @@
 {% include "agenda/includes/pretalx_messages_script.html" %}
 {% endblock agenda_custom_header %}
 
-{% block container_width %} main-schedule{% endblock container_width %}
+{% block container_width %} main-schedule speakers-overview{% endblock container_width %}
 
 {% block agenda_content %}
 {% html_signal "eventyay.agenda.signals.html_above_speakers_list" sender=request.event request=request %}

@@ -235,6 +235,17 @@ body.page-agenda .featured-page #featured-talks .talk-title small {
   }
 }
 
+/* Speakers directory is a page-scrolled widget, not a clipped schedule grid. */
+#main-container.speakers-overview {
+  overflow-x: visible;
+}
+
+#main-container.speakers-overview pretalx-schedule {
+  display: block;
+  height: auto;
+  overflow: visible;
+}
+
 @media (max-width: 768px) {
   #main-container #fahrplan pretalx-schedule {
     --pretalx-sticky-top-offset: 33px;

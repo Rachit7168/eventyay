@@ -62,6 +62,7 @@ def test_speakers_overview_html_has_meta_not_full_schedule(client, event, speake
     assert 'pretalx-schedule-data' not in response.text
     assert 'pretalx-speakers-meta' in response.text
     assert 'view="speakers"' in response.text
+    assert 'speakers-overview' in response.text
     meta = json.loads(response.context['speakers_meta_json'])
     assert meta['timezone'] == event.timezone
 
