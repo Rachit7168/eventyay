@@ -11,10 +11,20 @@ from eventyay.base.models.type import SubmissionType
 from eventyay.base.services.talkimport import (
     ImportExecutionError,
     _apply_new_question_mappings,
+    _get_or_create_csv_question,
     _import_submission_row,
     _load_mapped_questions,
 )
+from eventyay.common.session_video import (
+    SESSION_VIDEO_IMPORT_KEY,
+    ensure_session_video_question,
+    get_session_video_question,
+    get_submission_video_urls,
+    parse_imported_video_urls,
+    set_submission_video_urls,
+)
 from eventyay.orga.forms.importers import SessionImportProcessForm
+from eventyay.orga.forms.schedule import ScheduleExportForm
 
 
 def _create_question(event, *, question, variant, target, required=QuestionRequired.OPTIONAL, active=True):
@@ -110,6 +120,18 @@ def test_session_import_form_maps_export_columns(event):
 
 
 @pytest.mark.django_db
+def test_session_import_form_maps_session_video_headers(event):
+    with scope(event=event):
+        form = SessionImportProcessForm(
+            headers=['Proposal title', 'Session videos', 'Video'],
+            event=event,
+        )
+
+        assert form.fields['session_videos'].initial == 'csv:Session videos'
+        assert all(row['header'] not in {'Session videos', 'Video'} for row in form.new_question_rows)
+
+
+@pytest.mark.django_db
 def test_session_import_form_maps_matching_dest_question_by_name(event):
     with scope(event=event):
         question = _create_question(
@@ -148,6 +170,8 @@ def test_session_import_form_skips_reserved_export_headers(event):
                 'Start (time)',
                 'End (date)',
                 'End (time)',
+                'Session videos',
+                'Video',
             ],
             event=event,
         )
@@ -269,3 +293,100 @@ def test_import_submission_row_rejects_unknown_choice_and_cleans_up(event, user)
 
         assert not Submission.objects.filter(event=event, title='A new talk').exists()
         assert not Answer.objects.filter(question=question).exists()
+
+
+def test_parse_imported_video_urls_accepts_newlines_and_commas():
+    urls = parse_imported_video_urls(
+        'https://www.youtube.com/watch?v=BdDK7ikz5tU\n'
+        'https://www.youtube.com/watch?v=7q7f_3jljgs, https://www.youtube.com/watch?v=f_1D_2bUAMWU'
+    )
+    assert urls == [
+        'https://www.youtube.com/watch?v=BdDK7ikz5tU',
+        'https://www.youtube.com/watch?v=7q7f_3jljgs',
+        'https://www.youtube.com/watch?v=f_1D_2bUAMWU',
+    ]
+
+
+@pytest.mark.django_db
+def test_import_submission_row_saves_session_videos(event, user):
+    with scope(event=event):
+        created = _import_submission_row(
+            event,
+            {'title': 'csv:title', 'session_videos': 'csv:videos'},
+            {
+                'title': 'A video talk',
+                'videos': (
+                    'https://www.youtube.com/watch?v=BdDK7ikz5tU\n'
+                    'https://www.youtube.com/watch?v=7q7f_3jljgs'
+                ),
+            },
+            user,
+            caches=_session_caches(event),
+        )
+
+        assert created is True
+        submission = Submission.objects.get(event=event, title='A video talk')
+        question = get_session_video_question(event, create=False)
+        assert question is not None
+        assert question.import_key == SESSION_VIDEO_IMPORT_KEY
+        assert question.active is True
+        assert get_submission_video_urls(submission) == [
+            'https://www.youtube.com/watch?v=BdDK7ikz5tU',
+            'https://www.youtube.com/watch?v=7q7f_3jljgs',
+        ]
+
+
+@pytest.mark.django_db
+def test_create_video_question_reuses_canonical_session_video_field(event):
+    with scope(event=event):
+        question = _get_or_create_csv_question(
+            event,
+            TalkQuestionTarget.SUBMISSION,
+            {
+                'label': 'Video',
+                'variant': QuestionVariant.VIDEO,
+                'header': 'Video',
+                'mapping': 'csv:Video',
+            },
+            {},
+        )
+        canonical = get_session_video_question(event, create=False)
+        assert canonical is not None
+        assert question.pk == canonical.pk
+        assert question.import_key == SESSION_VIDEO_IMPORT_KEY
+
+
+@pytest.mark.django_db
+def test_session_export_includes_session_videos_column(event):
+    with scope(event=event):
+        ensure_session_video_question(event)
+        sub_type = SubmissionType.objects.create(event=event, name='Talk')
+        submission = Submission.objects.create(
+            event=event,
+            title='Do not Smile Back',
+            submission_type=sub_type,
+            state=SubmissionStates.SUBMITTED,
+        )
+        set_submission_video_urls(
+            submission,
+            [
+                'https://www.youtube.com/watch?v=BdDK7ikz5tU',
+                'https://www.youtube.com/watch?v=7q7f_3jljgs',
+            ],
+        )
+        form = ScheduleExportForm(
+            event=event,
+            data={
+                'export_format': 'csv',
+                'target': ['all'],
+                'title': True,
+                'session_videos': True,
+            },
+        )
+        assert form.is_valid(), form.errors
+        data = form.get_data(form.get_queryset(), ['title', 'session_videos'], [])
+
+        assert data[0]['Session videos'] == (
+            'https://www.youtube.com/watch?v=BdDK7ikz5tU\n'
+            'https://www.youtube.com/watch?v=7q7f_3jljgs'
+        )

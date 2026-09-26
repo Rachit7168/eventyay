@@ -37,6 +37,7 @@ from eventyay.base.models import (
     User,
 )
 from eventyay.helpers.countries import CachedCountries
+from eventyay.common.session_video import ensure_session_video_question, import_submission_video_urls
 from eventyay.common.social_links import parse_social_links_from_csv
 from eventyay.base.models.question import (
     TalkQuestion,
@@ -458,6 +459,12 @@ def _find_question_by_label(event: Event, target: str, label: str) -> TalkQuesti
 
 
 def _get_or_create_csv_question(event: Event, target: str, spec: dict, caches: dict) -> TalkQuestion:
+    if target == TalkQuestionTarget.SUBMISSION and spec.get('variant') == TalkQuestionVariant.VIDEO:
+        question = ensure_session_video_question(event)
+        if not question.active:
+            question.active = True
+            question.save(update_fields=['active'])
+        return question
     existing = _find_question_by_label(event, target, spec['label'])
     if existing:
         update_fields = []
@@ -1465,6 +1472,7 @@ def _import_submission_row(event, settings, record, acting_user, speaker_cache=N
     room_val = _resolve_csv(settings.get('room'), record)
     slides_link = _resolve_csv(settings.get('slides_link'), record)
     slides_links_val = _resolve_csv(settings.get('slides_links'), record)
+    session_videos_val = _resolve_csv(settings.get('session_videos'), record)
     submission_extras = record.get('submission_extras') if isinstance(record, dict) else None
     room_metadata = record.get('room_metadata') if isinstance(record, dict) else None
     scheduled_public = bool(record.get('scheduled_public')) if isinstance(record, dict) else False
@@ -1619,6 +1627,9 @@ def _import_submission_row(event, settings, record, acting_user, speaker_cache=N
                 delete_slide_resources(submission)
                 for slide_link in slide_links:
                     create_slide_resource(submission, link=slide_link)
+
+            if session_videos_val:
+                import_submission_video_urls(submission, session_videos_val)
 
             # Question answers
             question_mappings = caches.get('question_mappings') if caches else []
@@ -1831,6 +1842,13 @@ def _set_question_answer(
 
     answer_text = _serialize_answer_value(answer_value, question.variant)
     if not answer_text and question.variant != TalkQuestionVariant.BOOLEAN:
+        return
+    if (
+        question.variant == TalkQuestionVariant.VIDEO
+        and question.target == TalkQuestionTarget.SUBMISSION
+        and submission is not None
+    ):
+        import_submission_video_urls(submission, answer_text)
         return
 
     lookup = {'question': question}

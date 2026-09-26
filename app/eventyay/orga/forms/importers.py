@@ -10,6 +10,7 @@ from django.utils.translation import gettext_lazy as _
 
 from eventyay.base.import_utils import match_header, normalize_header_value
 from eventyay.base.models.question import TalkQuestionTarget, TalkQuestionVariant
+from eventyay.common.session_video import exclude_session_video_from_cfp_questions
 from eventyay.consts import SizeKey
 
 CREATE_QUESTION_ENABLED_PREFIX = 'create_question_enabled_'
@@ -56,6 +57,11 @@ SKIP_NEW_QUESTION_HEADERS = frozenset(
         normalize_header_value('Picture'),
         normalize_header_value('Picture Source'),
         normalize_header_value('Picture License'),
+        normalize_header_value('Session videos'),
+        normalize_header_value('Session video'),
+        normalize_header_value('Video'),
+        normalize_header_value('Videos'),
+        normalize_header_value('Video link'),
     }
 )
 
@@ -274,6 +280,8 @@ class ImportQuestionMappingMixin:
         if not self.event:
             return
         questions = self.event.talkquestions.filter(target=self.question_target, active=True).order_by('position')
+        if self.question_target == TalkQuestionTarget.SUBMISSION:
+            questions = exclude_session_video_from_cfp_questions(questions)
         for question in questions:
             identifier = f'question_{question.pk}'
             field_required = self.question_field_required(question)
@@ -697,6 +705,12 @@ SESSION_IMPORT_FIELDS: list[ImportField] = [
         identifier='internal_notes',
         label=_('Internal notes'),
         suggestions=['internal notes', 'private notes'],
+    ),
+    ImportField(
+        identifier='session_videos',
+        label=_('Session videos'),
+        help_text=_('YouTube or Vimeo URLs, one per line or separated by commas.'),
+        suggestions=['session videos', 'session video', 'video', 'videos', 'video link', 'youtube', 'vimeo'],
     ),
 ]
 
