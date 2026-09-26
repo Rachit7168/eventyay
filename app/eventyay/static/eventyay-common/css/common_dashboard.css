@@ -1783,6 +1783,7 @@ body:has(.td-dashboard) #page-content {
   --cd-border: #c8ced6;
   --cd-border-strong: #aeb6c2;
   --cd-surface: #fff;
+  --cd-surface-hover: #f1f5f9;
   --cd-muted: var(--color-text, #0d0f10);
   --cd-gap: 3rem;
   --cd-primary: var(--color-primary, #2185d0);
@@ -2042,7 +2043,7 @@ body:has(.td-dashboard) #page-content {
   color: var(--color-text,#0d0f10);
   border-bottom: 1px solid color-mix(in srgb,var(--cd-border) 60%,transparent);
   border-left: 3px solid transparent;
-  transition: all 0.2s var(--cd-ease);
+  transition: all var(--cd-ease);
 }
 .cd-search .event-dropdown li:last-child a {
   border-bottom: none;
@@ -2129,7 +2130,7 @@ body:has(.td-dashboard) #page-content {
 .cd-action-card {
   display: grid;
   grid-template-columns: auto minmax(0,1fr);
-  grid-template-areas: 'icon link' 'icon body';
+  grid-template-areas: 'icon title' 'icon body' 'icon link';
   column-gap: 1.2rem;
   row-gap: .25rem;
   align-content: start;

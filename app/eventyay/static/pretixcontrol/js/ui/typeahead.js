@@ -63,10 +63,13 @@ document.addEventListener('DOMContentLoaded', () => {
         let lastQuery = "";
 
         queryEl.addEventListener("change", () => {
-            if (container.getAttribute("data-typeahead-field") && queryEl.value === "") {
-                container.classList.remove('focused');
-                removeResultItems(container);
-                return;
+            if (queryEl.value === "") {
+                lastQuery = "";
+                if (container.getAttribute("data-typeahead-field")) {
+                    container.classList.remove('focused');
+                    removeResultItems(container);
+                    return;
+                }
             }
             lastQuery = queryEl.value;
             const thisQuery = queryEl.value;
