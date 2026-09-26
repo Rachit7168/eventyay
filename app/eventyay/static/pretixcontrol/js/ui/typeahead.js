@@ -9,14 +9,19 @@ function safeSelector(selector) {
 
 document.addEventListener('DOMContentLoaded', () => {
     // 1. Collapse and dropdown events
-    // jQuery used 'shown.bs.collapse shown.bs.dropdown' on specific elements.
-    // We can listen on document and check closest().
-    document.addEventListener('shown.bs.collapse', (e) => {
-        handleShown(e);
-    });
-    document.addEventListener('shown.bs.dropdown', (e) => {
-        handleShown(e);
-    });
+    // Bootstrap 3 uses jQuery trigger(), so native addEventListener won't catch it.
+    if (typeof jQuery !== 'undefined') {
+        jQuery(document).on('shown.bs.collapse shown.bs.dropdown', function(e) {
+            handleShown(e);
+        });
+    } else {
+        document.addEventListener('shown.bs.collapse', (e) => {
+            handleShown(e);
+        });
+        document.addEventListener('shown.bs.dropdown', (e) => {
+            handleShown(e);
+        });
+    }
 
     function handleShown(e) {
         const target = e.target;
@@ -216,6 +221,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         queryEl.addEventListener("keydown", (event) => {
+            if (event.which === 38 || event.which === 40) {
+                event.preventDefault(); // Prevent cursor movement / page scrolling
+            }
             const selected = container.querySelector(".active");
             if (event.which === 13) {  // enter
                 if (selected) {
@@ -232,8 +240,17 @@ document.addEventListener('DOMContentLoaded', () => {
         queryEl.addEventListener("blur", () => {
             // Need a slight delay to allow mousedown to fire on the link
             setTimeout(() => {
-                container.classList.remove('focused');
+                if (!container.matches(':hover')) {
+                    container.classList.remove('focused');
+                }
             }, 200);
+        });
+
+        // Also close when clicking outside if we kept it open due to hover
+        document.addEventListener("mousedown", (e) => {
+            if (!container.contains(e.target) && e.target !== queryEl) {
+                container.classList.remove('focused');
+            }
         });
 
         queryEl.addEventListener("keyup", (event) => {
