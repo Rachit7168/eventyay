@@ -182,10 +182,9 @@ class SpeakerImportProcessForm(forms.Form):
         )
         for question in questions:
             identifier = f'question_{question.pk}'
-            field_required = question.required
             field = forms.ChoiceField(
                 label=str(question.question),
-                required=field_required,
+                required=False,
                 choices=[('', _('Keep empty'))]
                 + [(f'csv:{header}', _('CSV column: "{name}"').format(name=header)) for header in self.headers],
                 help_text=str(question.help_text) if question.help_text else None,

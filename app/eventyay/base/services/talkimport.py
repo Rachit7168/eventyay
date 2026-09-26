@@ -326,6 +326,78 @@ def _upsert_import_question(event: Event, target: str, key: str, value, caches: 
     return question
 
 
+_CHOICE_QUESTION_VARIANTS = frozenset(
+    (TalkQuestionVariant.CHOICES, TalkQuestionVariant.MULTIPLE, TalkQuestionVariant.SELECT)
+)
+
+
+def _parse_question_mappings(settings: dict) -> list[tuple[int, str]]:
+    question_mappings = []
+    for key, value in settings.items():
+        if key.startswith('question_') and value:
+            try:
+                question_id = int(key.split('_', 1)[1])
+            except (ValueError, IndexError):
+                continue
+            question_mappings.append((question_id, value))
+    return question_mappings
+
+
+def _build_question_cache(event: Event, question_ids: set[int], *, target: str) -> dict:
+    question_cache = {}
+    if not question_ids:
+        return question_cache
+    questions = TalkQuestion.objects.filter(
+        event=event,
+        pk__in=question_ids,
+        target=target,
+        active=True,
+    ).prefetch_related('options')
+    for question in questions:
+        option_lookup = None
+        if question.variant in _CHOICE_QUESTION_VARIANTS:
+            option_lookup = {str(option.answer).strip().casefold(): option for option in question.options.all()}
+        question_cache[question.pk] = (question, option_lookup)
+    return question_cache
+
+
+def _load_mapped_questions(event: Event, settings: dict, *, target: str) -> tuple[list[tuple[int, str]], dict]:
+    question_mappings = _parse_question_mappings(settings)
+    question_ids = {question_id for question_id, _ in question_mappings}
+    question_cache = _build_question_cache(event, question_ids, target=target)
+    question_mappings = [
+        (question_id, value) for question_id, value in question_mappings if question_id in question_cache
+    ]
+    return question_mappings, question_cache
+
+
+def _option_lookup_for_question(question: TalkQuestion, option_lookup: dict | None) -> dict:
+    if option_lookup is not None:
+        return option_lookup
+    return {str(option.answer).strip().casefold(): option for option in question.options.all()}
+
+
+def _matched_choice_options(answer_text: str, question: TalkQuestion, option_lookup: dict | None) -> list:
+    lookup = _option_lookup_for_question(question, option_lookup)
+    if question.variant == TalkQuestionVariant.MULTIPLE:
+        values = [opt.strip() for opt in answer_text.split(',') if opt.strip()]
+    else:
+        values = [answer_text.strip()] if answer_text.strip() else []
+
+    matched = []
+    for value in values:
+        option = lookup.get(value.casefold())
+        if option is None:
+            raise ImportExecutionError(
+                _('Invalid answer "{value}" for question "{question}".').format(
+                    value=value,
+                    question=question.question,
+                )
+            )
+        matched.append(option)
+    return matched
+
+
 def _serialize_answer_value(value, variant: str) -> str:
     if variant == TalkQuestionVariant.BOOLEAN:
         if isinstance(value, bool):
@@ -632,29 +704,9 @@ def import_speakers(self, event: Event, fileid: str, settings: dict, locale: str
                 
                 total = len(parsed)
 
-                question_mappings = []
-                for key, value in settings.items():
-                    if key.startswith('question_') and value:
-                        try:
-                            question_id = int(key.split('_', 1)[1])
-                        except (ValueError, IndexError):
-                            continue
-                        question_mappings.append((question_id, value))
-
-                question_cache = {}
-                if question_mappings:
-                    question_ids = {question_id for question_id, _ in question_mappings}
-                    questions = TalkQuestion.objects.filter(event=event, pk__in=question_ids).prefetch_related(
-                        'options'
-                    )
-                    for question in questions:
-                        option_lookup = None
-                        if question.variant in (TalkQuestionVariant.CHOICES, TalkQuestionVariant.MULTIPLE, TalkQuestionVariant.SELECT):
-                            option_lookup = {
-                                str(option.answer).strip().casefold(): option for option in question.options.all()
-                            }
-                        question_cache[question.pk] = (question, option_lookup)
-
+                question_mappings, question_cache = _load_mapped_questions(
+                    event, settings, target=TalkQuestionTarget.SPEAKER
+                )
                 caches = {
                     'question_mappings': question_mappings,
                     'question_cache': question_cache,
@@ -1095,29 +1147,9 @@ def import_submissions(self, event: Event, fileid: str, settings: dict, locale: 
                     'default_sub_type': submission_types[0] if submission_types else None,
                 }
 
-                question_mappings = []
-                for key, value in settings.items():
-                    if key.startswith('question_') and value:
-                        try:
-                            question_id = int(key.split('_', 1)[1])
-                        except (ValueError, IndexError):
-                            continue
-                        question_mappings.append((question_id, value))
-
-                question_cache = {}
-                if question_mappings:
-                    question_ids = {question_id for question_id, _ in question_mappings}
-                    questions = TalkQuestion.objects.filter(event=event, pk__in=question_ids).prefetch_related(
-                        'options'
-                    )
-                    for question in questions:
-                        option_lookup = None
-                        if question.variant in (TalkQuestionVariant.CHOICES, TalkQuestionVariant.MULTIPLE, TalkQuestionVariant.SELECT):
-                            option_lookup = {
-                                str(option.answer).strip().casefold(): option for option in question.options.all()
-                            }
-                        question_cache[question.pk] = (question, option_lookup)
-
+                question_mappings, question_cache = _load_mapped_questions(
+                    event, settings, target=TalkQuestionTarget.SUBMISSION
+                )
                 caches['question_mappings'] = question_mappings
                 caches['question_cache'] = question_cache
 
@@ -1583,34 +1615,29 @@ def _set_question_answer(
     lookup = {'question': question}
     defaults = {'answer': answer_text}
     if question.target == TalkQuestionTarget.SPEAKER:
+        if person is None:
+            return
         lookup['person'] = person
         defaults['person'] = person
         defaults['submission'] = None
-    else:
+    elif question.target == TalkQuestionTarget.SUBMISSION:
+        if submission is None:
+            return
         lookup['submission'] = submission
         defaults['submission'] = submission
         defaults['person'] = None
+    else:
+        return
+
+    matched_options = None
+    if question.variant in _CHOICE_QUESTION_VARIANTS:
+        matched_options = _matched_choice_options(answer_text, question, option_lookup)
+        if not matched_options:
+            return
 
     answer, _ = Answer.objects.update_or_create(
         **lookup,
         defaults=defaults,
     )
-
-    if question.variant in (TalkQuestionVariant.CHOICES, TalkQuestionVariant.MULTIPLE, TalkQuestionVariant.SELECT):
-        answer.options.clear()
-        if option_lookup is None:
-            option_lookup = {
-                str(option.answer).strip().casefold(): option for option in question.options.all()
-            }
-
-        if question.variant == TalkQuestionVariant.MULTIPLE:
-            options_to_check = [opt.strip() for opt in answer_text.split(',')]
-        else:
-            options_to_check = [answer_text.strip()]
-
-        for stripped_option in options_to_check:
-            if not stripped_option:
-                continue
-            option = option_lookup.get(stripped_option.casefold())
-            if option:
-                answer.options.add(option)
+    if matched_options is not None:
+        answer.options.set(matched_options)
