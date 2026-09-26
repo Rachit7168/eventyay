@@ -184,6 +184,7 @@
 <script>
 import moment from 'moment-timezone'
 import { getLocalizedString, compareFeaturedSpeakers, isFeaturedSpeakersSortAvailable, isTalkSchedulePending, sessionsForSpeaker, tentativeSessionText, visiblePageItems, pageStatusRange } from '../utils'
+import { speakerDetailColumnCount } from '../speakerColumns'
 import ListPagination from './ListPagination.vue'
 import MarkdownContent from './MarkdownContent'
 import SpeakerSocialLinks from './SpeakerSocialLinks.vue'
@@ -259,7 +260,7 @@ export default {
 			openDropdown: null,
 			activeViewMode: this.viewMode,
 			mobileFiltersOpen: false,
-			speakersGridWidth: typeof window === 'undefined' ? 360 : window.innerWidth,
+			speakersGridWidth: 0,
 			featuredCardWidth: 360,
 			mobileMoreOpen: false,
 			selectedLanguages: [],
@@ -323,6 +324,9 @@ export default {
 		selectedTracks() {
 			if (!this.filtersReady || this.usesLocalSpeakers) return
 			this.updateUrlAndFetch({page: 1})
+		},
+		filteredSpeakers() {
+			this.observeFeaturedSpeakersGrid()
 		}
 	},
 	beforeUnmount() {
@@ -404,10 +408,8 @@ export default {
 		},
 		featuredColumns() {
 			const speakers = this.filteredSpeakers
-			const card = this.featuredCardWidth
 			const gap = 18
-			const available = this.speakersGridWidth || card
-			const count = Math.max(1, Math.floor((available + gap) / (card + gap)))
+			const count = speakerDetailColumnCount(this.speakersGridWidth, this.featuredCardWidth, gap)
 			const columnCount = Math.min(count, Math.max(speakers.length, 1))
 			const columns = Array.from({length: columnCount}, () => [])
 			speakers.forEach((speaker, index) => {
@@ -795,6 +797,8 @@ export default {
 			this.$nextTick(() => {
 				const grid = this.$refs.featuredSpeakersGrid
 				if (!grid) return
+				const parent = grid.parentElement
+				const target = parent || grid
 				if (!this.featuredSpeakersGridObserver) {
 					this.featuredSpeakersGridObserver = new ResizeObserver((entries) => {
 						const width = Math.round(entries[0]?.contentRect?.width || 0)
@@ -802,8 +806,8 @@ export default {
 					})
 				}
 				this.featuredSpeakersGridObserver.disconnect()
-				this.featuredSpeakersGridObserver.observe(grid)
-				const width = Math.round(grid.getBoundingClientRect().width)
+				this.featuredSpeakersGridObserver.observe(target)
+				const width = Math.round(target.clientWidth || target.getBoundingClientRect().width)
 				if (width > 0) this.speakersGridWidth = width
 			})
 		}
@@ -816,6 +820,8 @@ export default {
 	display: flex
 	flex-direction: column
 	min-height: 0
+	min-width: 0
+	max-width: 100%
 	position: relative
 	&.is-embedded
 		overflow: visible !important
@@ -1029,6 +1035,9 @@ export default {
 		flex-direction: column
 		padding: 16px
 		gap: 12px
+		min-width: 0
+		max-width: 100%
+		box-sizing: border-box
 
 		.featured-speakers-grid
 			display: flex
@@ -1036,17 +1045,20 @@ export default {
 			align-items: flex-start
 			gap: 18px
 			width: 100%
+			max-width: 100%
+			min-width: 0
+			box-sizing: border-box
 
 		.featured-speaker-stack
 			display: flex
 			flex-direction: column
 			gap: 18px
-			width: 400px
-			max-width: 100%
-			flex: 0 0 400px
-			@media (min-width: 768px)
-				width: 360px
-				flex-basis: 360px
+			min-width: 0
+			flex: 1 1 0
+			max-width: 360px
+			width: auto
+			@media (max-width: 767px)
+				max-width: 400px
 
 		.featured-speaker-column
 			width: 100%
