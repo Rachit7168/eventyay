@@ -237,16 +237,24 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
+        let isMousedownOnContainer = false;
+        container.addEventListener("mousedown", () => {
+            isMousedownOnContainer = true;
+        });
+        document.addEventListener("mouseup", () => {
+            isMousedownOnContainer = false;
+        });
+
         queryEl.addEventListener("blur", () => {
             // Need a slight delay to allow mousedown to fire on the link
             setTimeout(() => {
-                if (!container.matches(':hover')) {
+                if (!isMousedownOnContainer) {
                     container.classList.remove('focused');
                 }
             }, 200);
         });
 
-        // Also close when clicking outside if we kept it open due to hover
+        // Also close when clicking outside
         document.addEventListener("mousedown", (e) => {
             if (!container.contains(e.target) && e.target !== queryEl) {
                 container.classList.remove('focused');
