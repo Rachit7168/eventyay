@@ -62,7 +62,11 @@ def test_speakers_overview_html_has_meta_not_full_schedule(client, event, speake
     assert 'pretalx-schedule-data' not in response.text
     assert 'pretalx-speakers-meta' in response.text
     assert 'view="speakers"' in response.text
-    assert 'speakers-overview' in response.text
+    from bs4 import BeautifulSoup
+
+    main_container = BeautifulSoup(response.text, 'html.parser').find(id='main-container')
+    assert main_container is not None
+    assert {'main-schedule', 'speakers-overview'} <= set(main_container.get('class', []))
     meta = json.loads(response.context['speakers_meta_json'])
     assert meta['timezone'] == event.timezone
 
