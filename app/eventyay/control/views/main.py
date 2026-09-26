@@ -10,7 +10,6 @@ from django.views.generic import ListView
 from eventyay.base.models import Event, EventMetaValue, Organizer, Quota, Submission
 from eventyay.base.models.submission import SpeakerRole
 from django_scopes import scope
-from django_scopes import scope
 from eventyay.base.services.quotas import QuotaAvailability
 from eventyay.control.forms.filter import EventFilterForm
 from eventyay.control.permissions import OrganizerPermissionRequiredMixin

@@ -186,7 +186,7 @@ class EventList(PaginationMixin, ListView):
                 
         page_event_ids = [e.pk for e in ctx['events']]
         
-        with scope(event__in=page_event_ids):
+        with scope(event=page_event_ids):
             submission_counts = list(
                 Submission.objects.filter(event_id__in=page_event_ids)
                 .values('event_id', 'state')
