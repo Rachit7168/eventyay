@@ -235,12 +235,18 @@ def infer_social_network(url: str) -> str | None:
 
 
 def format_social_links_for_csv(links) -> str:
-    parts = []
+    pairs: list[tuple[str, str]] = []
     for link in links:
-        if not getattr(link, 'network', None) or not getattr(link, 'url', None):
+        network = getattr(link, 'network', None)
+        url = getattr(link, 'url', None)
+        if not network or not url:
             continue
-        parts.append(f'{link.network}: {link.url}')
-    return '; '.join(parts)
+        pairs.append((str(network), str(url)))
+    if not pairs:
+        return ''
+    if any(';' in url for _, url in pairs):
+        return json.dumps([{'network': network, 'url': url} for network, url in pairs])
+    return '; '.join(f'{network}: {url}' for network, url in pairs)
 
 
 def parse_social_links_from_csv(text: str) -> list[tuple[str, str]]:

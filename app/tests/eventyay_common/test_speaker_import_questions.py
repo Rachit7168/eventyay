@@ -1,3 +1,5 @@
+from types import SimpleNamespace
+
 import pytest
 from django_scopes import scope
 
@@ -17,7 +19,7 @@ from eventyay.base.services.talkimport import (
     _load_mapped_questions,
     _set_question_answer,
 )
-from eventyay.common.social_links import parse_social_links_from_csv
+from eventyay.common.social_links import format_social_links_for_csv, parse_social_links_from_csv
 from eventyay.orga.forms.importers import SpeakerImportProcessForm
 
 
@@ -30,6 +32,21 @@ def test_parse_social_links_from_exported_csv():
     ]
     assert parse_social_links_from_csv('https://x.com/ada') == [('x', 'https://x.com/ada')]
     assert parse_social_links_from_csv('github: octocat') == [('github', 'https://github.com/octocat')]
+
+
+def test_format_social_links_uses_json_when_url_contains_semicolon():
+    exported = format_social_links_for_csv(
+        [
+            SimpleNamespace(network='website', url='https://example.com/a;b'),
+            SimpleNamespace(network='github', url='https://github.com/octocat'),
+        ]
+    )
+
+    assert exported.startswith('[')
+    assert parse_social_links_from_csv(exported) == [
+        ('website', 'https://example.com/a;b'),
+        ('github', 'https://github.com/octocat'),
+    ]
 
 
 def _speaker_settings(**overrides):
