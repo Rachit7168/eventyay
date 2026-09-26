@@ -38,7 +38,7 @@
                 <a href="?{% url_replace request 'status' 'notlive' 'tab' 'notlive' %}">{% trans "Draft" %}</a>
             </li>
             <li role="presentation" {% if filter_form.status.value == 'date_past' %}class="active"{% endif %}>
-                <a href="?{% url_replace request 'status' 'date_past' 'tab' 'date_past' %}">{% trans "Past" %}</a>
+                <a href="?{% url_replace request 'status' 'date_past' 'tab' 'date_past' %}">{% trans "Past single events" %}</a>
             </li>
             <li role="presentation" {% if not filter_form.status.value or filter_form.status.value == '' %}class="active"{% endif %}>
                 <a href="?{% url_replace request 'status' '' 'tab' 'all' %}">{% trans "All" %}</a>
@@ -46,9 +46,6 @@
         </ul>
         <div class="advanced-filter-search" data-advanced-filter-search>
             <form class="filter-form advanced-filter-search-form" action="" method="get">
-                {% if filter_form.status.value %}
-                    <input type="hidden" name="status" value="{{ filter_form.status.value }}">
-                {% endif %}
                 <div class="advanced-filter-search-bar">
                     <div class="input-group advanced-filter-search-query-group">
                         <input id="id_query" type="text" name="query" class="form-control" placeholder="{% trans 'Search events…' %}" aria-label="{% trans 'Search events…' %}" value="{{ filter_form.query.value|default_if_none:'' }}">
@@ -60,6 +57,9 @@
                         </span>
                     </div>
                     
+                    <div class="advanced-filter-field advanced-filter-field--inline">
+                        {% bootstrap_field filter_form.status layout='inline' %}
+                    </div>
                     <div class="advanced-filter-field advanced-filter-field--inline">
                         {% bootstrap_field filter_form.organizer layout='inline' %}
                     </div>
@@ -102,8 +102,8 @@
                 <th style="width: 7%;">{% trans "Logo" %}</th>
                 <th style="width: 14%;">
                     {% trans "Event name" %}
-                    <a href="?{% url_replace request 'ordering' '-slug' %}"><i class="fa fa-caret-down"></i></a>
-                    <a href="?{% url_replace request 'ordering' 'slug' %}"><i class="fa fa-caret-up"></i></a>
+                    <a href="?{% url_replace request 'ordering' '-name' %}"><i class="fa fa-caret-down"></i></a>
+                    <a href="?{% url_replace request 'ordering' 'name' %}"><i class="fa fa-caret-up"></i></a>
                 </th>
                 <th style="width: 14%;">
                     {% trans "Organizer" %}
