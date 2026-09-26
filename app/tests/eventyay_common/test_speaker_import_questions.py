@@ -1,7 +1,7 @@
 import pytest
 from django_scopes import scope
 
-from eventyay.base.models import Answer, AnswerOption, SpeakerProfile, User
+from eventyay.base.models import Answer, AnswerOption, SpeakerProfile, SpeakerSocialLink, User
 from eventyay.base.models import TalkQuestion as Question
 from eventyay.base.models import TalkQuestionVariant as QuestionVariant
 from eventyay.base.models.question import TalkQuestionRequired as QuestionRequired
@@ -17,7 +17,19 @@ from eventyay.base.services.talkimport import (
     _load_mapped_questions,
     _set_question_answer,
 )
+from eventyay.common.social_links import parse_social_links_from_csv
 from eventyay.orga.forms.importers import SpeakerImportProcessForm
+
+
+def test_parse_social_links_from_exported_csv():
+    assert parse_social_links_from_csv(
+        'github: https://github.com/octocat; website: https://example.com'
+    ) == [
+        ('github', 'https://github.com/octocat'),
+        ('website', 'https://example.com'),
+    ]
+    assert parse_social_links_from_csv('https://x.com/ada') == [('x', 'https://x.com/ada')]
+    assert parse_social_links_from_csv('github: octocat') == [('github', 'https://github.com/octocat')]
 
 
 def _speaker_settings(**overrides):
@@ -221,9 +233,70 @@ def test_speaker_import_form_offers_create_for_unmapped_column(event):
 
         assert 'create_question_enabled_t-shirt-size' in form.fields
         assert 'create_question_enabled_email' not in form.fields
-        assert form.fields['create_question_enabled_t-shirt-size'].initial is False
+        assert form.fields['create_question_enabled_t-shirt-size'].initial is True
         assert len(form.new_question_rows) == 1
         assert form.new_question_rows[0]['header'] == 'T-shirt size'
+
+
+@pytest.mark.django_db
+def test_speaker_import_form_maps_profile_and_social_columns(event):
+    with scope(event=event):
+        form = SpeakerImportProcessForm(
+            headers=['Email', 'Name', 'Job title/role', 'Organization', 'Social links'],
+            event=event,
+        )
+
+        assert form.fields['job_title'].initial == 'csv:Job title/role'
+        assert form.fields['organization'].initial == 'csv:Organization'
+        assert form.fields['social_links'].initial == 'csv:Social links'
+        assert form.new_question_rows == []
+
+
+@pytest.mark.django_db
+def test_speaker_import_form_maps_matching_dest_question_by_name(event):
+    with scope(event=event):
+        question = _create_question(
+            event,
+            question='Favourite color',
+            variant=QuestionVariant.STRING,
+            target=TalkQuestionTarget.SPEAKER,
+        )
+        form = SpeakerImportProcessForm(
+            headers=['Email', 'Name', 'Favourite color'],
+            event=event,
+            initial={f'question_{question.pk}': 'csv:Old source header'},
+        )
+
+        assert form.fields[f'question_{question.pk}'].initial == 'csv:Favourite color'
+        assert all(row['header'] != 'Favourite color' for row in form.new_question_rows)
+
+
+@pytest.mark.django_db
+def test_speaker_import_form_skips_reserved_export_headers(event):
+    with scope(event=event):
+        form = SpeakerImportProcessForm(
+            headers=['Email', 'Name', 'ID', 'Proposal IDs', 'Proposal titles', 'Confirmed'],
+            event=event,
+        )
+
+        assert form.new_question_rows == []
+
+
+@pytest.mark.django_db
+def test_speaker_import_form_does_not_auto_create_when_dest_has_questions(event):
+    with scope(event=event):
+        _create_question(
+            event,
+            question='Favourite color',
+            variant=QuestionVariant.STRING,
+            target=TalkQuestionTarget.SPEAKER,
+        )
+        form = SpeakerImportProcessForm(
+            headers=['Email', 'Name', 'T-shirt size'],
+            event=event,
+        )
+
+        assert form.fields['create_question_enabled_t-shirt-size'].initial is False
 
 
 @pytest.mark.django_db
@@ -355,3 +428,59 @@ def test_import_submission_row_deletes_new_submission_on_invalid_choice(event, u
 
         assert not Submission.objects.filter(event=event, title='A new talk').exists()
         assert not Answer.objects.filter(question=question).exists()
+
+
+@pytest.mark.django_db
+def test_import_speaker_row_saves_job_title_organization_and_social_links(event, user):
+    with scope(event=event):
+        created = _import_speaker_row(
+            event,
+            _speaker_settings(
+                job_title='csv:job_title',
+                organization='csv:organization',
+                social_links='csv:social_links',
+            ),
+            _speaker_row(
+                job_title='Founder',
+                organization='FOSSASIA',
+                social_links='github: https://github.com/octocat; website: https://example.com',
+            ),
+            user,
+        )
+
+        assert created is True
+        profile = SpeakerProfile.objects.get(event=event, user__email='imported.speaker@example.org')
+        assert profile.job_title == 'Founder'
+        assert profile.organization == 'FOSSASIA'
+        links = {(link.network, link.url) for link in profile.social_links.all()}
+        assert links == {
+            ('github', 'https://github.com/octocat'),
+            ('website', 'https://example.com'),
+        }
+
+
+@pytest.mark.django_db
+def test_import_speaker_row_merges_existing_social_links(event, user):
+    with scope(event=event):
+        existing_user = User.objects.create_user(
+            email='imported.speaker@example.org',
+            fullname='Ada Lovelace',
+            password='unused',
+        )
+        profile = SpeakerProfile.objects.create(event=event, user=existing_user)
+        SpeakerSocialLink.objects.create(profile=profile, network='github', url='https://github.com/octocat')
+
+        created = _import_speaker_row(
+            event,
+            _speaker_settings(social_links='csv:social_links'),
+            _speaker_row(social_links='github: https://github.com/octocat; x: https://x.com/ada'),
+            user,
+        )
+
+        assert created is False
+        profile.refresh_from_db()
+        links = {(link.network, link.url) for link in profile.social_links.all()}
+        assert links == {
+            ('github', 'https://github.com/octocat'),
+            ('x', 'https://x.com/ada'),
+        }

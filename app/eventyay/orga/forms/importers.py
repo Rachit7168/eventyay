@@ -7,7 +7,7 @@ from django.conf import settings
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 
-from eventyay.base.import_utils import match_header
+from eventyay.base.import_utils import match_header, normalize_header_value
 from eventyay.base.models.question import TalkQuestionTarget, TalkQuestionVariant
 from eventyay.consts import SizeKey
 
@@ -29,6 +29,31 @@ IMPORTABLE_QUESTION_VARIANTS: tuple[tuple[str, str], ...] = (
     (TalkQuestionVariant.PHONE_NUMBER, _('Phone number')),
 )
 IMPORTABLE_QUESTION_VARIANT_VALUES = frozenset(value for value, _label in IMPORTABLE_QUESTION_VARIANTS)
+SKIP_NEW_QUESTION_HEADERS = frozenset(
+    {
+        normalize_header_value('ID'),
+        normalize_header_value('Proposal IDs'),
+        normalize_header_value('Proposal titles'),
+        normalize_header_value('Confirmed'),
+        normalize_header_value('Wikimedia Username'),
+        normalize_header_value('Speaker IDs'),
+        normalize_header_value('Speaker names'),
+        normalize_header_value('Pending proposal state'),
+        normalize_header_value('Created'),
+        normalize_header_value('Slot Count'),
+        normalize_header_value('Session image'),
+        normalize_header_value('Median score'),
+        normalize_header_value('Average (mean) score'),
+        normalize_header_value('Resources'),
+        normalize_header_value('Start (date)'),
+        normalize_header_value('Start (time)'),
+        normalize_header_value('End (date)'),
+        normalize_header_value('End (time)'),
+        normalize_header_value('Picture'),
+        normalize_header_value('Picture Source'),
+        normalize_header_value('Picture License'),
+    }
+)
 
 
 def _normalize_initial(initial: object) -> dict:
@@ -48,6 +73,15 @@ def _preserve_initial_value(value):
     if isinstance(value, (bool, list, dict)) or value is None:
         return value
     return str(value)
+
+
+def question_header_suggestions(question) -> list[str]:
+    text = question.question
+    suggestions = [str(text)]
+    data = getattr(text, 'data', None)
+    if isinstance(data, Mapping):
+        suggestions.extend(str(value) for value in data.values() if value)
+    return suggestions
 
 
 def _as_bool(value) -> bool:
@@ -193,16 +227,37 @@ class ImportQuestionMappingMixin:
                 help_text=str(question.help_text) if question.help_text else None,
                 widget=forms.Select(attrs={'class': 'form-control'}),
             )
-            existing_initial = self._initial_data.get(identifier)
+            existing_initial = self._usable_csv_mapping(self._initial_data.get(identifier))
             if existing_initial:
                 field.initial = existing_initial
             else:
-                suggestion = match_header(self.headers, [str(question.question)])
+                suggestion = match_header(self.headers, question_header_suggestions(question))
                 if suggestion:
                     field.initial = f'csv:{suggestion}'
             self.fields[identifier] = field
             self.question_field_names.append(identifier)
         self._add_new_question_fields()
+
+    def _usable_csv_mapping(self, value) -> str | None:
+        if not isinstance(value, str) or not value.startswith('csv:'):
+            return None
+        header = value[4:]
+        if header in self.headers:
+            return value
+        return None
+
+    def _apply_mapping_initial(self, field, identifier: str, suggestions: list[str] | None = None):
+        existing_initial = self._usable_csv_mapping(self._initial_data.get(identifier))
+        if existing_initial:
+            field.initial = existing_initial
+            return
+        raw_initial = self._initial_data.get(identifier)
+        if isinstance(raw_initial, str) and raw_initial.startswith('static:'):
+            field.initial = raw_initial
+            return
+        suggestion = match_header(self.headers, suggestions or [])
+        if suggestion:
+            field.initial = f'csv:{suggestion}'
 
     def _mapped_csv_headers(self) -> set[str]:
         mapped = set()
@@ -224,8 +279,14 @@ class ImportQuestionMappingMixin:
 
     def _add_new_question_fields(self):
         mapped_headers = self._mapped_csv_headers()
-        unused_headers = [header for header in self.headers if header.casefold() not in mapped_headers]
+        unused_headers = [
+            header
+            for header in self.headers
+            if header.casefold() not in mapped_headers
+            and normalize_header_value(header) not in SKIP_NEW_QUESTION_HEADERS
+        ]
         saved_specs = self._saved_new_question_specs()
+        auto_create = not self.question_field_names
         used_slugs: set[str] = set()
         for header in unused_headers:
             slug = _unique_slug(header, used_slugs)
@@ -237,7 +298,7 @@ class ImportQuestionMappingMixin:
 
             enabled_initial = self._initial_data.get(enabled_name)
             if enabled_initial is None:
-                enabled_initial = bool(saved)
+                enabled_initial = bool(saved) or auto_create
             variant_initial = self._initial_data.get(variant_name) or (saved or {}).get(
                 'variant', TalkQuestionVariant.STRING
             )
@@ -345,6 +406,22 @@ SPEAKER_IMPORT_FIELDS: list[ImportField] = [
         suggestions=['biography', 'bio'],
     ),
     ImportField(
+        identifier='job_title',
+        label=_('Job title/role'),
+        suggestions=['job title', 'job title/role', 'job title role', 'role'],
+    ),
+    ImportField(
+        identifier='organization',
+        label=_('Organization'),
+        suggestions=['organization', 'organisation', 'company', 'company name'],
+    ),
+    ImportField(
+        identifier='social_links',
+        label=_('Social links'),
+        help_text=_('Use "network: URL" pairs separated by semicolons, or a JSON list of links.'),
+        suggestions=['social links', 'social media', 'social media links'],
+    ),
+    ImportField(
         identifier='avatar_url',
         label=_('Profile picture URL'),
         help_text=_('A URL pointing to the speaker\'s profile picture. The image will be downloaded and saved.'),
@@ -416,23 +493,10 @@ class SpeakerImportProcessForm(ImportQuestionMappingMixin, forms.Form):
                 widget=forms.Select(attrs={'class': 'form-control'}),
             )
 
-            existing_initial = self._initial_data.get(field_spec.identifier)
-            if existing_initial:
-                field.initial = existing_initial
-            else:
-                suggestion = self._find_suggestion(field_spec)
-                if suggestion:
-                    field.initial = suggestion
-
+            self._apply_mapping_initial(field, field_spec.identifier, field_spec.suggestions)
             self.fields[field_spec.identifier] = field
 
         self._add_question_fields()
-
-    def _find_suggestion(self, field_spec: ImportField) -> str | None:
-        match = match_header(self.headers, field_spec.suggestions or [])
-        if match:
-            return f'csv:{match}'
-        return None
 
     def clean(self):
         cleaned = super().clean()
@@ -458,7 +522,7 @@ SESSION_IMPORT_FIELDS: list[ImportField] = [
         identifier='title',
         label=_('Title'),
         required=True,
-        suggestions=['title', 'proposal title', 'session title', 'talk title', 'name'],
+        suggestions=['proposal title', 'title', 'session title', 'talk title', 'name'],
     ),
     ImportField(
         identifier='abstract',
@@ -492,7 +556,7 @@ SESSION_IMPORT_FIELDS: list[ImportField] = [
         identifier='state',
         label=_('State'),
         help_text=_('Use keywords such as submitted, accepted, confirmed, rejected.'),
-        suggestions=['state', 'proposal state', 'status', 'decision'],
+        suggestions=['proposal state', 'state', 'status', 'decision'],
     ),
     ImportField(
         identifier='tags',
@@ -504,7 +568,7 @@ SESSION_IMPORT_FIELDS: list[ImportField] = [
         identifier='duration',
         label=_('Duration (minutes)'),
         help_text=_('Provide the duration in minutes.'),
-        suggestions=['duration', 'length', 'time'],
+        suggestions=['duration', 'duration (minutes)', 'length', 'time'],
     ),
     ImportField(
         identifier='content_locale',
@@ -576,9 +640,6 @@ SESSION_IMPORT_FIELDS: list[ImportField] = [
 class SessionImportProcessForm(ImportQuestionMappingMixin, forms.Form):
     question_target = TalkQuestionTarget.SUBMISSION
 
-    def question_field_required(self, question) -> bool:
-        return question.required
-
     def __init__(self, *args, headers=None, event=None, initial=None, **kwargs):
         self.headers = headers or []
         self.event = event
@@ -610,23 +671,10 @@ class SessionImportProcessForm(ImportQuestionMappingMixin, forms.Form):
                 widget=forms.Select(attrs={'class': 'form-control'}),
             )
 
-            existing_initial = self._initial_data.get(field_spec.identifier)
-            if existing_initial:
-                field.initial = existing_initial
-            else:
-                suggestion = self._find_suggestion(field_spec)
-                if suggestion:
-                    field.initial = suggestion
-
+            self._apply_mapping_initial(field, field_spec.identifier, field_spec.suggestions)
             self.fields[field_spec.identifier] = field
 
         self._add_question_fields()
-
-    def _find_suggestion(self, field_spec: ImportField) -> str | None:
-        match = match_header(self.headers, field_spec.suggestions or [])
-        if match:
-            return f'csv:{match}'
-        return None
 
     def clean(self):
         cleaned = super().clean()

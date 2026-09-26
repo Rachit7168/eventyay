@@ -157,6 +157,7 @@ class ScheduleExportForm(ExportForm):
     def questions(self):
         return self.event.talkquestions.filter(
             target='submission',
+            active=True,
         ).prefetch_related('answers', 'answers__submission', 'options', 'answers__options')
 
     @cached_property

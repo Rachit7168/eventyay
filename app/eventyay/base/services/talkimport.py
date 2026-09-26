@@ -2,6 +2,7 @@ import datetime as dt
 import json
 import logging
 import re
+from collections.abc import Mapping
 from pathlib import Path
 from typing import TypedDict
 from urllib.parse import urlparse
@@ -20,6 +21,7 @@ from django.utils.translation import gettext as _
 from django_scopes import scope
 
 from eventyay.base.i18n import language
+from eventyay.base.import_utils import normalize_header_value
 from eventyay.base.operational_logging import OUTCOME_FAILURE, log_event
 from eventyay.base.models import (
     Answer,
@@ -27,11 +29,13 @@ from eventyay.base.models import (
     Event,
     Room,
     SpeakerProfile,
+    SpeakerSocialLink,
     Submission,
     Tag,
     Track,
     User,
 )
+from eventyay.common.social_links import parse_social_links_from_csv
 from eventyay.base.models.question import (
     TalkQuestion,
     TalkQuestionRequired,
@@ -83,6 +87,9 @@ NORMALIZED_SPEAKER_SETTINGS = {
         'last_name',
         'email',
         'biography',
+        'job_title',
+        'organization',
+        'social_links',
         'identifier',
         'locale',
         'linked_submissions',
@@ -419,12 +426,21 @@ def _parse_new_question_specs(settings: dict) -> list[dict]:
     return specs
 
 
+def _question_label_keys(question: TalkQuestion) -> set[str]:
+    text = question.question
+    labels = [str(text)]
+    data = getattr(text, 'data', None)
+    if isinstance(data, Mapping):
+        labels.extend(str(value) for value in data.values() if value)
+    return {normalize_header_value(label) for label in labels if label}
+
+
 def _find_question_by_label(event: Event, target: str, label: str) -> TalkQuestion | None:
-    needle = label.strip().casefold()
+    needle = normalize_header_value(label)
     if not needle:
         return None
     for question in TalkQuestion.objects.filter(event=event, target=target, active=True):
-        if str(question.question).strip().casefold() == needle:
+        if needle in _question_label_keys(question):
             return question
     return None
 
@@ -987,6 +1003,18 @@ def _parse_featured_position(value: str) -> int | None:
     return position if position >= 0 else None
 
 
+def _sync_speaker_social_links(profile: SpeakerProfile, raw_value: str):
+    pairs = parse_social_links_from_csv(raw_value)
+    if not pairs:
+        return
+    existing = {(link.network, link.url) for link in profile.social_links.all()}
+    for network, url in pairs:
+        if (network, url) in existing:
+            continue
+        SpeakerSocialLink.objects.create(profile=profile, network=network, url=url)
+        existing.add((network, url))
+
+
 def _sync_import_answers(*, event: Event, target: str, extras, caches: dict, submission=None, person=None):
     if extras is None:
         return
@@ -1090,6 +1118,9 @@ def _import_speaker_row(event, settings, record, acting_user, caches=None):
     last_name = _resolve_csv(settings.get('last_name'), record)
     email = _resolve_csv(settings.get('email'), record)
     biography = _resolve_csv(settings.get('biography'), record)
+    job_title = _resolve_csv(settings.get('job_title'), record)
+    organization = _resolve_csv(settings.get('organization'), record)
+    social_links_val = _resolve_csv(settings.get('social_links'), record)
     identifier = _resolve_csv(settings.get('identifier'), record)
     locale_val = _resolve_csv(settings.get('locale'), record)
     linked_submissions = _resolve_csv(settings.get('linked_submissions'), record)
@@ -1189,6 +1220,12 @@ def _import_speaker_row(event, settings, record, acting_user, caches=None):
         if biography:
             profile.biography = biography
             profile_update_fields.append('biography')
+        if job_title:
+            profile.job_title = job_title[:255]
+            profile_update_fields.append('job_title')
+        if organization:
+            profile.organization = organization[:255]
+            profile_update_fields.append('organization')
         if is_featured:
             profile.is_featured = _truthy(is_featured)
             profile_update_fields.append('is_featured')
@@ -1199,6 +1236,8 @@ def _import_speaker_row(event, settings, record, acting_user, caches=None):
                 profile_update_fields.append('position')
         if profile_update_fields:
             profile.save(update_fields=profile_update_fields)
+        if social_links_val:
+            _sync_speaker_social_links(profile, social_links_val)
 
         # Link to submissions
         if linked_submissions:
