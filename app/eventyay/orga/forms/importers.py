@@ -166,11 +166,39 @@ class SpeakerImportProcessForm(forms.Form):
 
             self.fields[field_spec.identifier] = field
 
+        self._add_question_fields()
+
     def _find_suggestion(self, field_spec: ImportField) -> str | None:
         match = match_header(self.headers, field_spec.suggestions or [])
         if match:
             return f'csv:{match}'
         return None
+
+    def _add_question_fields(self):
+        if not self.event:
+            return
+        questions = self.event.talkquestions.filter(target=TalkQuestionTarget.SPEAKER, active=True).order_by(
+            'position'
+        )
+        for question in questions:
+            identifier = f'question_{question.pk}'
+            field_required = question.required
+            field = forms.ChoiceField(
+                label=str(question.question),
+                required=field_required,
+                choices=[('', _('Keep empty'))]
+                + [(f'csv:{header}', _('CSV column: "{name}"').format(name=header)) for header in self.headers],
+                help_text=str(question.help_text) if question.help_text else None,
+                widget=forms.Select(attrs={'class': 'form-control'}),
+            )
+            existing_initial = self._initial_data.get(identifier)
+            if existing_initial:
+                field.initial = existing_initial
+            else:
+                suggestion = match_header(self.headers, [str(question.question)])
+                if suggestion:
+                    field.initial = f'csv:{suggestion}'
+            self.fields[identifier] = field
 
     def clean(self):
         cleaned = super().clean()

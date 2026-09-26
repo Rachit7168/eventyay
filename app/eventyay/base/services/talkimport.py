@@ -632,6 +632,34 @@ def import_speakers(self, event: Event, fileid: str, settings: dict, locale: str
                 
                 total = len(parsed)
 
+                question_mappings = []
+                for key, value in settings.items():
+                    if key.startswith('question_') and value:
+                        try:
+                            question_id = int(key.split('_', 1)[1])
+                        except (ValueError, IndexError):
+                            continue
+                        question_mappings.append((question_id, value))
+
+                question_cache = {}
+                if question_mappings:
+                    question_ids = {question_id for question_id, _ in question_mappings}
+                    questions = TalkQuestion.objects.filter(event=event, pk__in=question_ids).prefetch_related(
+                        'options'
+                    )
+                    for question in questions:
+                        option_lookup = None
+                        if question.variant in (TalkQuestionVariant.CHOICES, TalkQuestionVariant.MULTIPLE, TalkQuestionVariant.SELECT):
+                            option_lookup = {
+                                str(option.answer).strip().casefold(): option for option in question.options.all()
+                            }
+                        question_cache[question.pk] = (question, option_lookup)
+
+                caches = {
+                    'question_mappings': question_mappings,
+                    'question_cache': question_cache,
+                }
+
                 created = 0
                 updated = 0
                 skipped = 0
@@ -641,7 +669,7 @@ def import_speakers(self, event: Event, fileid: str, settings: dict, locale: str
                     if total > 0 and (row_num - 2) % max(1, total // 10) == 0:
                         self.update_state(state='PROGRESS', meta={'value': round((row_num - 2) / total * 100)})
                     try:
-                        was_created = _import_speaker_row(event, settings, record, acting_user)
+                        was_created = _import_speaker_row(event, settings, record, acting_user, caches=caches)
                         if was_created:
                             created += 1
                         else:
@@ -1003,6 +1031,20 @@ def _import_speaker_row(event, settings, record, acting_user, caches=None):
                 sub = _find_submission_by_ref(event, ref)
                 if sub:
                     SpeakerRole.objects.get_or_create(submission=sub, user=user)
+
+        # Question answers
+        question_mappings = caches.get('question_mappings') if caches else []
+        question_cache = caches.get('question_cache') if caches else None
+        for question_id, mapping_value in question_mappings:
+            answer_text = _resolve_csv(mapping_value, record)
+            if answer_text:
+                _set_question_answer(
+                    question_id,
+                    answer_text,
+                    question_cache=question_cache,
+                    person=user,
+                    event=event,
+                )
 
         _sync_import_answers(
             event=event,
