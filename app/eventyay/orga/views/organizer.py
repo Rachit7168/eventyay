@@ -2,8 +2,8 @@ import logging
 
 from django.contrib import messages
 from django.db import transaction
-from django.db.models import Q
-from django.db.models.functions import Lower
+from django.db.models import Min, Q, Value
+from django.db.models.functions import Coalesce, Lower, NullIf
 from django.http import HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
@@ -212,9 +212,6 @@ def speaker_autocomplete_results(*, event: Event, search: str) -> list[dict[str,
         )
         for user in users:
             add_result(email=user.email, name=user.fullname)
-
-        from django.db.models import Min, Value
-        from django.db.models.functions import Coalesce, NullIf
 
         no_attendee_email = Q(attendee_email__isnull=True) | Q(attendee_email='')
         attendee_match = (

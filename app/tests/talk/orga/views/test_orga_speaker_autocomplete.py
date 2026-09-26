@@ -298,6 +298,7 @@ def test_speaker_invite_page_has_no_autocomplete(speaker_client, submission):
     assert 'orga/js/speakers.js' not in response.text
     assert 'speaker-autocomplete' not in response.text
     assert 'remoteUrl' not in response.text
+    assert 'autocomplete="off"' in response.text
 
 
 @pytest.mark.django_db
@@ -312,6 +313,7 @@ def test_speaker_submission_edit_has_no_autocomplete(speaker_client, submission)
     assert 'orga/js/speakers.js' not in response.text
     assert 'speaker-autocomplete' not in response.text
     assert 'remoteUrl' not in response.text
+    assert 'autocomplete="off"' in response.text
 
 
 @pytest.mark.django_db
