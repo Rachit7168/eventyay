@@ -471,6 +471,9 @@ def _get_or_create_csv_question(event: Event, target: str, spec: dict, caches: d
             is_visible_to_reviewers=True,
             position=_next_import_question_position(event, target, caches),
         )
+    elif not question.active:
+        question.active = True
+        question.save(update_fields=['active'])
     created_cache[cache_key] = question
     return question
 

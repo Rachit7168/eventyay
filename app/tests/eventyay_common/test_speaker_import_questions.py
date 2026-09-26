@@ -397,6 +397,45 @@ def test_apply_new_question_mappings_reuses_existing_question(event):
 
 
 @pytest.mark.django_db
+def test_apply_new_question_mappings_reactivates_inactive_import_key_question(event):
+    with scope(event=event):
+        question = _create_question(
+            event,
+            question='Favourite color',
+            variant=QuestionVariant.STRING,
+            target=TalkQuestionTarget.SPEAKER,
+            active=False,
+        )
+        question.import_key = 'legacy-import:speaker:favourite_color'
+        question.save(update_fields=['import_key'])
+        settings = {
+            'new_questions': [
+                {
+                    'header': 'color',
+                    'label': 'Favourite color',
+                    'variant': QuestionVariant.STRING,
+                    'mapping': 'csv:color',
+                }
+            ]
+        }
+
+        mappings, cache = _apply_new_question_mappings(
+            event,
+            settings,
+            [],
+            {},
+            target=TalkQuestionTarget.SPEAKER,
+            caches={'import_questions': {}, 'import_question_positions': {}},
+        )
+
+        question.refresh_from_db()
+        assert question.active is True
+        assert mappings == [(question.pk, 'csv:color')]
+        assert Question.objects.filter(event=event, target=TalkQuestionTarget.SPEAKER).count() == 1
+        assert question.pk in cache
+
+
+@pytest.mark.django_db
 def test_import_submission_row_deletes_new_submission_on_invalid_choice(event, user):
     with scope(event=event):
         sub_type = SubmissionType.objects.create(event=event, name='Talk')
