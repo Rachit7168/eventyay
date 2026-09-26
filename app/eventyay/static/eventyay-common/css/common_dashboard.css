@@ -2032,6 +2032,10 @@ body:has(.td-dashboard) #page-content {
   overflow-y: auto;
   overscroll-behavior: contain;
 }
+.cd-search .dropdown-container .event-dropdown.dropdown-menu.focused {
+  display: block;
+  overflow-y: auto;
+}
 .cd-search .event-dropdown li a {
   display: block;
   padding: .85rem 1.25rem;
