@@ -10,6 +10,7 @@
     border-radius: 4px;
     padding: 20px;
     box-shadow: 0 1px 1px rgba(0,0,0,.05);
+    overflow-x: auto;
 }
 
 /* Tabs Navigation */
@@ -62,7 +63,6 @@
     border-bottom: 2px solid #ebebeb;
     color: #555;
     font-weight: 600;
-    white-space: nowrap;
 }
 
 /* Column specific widths for perfectly even spacing */
@@ -112,8 +112,49 @@
 }
 
 /* Responsive constraints */
-@media (max-width: 768px) {
+@media (max-width: 991px) {
+    .events-table-wrapper {
+        padding: 10px;
+        border: none;
+        background: transparent;
+        box-shadow: none;
+    }
     .events-table-wrapper .table-responsive {
         border: 0;
+    }
+    
+    /* Fix flip actions overlapping with logo */
+    .events-table-wrapper table.events-table > tbody > tr > td.flip {
+        position: relative;
+        top: auto;
+        right: auto;
+        justify-content: flex-end;
+        padding-top: 15px;
+        border-top: 1px solid #eee;
+    }
+    .events-table-wrapper table.events-table > tbody > tr > td.flip::before {
+        display: block !important;
+    }
+    
+    /* Enable wrapping for td contents with multiple elements (e.g., stats list + ellipsis) */
+    .events-table-wrapper table.events-table > tbody > tr > td {
+        flex-wrap: wrap;
+        gap: 5px;
+    }
+    
+    /* Format the stats list on mobile to align right */
+    .events-table-wrapper .stats-list {
+        width: 100%;
+    }
+    .events-table-wrapper .stats-list li {
+        justify-content: flex-end;
+    }
+    .events-table-wrapper .stats-list li span:first-child {
+        margin-right: 15px;
+    }
+    .events-table-wrapper .quotabox-more {
+        display: block;
+        width: 100%;
+        text-align: right;
     }
 }
