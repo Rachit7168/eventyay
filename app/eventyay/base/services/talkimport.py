@@ -1639,6 +1639,13 @@ def _import_submission_row(event, settings, record, acting_user, speaker_cache=N
                 user=acting_user,
             )
         finalized = True
+    except ImportExecutionError:
+        if was_created and submission.pk:
+            try:
+                submission.delete()
+            except (IntegrityError, OperationalError):
+                logger.exception('Failed to clean up submission after import error: %s', submission.pk)
+        raise
     except (IntegrityError, DataError) as exc:
         if was_created and submission.pk:
             try:
