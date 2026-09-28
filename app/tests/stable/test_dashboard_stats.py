@@ -1,7 +1,7 @@
 import pytest
 from django.urls import reverse
 from django.utils.timezone import now
-from eventyay.base.models import Event, Organizer, Submission, User
+from eventyay.base.models import Event, Organizer, Submission, SubmissionType, User
 from eventyay.base.models.submission import SpeakerRole
 from django_scopes import scopes_disabled
 
@@ -34,9 +34,11 @@ def events_with_stats(orga, test_user):
         e1 = Event.objects.create(organizer=orga, name='Event 1', slug='e1', date_from=now())
         e2 = Event.objects.create(organizer=orga, name='Event 2', slug='e2', date_from=now())
 
+        sub_type = SubmissionType.objects.create(event=e1, name='Talk')
+
         # Event 1: 1 confirmed session, 1 draft session
-        s1 = Submission.objects.create(event=e1, title='S1', state=Submission.STATE_CONFIRMED)
-        s2 = Submission.objects.create(event=e1, title='S2', state=Submission.STATE_DRAFT)
+        s1 = Submission.objects.create(event=e1, submission_type=sub_type, title='S1', state=Submission.STATE_CONFIRMED)
+        s2 = Submission.objects.create(event=e1, submission_type=sub_type, title='S2', state=Submission.STATE_DRAFT)
 
         # Event 1: speakers
         # Speaker 1 on confirmed session
