@@ -195,6 +195,7 @@ class EventList(PaginationMixin, ListView):
             
             speaker_counts = list(
                 SpeakerRole.objects.filter(submission__event_id__in=page_event_ids)
+                .exclude(submission__state__in=['draft', 'deleted'])
                 .values('submission__event_id', 'submission__state')
                 .annotate(count=Count('user_id', distinct=True))
             )

@@ -99,41 +99,41 @@
                 
                 <thead>
                 <tr>
-                <th style="width: 7%;">{% trans "Logo" %}</th>
-                <th style="width: 14%;">
+                <th>{% trans "Logo" %}</th>
+                <th>
                     {% trans "Event name" %}
                     <a href="?{% url_replace request 'ordering' '-name' %}"><i class="fa fa-caret-down"></i></a>
                     <a href="?{% url_replace request 'ordering' 'name' %}"><i class="fa fa-caret-up"></i></a>
                 </th>
-                <th style="width: 14%;">
+                <th>
                     {% trans "Organizer" %}
                     <a href="?{% url_replace request 'ordering' '-organizer' %}"><i class="fa fa-caret-down"></i></a>
                     <a href="?{% url_replace request 'ordering' 'organizer' %}"><i class="fa fa-caret-up"></i></a>
                 </th>
-                <th style="width: 10%;">
+                <th>
                     {% trans "Start date" %}
                     <a href="?{% url_replace request 'ordering' '-date_from' %}"><i class="fa fa-caret-down"></i></a>
                     <a href="?{% url_replace request 'ordering' 'date_from' %}"><i class="fa fa-caret-up"></i></a>
                 </th>
-                <th style="width: 10%;">
+                <th>
                     {% trans "End date" %}
                     <a href="?{% url_replace request 'ordering' '-date_to' %}"><i class="fa fa-caret-down"></i></a>
                     <a href="?{% url_replace request 'ordering' 'date_to' %}"><i class="fa fa-caret-up"></i></a>
                 </th>
-                <th style="width: 10%;">
+                <th>
                     {% trans "Paid tickets / quota" %}
                     <a href="?{% url_replace request 'ordering' '-total_quota' %}"><i class="fa fa-caret-down"></i></a>
                     <a href="?{% url_replace request 'ordering' 'total_quota' %}"><i class="fa fa-caret-up"></i></a>
                 </th>
-                <th style="width: 12%;">{% trans "Sessions" %} <i class="fa fa-info-circle text-muted" data-toggle="tooltip" title="{% trans 'Session status counts' %}"></i></th>
-                <th style="width: 12%;">{% trans "Speakers" %} <i class="fa fa-info-circle text-muted" data-toggle="tooltip" title="{% trans 'Speaker status counts' %}"></i></th>
+                <th>{% trans "Sessions" %} <i class="fa fa-info-circle text-muted" data-toggle="tooltip" title="{% trans 'Session status counts' %}"></i></th>
+                <th>{% trans "Speakers" %} <i class="fa fa-info-circle text-muted" data-toggle="tooltip" title="{% trans 'Speaker status counts' %}"></i></th>
 
-                <th style="width: 6%;">
+                <th>
                     {% trans "Shop" %}
                     <a href="?{% url_replace request 'ordering' '-live' %}"><i class="fa fa-caret-down"></i></a>
                     <a href="?{% url_replace request 'ordering' 'live' %}"><i class="fa fa-caret-up"></i></a>
                 </th>
-                <th class="text-right flip" style="width: 5%; white-space: nowrap;">
+                <th class="text-right flip" style="white-space: nowrap;">
                     {% trans "Actions" %}
                 </th>
                 </tr>
@@ -156,12 +156,20 @@
                     <td data-label="{% trans 'Organizer' %}">{{ e.organizer }}</td>
                     
                     <td data-label="{% trans 'Start date' %}">
-                        {{ e.date_from|date:"SHORT_DATE_FORMAT" }}
+                        {% if e.has_subevents %}
+                            {{ e.min_from|default_if_none:""|date:"SHORT_DATE_FORMAT" }}
+                        {% else %}
+                            {{ e.date_from|date:"SHORT_DATE_FORMAT" }}
+                        {% endif %}
                     </td>
                     
                     <td data-label="{% trans 'End date' %}">
                         {% if e.settings.show_date_to and e.date_to %}
-                            {{ e.date_to|date:"SHORT_DATE_FORMAT" }}
+                            {% if e.has_subevents %}
+                                {{ e.max_fromto|default_if_none:e.max_from|default_if_none:e.max_to|default_if_none:""|date:"SHORT_DATE_FORMAT" }}
+                            {% else %}
+                                {{ e.date_to|date:"SHORT_DATE_FORMAT" }}
+                            {% endif %}
                         {% endif %}
                     </td>
                     
