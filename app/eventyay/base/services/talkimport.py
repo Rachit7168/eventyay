@@ -38,6 +38,7 @@ from eventyay.base.models import (
 )
 from eventyay.helpers.countries import CachedCountries
 from eventyay.common.social_links import parse_social_links_from_csv
+from eventyay.common.session_video import ensure_session_video_question, import_submission_video_urls
 from eventyay.base.models.question import (
     TalkQuestion,
     TalkQuestionRequired,
@@ -433,6 +434,12 @@ def _find_question_by_label(event: Event, target: str, label: str) -> TalkQuesti
     return None
 
 def _get_or_create_csv_question(event: Event, target: str, spec: dict, caches: dict) -> TalkQuestion:
+    if target == TalkQuestionTarget.SUBMISSION and spec.get('variant') == TalkQuestionVariant.VIDEO:
+        question = ensure_session_video_question(event)
+        if not question.active:
+            question.active = True
+            question.save(update_fields=['active'])
+        return question
     existing = _find_question_by_label(event, target, spec['label'])
     if existing:
         update_fields = []
@@ -1294,29 +1301,19 @@ def import_submissions(self, event: Event, fileid: str, settings: dict, locale: 
                     'default_sub_type': submission_types[0] if submission_types else None,
                 }
 
-                question_mappings = []
-                for key, value in settings.items():
-                    if key.startswith('question_') and value:
-                        try:
-                            question_id = int(key.split('_', 1)[1])
-                        except (ValueError, IndexError):
-                            continue
-                        question_mappings.append((question_id, value))
-
-                question_cache = {}
-                if question_mappings:
-                    question_ids = {question_id for question_id, _ in question_mappings}
-                    questions = TalkQuestion.objects.filter(event=event, pk__in=question_ids).prefetch_related(
-                        'options'
-                    )
-                    for question in questions:
-                        option_lookup = None
-                        if question.variant in (TalkQuestionVariant.CHOICES, TalkQuestionVariant.MULTIPLE, TalkQuestionVariant.SELECT):
-                            option_lookup = {
-                                str(option.answer).strip().casefold(): option for option in question.options.all()
-                            }
-                        question_cache[question.pk] = (question, option_lookup)
-
+                question_mappings, question_cache = _load_mapped_questions(
+                    event, settings, target=TalkQuestionTarget.SUBMISSION
+                )
+                caches.setdefault('import_questions', {})
+                caches.setdefault('import_question_positions', {})
+                question_mappings, question_cache = _apply_new_question_mappings(
+                    event,
+                    settings,
+                    question_mappings,
+                    question_cache,
+                    target=TalkQuestionTarget.SUBMISSION,
+                    caches=caches,
+                )
                 caches['question_mappings'] = question_mappings
                 caches['question_cache'] = question_cache
 
@@ -1416,6 +1413,7 @@ def _import_submission_row(event, settings, record, acting_user, speaker_cache=N
     room_val = _resolve_csv(settings.get('room'), record)
     slides_link = _resolve_csv(settings.get('slides_link'), record)
     slides_links_val = _resolve_csv(settings.get('slides_links'), record)
+    session_videos_val = _resolve_csv(settings.get('session_videos'), record)
     submission_extras = record.get('submission_extras') if isinstance(record, dict) else None
     room_metadata = record.get('room_metadata') if isinstance(record, dict) else None
     scheduled_public = bool(record.get('scheduled_public')) if isinstance(record, dict) else False
@@ -1571,6 +1569,9 @@ def _import_submission_row(event, settings, record, acting_user, speaker_cache=N
                 for slide_link in slide_links:
                     create_slide_resource(submission, link=slide_link)
 
+            if session_videos_val:
+                import_submission_video_urls(submission, session_videos_val)
+
             # Question answers
             question_mappings = caches.get('question_mappings') if caches else []
             question_cache = caches.get('question_cache') if caches else None
@@ -1601,10 +1602,17 @@ def _import_submission_row(event, settings, record, acting_user, speaker_cache=N
                 data={'title': title, 'code': submission.code},
                 user=acting_user,
             )
+    except ImportExecutionError:
+        if was_created and submission.pk:
+            try:
+                submission.delete(force=True)
+            except (IntegrityError, OperationalError):
+                logger.exception('Failed to clean up submission after import error: %s', submission.pk)
+        raise
     except (IntegrityError, DataError) as exc:
         if was_created and submission.pk:
             try:
-                submission.delete()
+                submission.delete(force=True)
             except (IntegrityError, OperationalError):
                 logger.exception('Failed to clean up submission after import error: %s', submission.pk)
         logger.exception('Failed to finalize imported session "%s" for event %s', title, event.slug)
@@ -1769,6 +1777,14 @@ def _set_question_answer(
     answer_text = _serialize_answer_value(answer_value, question.variant)
     if not answer_text and question.variant != TalkQuestionVariant.BOOLEAN:
         return
+    if (
+        question.variant == TalkQuestionVariant.VIDEO
+        and question.target == TalkQuestionTarget.SUBMISSION
+        and submission is not None
+    ):
+        import_submission_video_urls(submission, answer_text)
+        return
+
     lookup = {'question': question}
     defaults = {'answer': answer_text}
     if question.target == TalkQuestionTarget.SPEAKER:

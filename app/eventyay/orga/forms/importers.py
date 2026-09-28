@@ -594,7 +594,7 @@ SESSION_IMPORT_FIELDS: list[ImportField] = [
         identifier='title',
         label=_('Title'),
         required=True,
-        suggestions=['title', 'proposal title', 'session title', 'talk title', 'name'],
+        suggestions=['proposal title', 'title', 'session title', 'talk title', 'name'],
     ),
     ImportField(
         identifier='abstract',
@@ -628,7 +628,7 @@ SESSION_IMPORT_FIELDS: list[ImportField] = [
         identifier='state',
         label=_('State'),
         help_text=_('Use keywords such as submitted, accepted, confirmed, rejected.'),
-        suggestions=['state', 'proposal state', 'status', 'decision'],
+        suggestions=['proposal state', 'state', 'status', 'decision'],
     ),
     ImportField(
         identifier='tags',
@@ -640,7 +640,7 @@ SESSION_IMPORT_FIELDS: list[ImportField] = [
         identifier='duration',
         label=_('Duration (minutes)'),
         help_text=_('Provide the duration in minutes.'),
-        suggestions=['duration', 'length', 'time'],
+        suggestions=['duration', 'duration (minutes)', 'length', 'time'],
     ),
     ImportField(
         identifier='content_locale',
@@ -706,13 +706,22 @@ SESSION_IMPORT_FIELDS: list[ImportField] = [
         label=_('Internal notes'),
         suggestions=['internal notes', 'private notes'],
     ),
+    ImportField(
+        identifier='session_videos',
+        label=_('Session videos'),
+        help_text=_('YouTube or Vimeo URLs, one per line or separated by commas.'),
+        suggestions=['session videos', 'session video', 'video', 'videos', 'video link', 'youtube', 'vimeo'],
+    ),
 ]
 
 
-class SessionImportProcessForm(forms.Form):
-    def __init__(self, *args, headers=None, event=None, initial=None, **kwargs):
+class SessionImportProcessForm(ImportQuestionMappingMixin, forms.Form):
+    question_target = TalkQuestionTarget.SUBMISSION
+
+    def __init__(self, *args, headers=None, event=None, initial=None, sample_values=None, **kwargs):
         self.headers = headers or []
         self.event = event
+        self.sample_values = sample_values or {}
         initial_data = _normalize_initial(initial)
         kwargs['initial'] = initial_data
         super().__init__(*args, **kwargs)
@@ -741,52 +750,14 @@ class SessionImportProcessForm(forms.Form):
                 widget=forms.Select(attrs={'class': 'form-control'}),
             )
 
-            existing_initial = self._initial_data.get(field_spec.identifier)
-            if existing_initial:
-                field.initial = existing_initial
-            else:
-                suggestion = self._find_suggestion(field_spec)
-                if suggestion:
-                    field.initial = suggestion
-
+            self._apply_mapping_initial(field, field_spec.identifier, field_spec.suggestions)
             self.fields[field_spec.identifier] = field
 
         self._add_question_fields()
-
-    def _find_suggestion(self, field_spec: ImportField) -> str | None:
-        match = match_header(self.headers, field_spec.suggestions or [])
-        if match:
-            return f'csv:{match}'
-        return None
-
-    def _add_question_fields(self):
-        if not self.event:
-            return
-        questions = self.event.talkquestions.filter(target=TalkQuestionTarget.SUBMISSION, active=True).order_by(
-            'position'
-        )
-        for question in questions:
-            identifier = f'question_{question.pk}'
-            field_required = question.required
-            field = forms.ChoiceField(
-                label=str(question.question),
-                required=field_required,
-                choices=[('', _('Keep empty'))]
-                + [(f'csv:{header}', _('CSV column: "{name}"').format(name=header)) for header in self.headers],
-                help_text=str(question.help_text) if question.help_text else None,
-                widget=forms.Select(attrs={'class': 'form-control'}),
-            )
-            existing_initial = self._initial_data.get(identifier)
-            if existing_initial:
-                field.initial = existing_initial
-            else:
-                suggestion = match_header(self.headers, [str(question.question)])
-                if suggestion:
-                    field.initial = f'csv:{suggestion}'
-            self.fields[identifier] = field
 
     def clean(self):
         cleaned = super().clean()
         if not cleaned.get('title'):
             raise forms.ValidationError(_('Please map a CSV column to the session title.'))
+        cleaned['new_questions'] = self.collect_new_questions(cleaned)
         return cleaned
