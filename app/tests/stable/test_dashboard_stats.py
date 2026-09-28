@@ -40,12 +40,12 @@ def events_with_stats(orga, test_user):
 
         # Event 1: speakers
         # Speaker 1 on confirmed session
-        SpeakerRole.objects.create(event=e1, submission=s1, user=test_user)
+        SpeakerRole.objects.create(submission=s1, user=test_user)
         # Speaker 2 on draft session (should be excluded)
         u2 = User.objects.create_user('s2@example.com', 'password')
-        SpeakerRole.objects.create(event=e1, submission=s2, user=u2)
+        SpeakerRole.objects.create(submission=s2, user=u2)
         # Speaker 1 also on draft session (should still be counted once)
-        SpeakerRole.objects.create(event=e1, submission=s2, user=test_user)
+        SpeakerRole.objects.create(submission=s2, user=test_user)
 
         # Event 2: 0 sessions, 0 speakers
 
@@ -68,7 +68,7 @@ class TestEventListStats:
 
         # Check session counts
         assert e1.session_counts[Submission.STATE_CONFIRMED] == 1
-        assert e1.session_counts[Submission.STATE_DRAFT] == 0  # Not counted or zero based on implementation
+        assert e1.session_counts.get(Submission.STATE_DRAFT, 0) == 0  # Not counted or zero based on implementation
 
         # Check speaker counts
         assert e1.speaker_counts[Submission.STATE_CONFIRMED] == 1
