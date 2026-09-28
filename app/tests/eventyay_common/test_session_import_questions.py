@@ -295,6 +295,34 @@ def test_import_submission_row_rejects_unknown_choice_and_cleans_up(event, user)
         assert not Answer.objects.filter(question=question).exists()
 
 
+@pytest.mark.django_db
+def test_import_submission_row_rejects_unknown_choice_on_optionless_question(event, user):
+    with scope(event=event):
+        question = _create_question(
+            event,
+            question='Session level',
+            variant=QuestionVariant.CHOICES,
+            target=TalkQuestionTarget.SUBMISSION,
+        )
+        caches = _session_caches(
+            event,
+            question_mappings=[(question.pk, 'csv:level')],
+            question_cache=_choice_cache(question),
+        )
+
+        with pytest.raises(ImportExecutionError, match='Invalid answer'):
+            _import_submission_row(
+                event,
+                {'title': 'csv:title'},
+                {'title': 'A new talk', 'level': 'unknown'},
+                user,
+                caches=caches,
+            )
+
+        assert not AnswerOption.objects.filter(question=question).exists()
+        assert not Submission.objects.filter(event=event, title='A new talk').exists()
+
+
 def test_parse_imported_video_urls_accepts_newlines_and_commas():
     urls = parse_imported_video_urls(
         'https://www.youtube.com/watch?v=BdDK7ikz5tU\n'
@@ -330,6 +358,7 @@ def test_import_submission_row_saves_session_videos(event, user):
         assert question is not None
         assert question.import_key == SESSION_VIDEO_IMPORT_KEY
         assert question.active is True
+        assert question.is_public is False
         assert get_submission_video_urls(submission) == [
             'https://www.youtube.com/watch?v=BdDK7ikz5tU',
             'https://www.youtube.com/watch?v=7q7f_3jljgs',

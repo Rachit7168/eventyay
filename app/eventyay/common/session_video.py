@@ -135,11 +135,17 @@ def get_submission_video_url(submission) -> str:
     return '\n'.join(get_submission_video_urls(submission))
 
 
-def set_submission_video_urls(submission, urls: list[str] | None) -> list[str]:
+def set_submission_video_urls(
+    submission,
+    urls: list[str] | None,
+    *,
+    publish: bool = True,
+) -> list[str]:
     """Create/update/clear session video answers.
 
     Empty ``urls`` clears the answer. Each non-empty value must be an embeddable
     YouTube/Vimeo URL. Returns the stored URL list (empty when cleared).
+    When ``publish`` is True, storing URLs also marks the canonical field public.
     """
     cleaned: list[str] = []
     seen: set[str] = set()
@@ -173,7 +179,7 @@ def set_submission_video_urls(submission, urls: list[str] | None) -> list[str]:
             answer.save(update_fields=['answer'])
         else:
             Answer.objects.create(question=question, submission=submission, answer=stored)
-        if not question.is_public:
+        if publish and not question.is_public:
             question.is_public = True
             question.save(update_fields=['is_public'])
         return cleaned
@@ -201,16 +207,10 @@ def import_submission_video_urls(submission, raw: str | None) -> list[str]:
         return get_submission_video_urls(submission)
 
     question = ensure_session_video_question(submission.event)
-    update_fields = []
     if not question.active:
         question.active = True
-        update_fields.append('active')
-    if not question.is_public:
-        question.is_public = True
-        update_fields.append('is_public')
-    if update_fields:
-        question.save(update_fields=update_fields)
-    return set_submission_video_urls(submission, urls)
+        question.save(update_fields=['active'])
+    return set_submission_video_urls(submission, urls, publish=False)
 
 
 def set_submission_video_url(submission, url: str | None) -> str:

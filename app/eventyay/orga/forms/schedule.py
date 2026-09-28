@@ -11,6 +11,7 @@ from eventyay.common.forms.widgets import EnhancedSelectMultiple
 from eventyay.common.session_video import (
     exclude_session_video_from_cfp_questions,
     get_submission_video_answer,
+    prefetch_submission_video_urls,
 )
 from eventyay.common.text.phrases import phrases
 from eventyay.base.models import MailTemplateRoles
@@ -202,13 +203,15 @@ class ScheduleExportForm(ExportForm):
         queryset = queryset.prefetch_related(
             Prefetch('slots', queryset=TalkSlot.objects.select_related('room', 'schedule'))
         )
-        
-        return (
+        queryset = (
             queryset.prefetch_related('tags', 'speakers')
             .select_related('submission_type', 'track', 'event')
             .prefetch_related('resources')
             .order_by('code')
         )
+        if self.cleaned_data.get('session_videos'):
+            queryset = prefetch_submission_video_urls(queryset, self.event)
+        return queryset
 
     def get_answer(self, question, obj):
         return question.answers.filter(submission=obj).first()
@@ -289,5 +292,9 @@ class ScheduleExportForm(ExportForm):
         return [resource.url for resource in obj.active_resources if resource.url]
 
     def _get_session_videos_value(self, obj):
-        answer = get_submission_video_answer(obj)
+        answers = getattr(obj, '_session_video_answers', None)
+        if answers is not None:
+            answer = answers[0] if answers else None
+        else:
+            answer = get_submission_video_answer(obj)
         return (answer.answer or '').strip() if answer else ''
