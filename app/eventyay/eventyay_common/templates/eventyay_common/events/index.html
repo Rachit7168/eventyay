@@ -38,7 +38,7 @@
                 <a href="?{% url_replace request 'status' 'notlive' 'tab' 'notlive' %}">{% trans "Draft" %}</a>
             </li>
             <li role="presentation" {% if filter_form.status.value == 'date_past' %}class="active"{% endif %}>
-                <a href="?{% url_replace request 'status' 'date_past' 'tab' 'date_past' %}">{% trans "Past single events" %}</a>
+                <a href="?{% url_replace request 'status' 'date_past' 'tab' 'date_past' %}">{% trans "Past" %}</a>
             </li>
             <li role="presentation" {% if not filter_form.status.value or filter_form.status.value == '' %}class="active"{% endif %}>
                 <a href="?{% url_replace request 'status' '' 'tab' 'all' %}">{% trans "All" %}</a>
