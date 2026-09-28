@@ -133,7 +133,7 @@
         border-top: 1px solid #eee;
     }
     .events-table-wrapper table.events-table > tbody > tr > td.flip::before {
-        display: block !important;
+        display: block;
     }
     
     /* Enable wrapping for td contents with multiple elements (e.g., stats list + ellipsis) */
