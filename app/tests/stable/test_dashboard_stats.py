@@ -18,6 +18,20 @@ def staff_user():
     return user
 
 @pytest.fixture
+def admin_client(db, staff_client, staff_user):
+    """Staff client with an active sudo/staff session for admin views."""
+    from eventyay.base.models.auth import StaffSession
+
+    session = staff_client.session
+    session.save()
+    StaffSession.objects.create(
+        user=staff_user,
+        session_key=session.session_key,
+        comment='test',
+    )
+    return staff_client
+
+@pytest.fixture
 def orga(test_user):
     organizer = Organizer.objects.create(name='Stats Orga', slug='stats-orga')
     team = organizer.teams.create(
@@ -57,7 +71,7 @@ def events_with_stats(orga, test_user):
 class TestEventListStats:
     def test_orga_event_list_stats(self, client, test_user, events_with_stats):
         client.force_login(test_user)
-        response = client.get('/orga/event/')
+        response = client.get('/common/events/')
         assert response.status_code == 200
 
         # Check the context for the injected stats
@@ -80,8 +94,8 @@ class TestEventListStats:
         assert e2.session_counts.get(SubmissionStates.CONFIRMED, 0) == 0
         assert e2.speaker_counts.get('total', 0) == 0
 
-    def test_admin_event_list_stats(self, staff_client, events_with_stats):
-        response = staff_client.get('/admin/events/')
+    def test_admin_event_list_stats(self, admin_client, events_with_stats):
+        response = admin_client.get('/admin/events/')
         assert response.status_code == 200
 
         events = response.context['events']
