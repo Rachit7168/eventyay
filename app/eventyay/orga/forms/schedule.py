@@ -12,6 +12,7 @@ from eventyay.common.session_video import (
     exclude_session_video_from_cfp_questions,
     get_submission_video_answer,
     prefetch_submission_video_urls,
+    session_videos_enabled,
 )
 from eventyay.common.text.phrases import phrases
 from eventyay.base.models import MailTemplateRoles
@@ -292,6 +293,8 @@ class ScheduleExportForm(ExportForm):
         return [resource.url for resource in obj.active_resources if resource.url]
 
     def _get_session_videos_value(self, obj):
+        if not session_videos_enabled(obj.event):
+            return ''
         answers = getattr(obj, '_session_video_answers', None)
         if answers is not None:
             answer = answers[0] if answers else None

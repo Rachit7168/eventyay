@@ -419,3 +419,36 @@ def test_session_export_includes_session_videos_column(event):
             'https://www.youtube.com/watch?v=BdDK7ikz5tU\n'
             'https://www.youtube.com/watch?v=7q7f_3jljgs'
         )
+
+
+@pytest.mark.django_db
+def test_session_export_omits_videos_when_session_videos_disabled(event):
+    with scope(event=event):
+        question = ensure_session_video_question(event)
+        sub_type = SubmissionType.objects.create(event=event, name='Talk')
+        submission = Submission.objects.create(
+            event=event,
+            title='Hidden video talk',
+            submission_type=sub_type,
+            state=SubmissionStates.SUBMITTED,
+        )
+        set_submission_video_urls(
+            submission,
+            ['https://www.youtube.com/watch?v=BdDK7ikz5tU'],
+        )
+        question.active = False
+        question.save(update_fields=['active'])
+
+        form = ScheduleExportForm(
+            event=event,
+            data={
+                'export_format': 'csv',
+                'target': ['all'],
+                'title': True,
+                'session_videos': True,
+            },
+        )
+        assert form.is_valid(), form.errors
+        data = form.get_data(form.get_queryset(), ['title', 'session_videos'], [])
+
+        assert data[0]['Session videos'] == ''
