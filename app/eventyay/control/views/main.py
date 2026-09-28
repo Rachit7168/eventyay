@@ -88,25 +88,26 @@ class EventList(PaginationMixin, ListView):
                 
         page_event_ids = [e.pk for e in ctx['events']]
         
-        submission_counts = (
-            Submission.objects.filter(event_id__in=page_event_ids)
-            .values('event_id', 'state')
-            .annotate(count=Count('id'))
-        )
-        
-        speaker_counts = (
-            SpeakerRole.objects.filter(submission__event_id__in=page_event_ids)
-            .exclude(submission__state__in=['draft', 'deleted'])
-            .values('submission__event_id', 'submission__state')
-            .annotate(count=Count('user_id', distinct=True))
-        )
-        
-        speaker_totals = (
-            SpeakerRole.objects.filter(submission__event_id__in=page_event_ids)
-            .exclude(submission__state__in=['draft', 'deleted'])
-            .values('submission__event_id')
-            .annotate(count=Count('user_id', distinct=True))
-        )
+        with scope(event=page_event_ids):
+            submission_counts = list(
+                Submission.objects.filter(event_id__in=page_event_ids)
+                .values('event_id', 'state')
+                .annotate(count=Count('id'))
+            )
+            
+            speaker_counts = list(
+                SpeakerRole.objects.filter(submission__event_id__in=page_event_ids)
+                .exclude(submission__state__in=['draft', 'deleted'])
+                .values('submission__event_id', 'submission__state')
+                .annotate(count=Count('user_id', distinct=True))
+            )
+            
+            speaker_totals = list(
+                SpeakerRole.objects.filter(submission__event_id__in=page_event_ids)
+                .exclude(submission__state__in=['draft', 'deleted'])
+                .values('submission__event_id')
+                .annotate(count=Count('user_id', distinct=True))
+            )
 
         for e in ctx['events']:
             e.session_counts = {
