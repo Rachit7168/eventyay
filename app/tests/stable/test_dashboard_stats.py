@@ -1,9 +1,10 @@
 import pytest
-from django.urls import reverse
 from django.utils.timezone import now
+from django_scopes import scopes_disabled
+
 from eventyay.base.models import Event, Organizer, Submission, SubmissionStates, SubmissionType, User
 from eventyay.base.models.submission import SpeakerRole
-from django_scopes import scopes_disabled
+
 
 @pytest.fixture
 def test_user():
@@ -36,6 +37,7 @@ def orga(test_user):
     organizer = Organizer.objects.create(name='Stats Orga', slug='stats-orga')
     team = organizer.teams.create(
         name='Admins',
+        all_events=True,
         can_change_organizer_settings=True,
         can_create_events=True,
     )
