@@ -507,7 +507,18 @@ def _option_lookup_for_question(question: TalkQuestion, option_lookup: dict | No
         return option_lookup
     return {str(option.answer).strip().casefold(): option for option in question.options.all()}
 
-def _matched_choice_options(answer_text: str, question: TalkQuestion, option_lookup: dict | None) -> list:
+def _discard_created_choice_options(created_options: list[tuple[dict, str]]) -> None:
+    for lookup, key in created_options:
+        lookup.pop(key, None)
+
+
+def _matched_choice_options(
+    answer_text: str,
+    question: TalkQuestion,
+    option_lookup: dict | None,
+    *,
+    created_options: list[tuple[dict, str]] | None = None,
+) -> list:
     lookup = _option_lookup_for_question(question, option_lookup)
     if question.variant == TalkQuestionVariant.MULTIPLE:
         values = [opt.strip() for opt in answer_text.split(',') if opt.strip()]
@@ -516,9 +527,10 @@ def _matched_choice_options(answer_text: str, question: TalkQuestion, option_loo
 
     matched = []
     for value in values:
-        option = lookup.get(value.casefold())
+        option_key = value.casefold()
+        option = lookup.get(option_key)
         if option is None:
-            if not question.import_key and lookup:
+            if not question.import_key:
                 raise ImportExecutionError(
                     _('Invalid answer "{value}" for question "{question}".').format(
                         value=value,
@@ -526,7 +538,9 @@ def _matched_choice_options(answer_text: str, question: TalkQuestion, option_loo
                     )
                 )
             option = AnswerOption.objects.create(question=question, answer=value)
-            lookup[value.casefold()] = option
+            lookup[option_key] = option
+            if created_options is not None:
+                created_options.append((lookup, option_key))
         matched.append(option)
     return matched
 
@@ -1013,7 +1027,16 @@ def _sync_speaker_social_links(profile: SpeakerProfile, raw_value: str):
         SpeakerSocialLink.objects.create(profile=profile, network=network, url=url)
         existing.add((network, url))
 
-def _sync_import_answers(*, event: Event, target: str, extras, caches: dict, submission=None, person=None):
+def _sync_import_answers(
+    *,
+    event: Event,
+    target: str,
+    extras,
+    caches: dict,
+    submission=None,
+    person=None,
+    created_options: list[tuple[dict, str]] | None = None,
+):
     if extras is None:
         return
 
@@ -1029,6 +1052,7 @@ def _sync_import_answers(*, event: Event, target: str, extras, caches: dict, sub
             submission=submission,
             person=person,
             event=event,
+            created_options=created_options,
         )
 
     if target == TalkQuestionTarget.SPEAKER and person is not None:
@@ -1175,97 +1199,106 @@ def _import_speaker_row(event, settings, record, acting_user, caches=None):
         if len(profiles) == 1:
             user = profiles[0].user
 
-    with transaction.atomic():
-        if user:
-            user.fullname = name
-            extra = _apply_user_optional_fields(user, **optional_kwargs)
-            update_fields = ['fullname', *extra]
-            if (
-                normalized_email
-                and not user.email
-                and not User.objects.filter(email__iexact=normalized_email).exclude(pk=user.pk).exists()
-            ):
-                user.email = normalized_email
-                update_fields.append('email')
-            user.save(update_fields=update_fields)
-            if 'avatar' in update_fields:
-                user.process_image('avatar', generate_thumbnail=True)
-        else:
-            user = User.objects.create_user(
-                password=get_random_string(32),
-                email=normalized_email,
-                fullname=name,
-                code=normalized_identifier or None,
-                pw_reset_token=get_random_string(32),
-                pw_reset_time=now() + dt.timedelta(days=60),
-            )
-            extra = _apply_user_optional_fields(user, **optional_kwargs)
-            if extra:
-                user.save(update_fields=extra)
-            if 'avatar' in extra:
-                user.process_image('avatar', generate_thumbnail=True)
-
-        profile, profile_created = SpeakerProfile.objects.get_or_create(
-            user=user,
-            event=event,
-        )
-        profile_update_fields = []
-        if biography:
-            profile.biography = biography
-            profile_update_fields.append('biography')
-        if job_title:
-            profile.job_title = job_title[:255]
-            profile_update_fields.append('job_title')
-        if organization:
-            profile.organization = organization[:255]
-            profile_update_fields.append('organization')
-        if is_featured:
-            profile.is_featured = _truthy(is_featured)
-            profile_update_fields.append('is_featured')
-        if featured_position:
-            position = _parse_featured_position(featured_position)
-            if position is not None:
-                profile.position = position
-                profile_update_fields.append('position')
-        if profile_update_fields:
-            profile.save(update_fields=profile_update_fields)
-        if social_links_val:
-            _sync_speaker_social_links(profile, social_links_val)
-
-        # Link to submissions
-        if linked_submissions:
-            for ref in linked_submissions.split(','):
-                sub = _find_submission_by_ref(event, ref)
-                if sub:
-                    SpeakerRole.objects.get_or_create(submission=sub, user=user)
-
-        # Question answers
-        question_mappings = caches.get('question_mappings') if caches else []
-        question_cache = caches.get('question_cache') if caches else None
-        for question_id, mapping_value in question_mappings:
-            answer_text = _resolve_csv(mapping_value, record)
-            if answer_text:
-                _set_question_answer(
-                    question_id,
-                    answer_text,
-                    question_cache=question_cache,
-                    person=user,
-                    event=event,
+    created_choice_options: list[tuple[dict, str]] = []
+    finalized = False
+    try:
+        with transaction.atomic():
+            if user:
+                user.fullname = name
+                extra = _apply_user_optional_fields(user, **optional_kwargs)
+                update_fields = ['fullname', *extra]
+                if (
+                    normalized_email
+                    and not user.email
+                    and not User.objects.filter(email__iexact=normalized_email).exclude(pk=user.pk).exists()
+                ):
+                    user.email = normalized_email
+                    update_fields.append('email')
+                user.save(update_fields=update_fields)
+                if 'avatar' in update_fields:
+                    user.process_image('avatar', generate_thumbnail=True)
+            else:
+                user = User.objects.create_user(
+                    password=get_random_string(32),
+                    email=normalized_email,
+                    fullname=name,
+                    code=normalized_identifier or None,
+                    pw_reset_token=get_random_string(32),
+                    pw_reset_time=now() + dt.timedelta(days=60),
                 )
+                extra = _apply_user_optional_fields(user, **optional_kwargs)
+                if extra:
+                    user.save(update_fields=extra)
+                if 'avatar' in extra:
+                    user.process_image('avatar', generate_thumbnail=True)
 
-        _sync_import_answers(
-            event=event,
-            target=TalkQuestionTarget.SPEAKER,
-            extras=speaker_extras,
-            caches=caches or {},
-            person=user,
-        )
+            profile, profile_created = SpeakerProfile.objects.get_or_create(
+                user=user,
+                event=event,
+            )
+            profile_update_fields = []
+            if biography:
+                profile.biography = biography
+                profile_update_fields.append('biography')
+            if job_title:
+                profile.job_title = job_title[:255]
+                profile_update_fields.append('job_title')
+            if organization:
+                profile.organization = organization[:255]
+                profile_update_fields.append('organization')
+            if is_featured:
+                profile.is_featured = _truthy(is_featured)
+                profile_update_fields.append('is_featured')
+            if featured_position:
+                position = _parse_featured_position(featured_position)
+                if position is not None:
+                    profile.position = position
+                    profile_update_fields.append('position')
+            if profile_update_fields:
+                profile.save(update_fields=profile_update_fields)
+            if social_links_val:
+                _sync_speaker_social_links(profile, social_links_val)
 
-        event.log_action(
-            'eventyay.speaker.imported',
-            data={'email': email, 'name': name},
-            user=acting_user,
-        )
+            # Link to submissions
+            if linked_submissions:
+                for ref in linked_submissions.split(','):
+                    sub = _find_submission_by_ref(event, ref)
+                    if sub:
+                        SpeakerRole.objects.get_or_create(submission=sub, user=user)
+
+            # Question answers
+            question_mappings = caches.get('question_mappings') if caches else []
+            question_cache = caches.get('question_cache') if caches else None
+            for question_id, mapping_value in question_mappings:
+                answer_text = _resolve_csv(mapping_value, record)
+                if answer_text:
+                    _set_question_answer(
+                        question_id,
+                        answer_text,
+                        question_cache=question_cache,
+                        person=user,
+                        event=event,
+                        created_options=created_choice_options,
+                    )
+
+            _sync_import_answers(
+                event=event,
+                target=TalkQuestionTarget.SPEAKER,
+                extras=speaker_extras,
+                caches=caches or {},
+                person=user,
+                created_options=created_choice_options,
+            )
+
+            event.log_action(
+                'eventyay.speaker.imported',
+                data={'email': email, 'name': name},
+                user=acting_user,
+            )
+        finalized = True
+    finally:
+        if not finalized:
+            _discard_created_choice_options(created_choice_options)
 
     return profile_created
 
@@ -1506,6 +1539,8 @@ def _import_submission_row(event, settings, record, acting_user, speaker_cache=N
         logger.exception('Failed to save imported session "%s" for event %s', title, event.slug)
         raise ImportExecutionError(_('A database error occurred while saving this session.')) from exc
 
+    created_choice_options: list[tuple[dict, str]] = []
+    finalized = False
     # Wrap all post-save writes atomically so a failure in tags/speakers/questions rolls back
     # those side effects without affecting the already-committed submission row.
     # If the atomic block fails for a newly created submission, delete it so the DB stays
@@ -1584,6 +1619,7 @@ def _import_submission_row(event, settings, record, acting_user, speaker_cache=N
                         question_cache=question_cache,
                         submission=submission,
                         event=event,
+                        created_options=created_choice_options,
                     )
 
             _sync_import_answers(
@@ -1592,6 +1628,7 @@ def _import_submission_row(event, settings, record, acting_user, speaker_cache=N
                 extras=submission_extras,
                 caches=caches or {},
                 submission=submission,
+                created_options=created_choice_options,
             )
 
             if scheduled_public and submission.state == SubmissionStates.ACCEPTED and slot and slot.start:
@@ -1602,6 +1639,7 @@ def _import_submission_row(event, settings, record, acting_user, speaker_cache=N
                 data={'title': title, 'code': submission.code},
                 user=acting_user,
             )
+        finalized = True
     except ImportExecutionError:
         if was_created and submission.pk:
             try:
@@ -1617,6 +1655,9 @@ def _import_submission_row(event, settings, record, acting_user, speaker_cache=N
                 logger.exception('Failed to clean up submission after import error: %s', submission.pk)
         logger.exception('Failed to finalize imported session "%s" for event %s', title, event.slug)
         raise ImportExecutionError(_('A database error occurred while finalizing this session.')) from exc
+    finally:
+        if not finalized:
+            _discard_created_choice_options(created_choice_options)
 
     return was_created
 
@@ -1759,6 +1800,7 @@ def _set_question_answer(
     submission=None,
     person=None,
     event=None,
+    created_options: list[tuple[dict, str]] | None = None,
 ):
     question = None
     option_lookup = None
@@ -1804,7 +1846,12 @@ def _set_question_answer(
 
     matched_options = None
     if question.variant in _CHOICE_QUESTION_VARIANTS:
-        matched_options = _matched_choice_options(answer_text, question, option_lookup)
+        matched_options = _matched_choice_options(
+            answer_text,
+            question,
+            option_lookup,
+            created_options=created_options,
+        )
         if not matched_options:
             return
 

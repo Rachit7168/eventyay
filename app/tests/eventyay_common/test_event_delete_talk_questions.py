@@ -64,3 +64,15 @@ def test_delete_sub_objects_removes_hidden_talk_rows(event):
 
         assert not TalkQuestion.all_objects.filter(event=event).exists()
         assert not Submission.all_objects.filter(event=event).exists()
+
+
+@pytest.mark.django_db
+def test_delete_talk_data_removes_hidden_talk_rows(event):
+    with scopes_disabled():
+        _hidden_talk_rows(event)
+        event.delete_talk_data()
+
+        assert not TalkQuestion.all_objects.filter(event=event).exists()
+        assert not Submission.all_objects.filter(event=event).exists()
+        event.refresh_from_db()
+        assert event.pk

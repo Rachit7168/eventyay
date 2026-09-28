@@ -229,6 +229,91 @@ def test_import_speaker_row_rejects_unknown_choice_value(event, user):
 
 
 @pytest.mark.django_db
+def test_import_speaker_row_rejects_unknown_choice_on_optionless_question(event, user):
+    with scope(event=event):
+        question = _create_question(
+            event,
+            question='How much do you like green?',
+            variant=QuestionVariant.CHOICES,
+            target=TalkQuestionTarget.SPEAKER,
+        )
+        caches = {
+            'question_mappings': [(question.pk, 'csv:color')],
+            'question_cache': _choice_cache(question),
+        }
+
+        with pytest.raises(ImportExecutionError, match='Invalid answer'):
+            _import_speaker_row(
+                event,
+                _speaker_settings(),
+                _speaker_row(color='purple'),
+                user,
+                caches=caches,
+            )
+
+        assert not AnswerOption.objects.filter(question=question).exists()
+        assert not Answer.objects.filter(question=question).exists()
+
+
+@pytest.mark.django_db
+def test_import_speaker_row_drops_rolled_back_choice_options_from_cache(event, user):
+    with scope(event=event):
+        imported_question = _create_question(
+            event,
+            question='T-shirt size',
+            variant=QuestionVariant.CHOICES,
+            target=TalkQuestionTarget.SPEAKER,
+        )
+        imported_question.import_key = 'legacy-import:speaker:tshirt'
+        imported_question.save(update_fields=['import_key'])
+        existing_question = _create_question(
+            event,
+            question='How much do you like green?',
+            variant=QuestionVariant.CHOICES,
+            target=TalkQuestionTarget.SPEAKER,
+        )
+        option = AnswerOption.objects.create(question=existing_question, answer='very')
+        caches = {
+            'question_mappings': [
+                (imported_question.pk, 'csv:size'),
+                (existing_question.pk, 'csv:color'),
+            ],
+            'question_cache': {
+                **_choice_cache(imported_question),
+                **_choice_cache(existing_question),
+            },
+        }
+
+        with pytest.raises(ImportExecutionError, match='Invalid answer'):
+            _import_speaker_row(
+                event,
+                _speaker_settings(),
+                _speaker_row(size='Red', color='purple'),
+                user,
+                caches=caches,
+            )
+
+        created = _import_speaker_row(
+            event,
+            _speaker_settings(),
+            _speaker_row(size='Red', color='very'),
+            user,
+            caches=caches,
+        )
+
+        assert created is True
+        created_option = AnswerOption.objects.get(question=imported_question, answer='Red')
+        imported_answer = Answer.objects.get(
+            question=imported_question, person__email='imported.speaker@example.org'
+        )
+        assert list(imported_answer.options.all()) == [created_option]
+        existing_answer = Answer.objects.get(
+            question=existing_question, person__email='imported.speaker@example.org'
+        )
+        assert list(existing_answer.options.all()) == [option]
+
+
+@pytest.mark.django_db
 def test_set_question_answer_requires_speaker_owner(event):
     with scope(event=event):
         question = _create_question(
