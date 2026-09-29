@@ -87,8 +87,7 @@
 .events-table-wrapper .table > thead > tr > th:nth-child(6) { width: 12%; }
 .events-table-wrapper .table > thead > tr > th:nth-child(7) { width: 12%; }
 .events-table-wrapper .table > thead > tr > th:nth-child(8) { width: 12%; }
-.events-table-wrapper .table > thead > tr > th:nth-child(9) { width: 5%; }
-.events-table-wrapper .table > thead > tr > th:nth-child(10) { 
+.events-table-wrapper .table > thead > tr > th:nth-child(9) { 
     width: 4%;
     white-space: nowrap; 
 }
@@ -186,4 +185,17 @@
         width: 100%;
         text-align: right;
     }
+}
+
+/* Action Buttons */
+.events-table-wrapper .action-btn-group {
+    display: flex;
+    gap: 4px;
+    justify-content: flex-end;
+    white-space: nowrap;
+}
+
+/* Quotas */
+.events-table-wrapper .no-quota-msg {
+    font-size: 0.85em;
 }

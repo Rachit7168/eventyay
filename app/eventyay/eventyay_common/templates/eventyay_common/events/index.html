@@ -132,7 +132,7 @@
                     <a href="?{% url_replace request 'ordering' '-live' %}"><i class="fa fa-caret-down"></i></a>
                     <a href="?{% url_replace request 'ordering' 'live' %}"><i class="fa fa-caret-up"></i></a>
                 </th>
-                <th class="text-right flip" style="white-space: nowrap;">
+                <th class="text-right flip">
                     {% trans "Actions" %}
                 </th>
                 </tr>
@@ -178,7 +178,7 @@
                         {% for q in e.first_quotas|slice:":3" %}
                             {% include "pretixcontrol/fragment_quota_box_paid.html" with quota=q %}
                         {% empty %}
-                            <span class="text-muted" style="font-size: 0.85em;">{% trans "No quotas" %}</span>
+                            <span class="text-muted no-quota-msg">{% trans "No quotas" %}</span>
                         {% endfor %}
                         {% if e.first_quotas|length > 3 %}
                             <a href="{% url 'control:event.products.quotas' organizer=e.organizer.slug event=e.slug %}"
@@ -239,7 +239,7 @@
                     </td>
                     
                     <td class="text-right flip">
-                        <div class="btn-group" style="display: flex; gap: 4px; justify-content: flex-end; white-space: nowrap;">
+                        <div class="btn-group action-btn-group">
                             <a href='{% url "eventyay_common:event.create_access_to_video" organizer=e.organizer.slug event=e.slug %}'
                                class="btn btn-sm btn-default" title="{% trans "Enable video access" %}"
                                data-toggle="tooltip">
