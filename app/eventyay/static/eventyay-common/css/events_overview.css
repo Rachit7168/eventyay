@@ -40,23 +40,35 @@
 }
 
 /* Event Logo */
+.events-table-wrapper .event-name-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
 .events-table-wrapper .event-logo {
-    width: 40px;
-    height: 40px;
+    width: 32px;
+    height: 32px;
     object-fit: cover;
-    border-radius: 4px;
-    background-color: #f8f9fa;
+    border-radius: 50%;
+    background-color: #f0f0f0;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.2rem;
-    color: #999;
+    font-size: 14px;
+    color: #666;
+}
+
+.events-table-wrapper .event-name-text {
+    min-width: 0; /* Ensures flex item can shrink */
+    word-break: break-all;
+    overflow-wrap: break-word;
 }
 
 /* Table Cells */
 .events-table-wrapper .table > tbody > tr > td {
     vertical-align: middle;
-    padding: 8px;
+    padding: 5px 8px;
     border-top: 1px solid #ebebeb;
 }
 .events-table-wrapper .table > thead > tr > th {
@@ -85,13 +97,13 @@
     margin: 0;
     padding: 0;
     list-style: none;
-    line-height: 1.3;
-    font-size: 0.85em;
+    line-height: 1.15;
+    font-size: 0.8em;
 }
 .events-table-wrapper .stats-list li {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 2px;
+    margin-bottom: 1px;
 }
 .events-table-wrapper .stats-list li span:first-child {
     color: #666;
@@ -101,8 +113,34 @@
     font-weight: 600;
 }
 
+/* Stats Dropdown */
+.events-table-wrapper .stats-dropdown-toggle {
+    display: block;
+    text-align: center;
+    cursor: pointer;
+    color: inherit;
+    padding-top: 2px;
+    font-size: 0.9em;
+}
+
+.events-table-wrapper .stats-dropdown-menu {
+    padding: 10px;
+    min-width: 140px;
+    box-shadow: 0 6px 12px rgba(0,0,0,.175);
+}
+
+.events-table-wrapper .stats-dropdown-list {
+    margin: 0;
+    padding: 0;
+}
+
 /* Public URL */
+.events-table-wrapper .public-url-icon {
+    font-size: 0.85em;
+}
+
 .events-table-wrapper .public-url {
+    margin-left: 5px;
     color: #007bff;
     text-decoration: none;
     font-weight: 500;

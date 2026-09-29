@@ -99,7 +99,6 @@
                 
                 <thead>
                 <tr>
-                <th>{% trans "Logo" %}</th>
                 <th>
                     {% trans "Event name" %}
                     <a href="?{% url_replace request 'ordering' '-name' %}"><i class="fa fa-caret-down"></i></a>
@@ -142,16 +141,18 @@
                 <tbody>
                 {% for e in events %}
                     <tr>
-                    <td data-label="{% trans 'Logo' %}">
-                        {% if e.settings.event_logo_image %}
-                            <img src="{{ e.settings.event_logo_image.url }}" alt="{{ e.name }}" class="event-logo" style="width: 60px; height: 60px; border-radius: 6px;">
-                        {% else %}
-                            <div class="event-logo" style="width: 60px; height: 60px; border-radius: 6px; font-size: 1.8rem;"><span class="fa fa-calendar"></span></div>
-                        {% endif %}
-                    </td>
                     <td class="event-name-col" data-label="{% trans 'Event name' %}">
-                        <strong><a href='{% url "eventyay_common:event.index" organizer=e.organizer.slug event=e.slug %}'>{{ e.name }}</a></strong>
-                        <a href="{% eventurl e 'presale:event.index' %}" class="public-url" target="_blank" style="margin-left: 5px;" data-toggle="tooltip" title="{% trans 'Public URL' %}"><span class="fa fa-external-link" style="font-size: 0.85em;"></span></a>
+                        <div class="event-name-container">
+                            {% if e.settings.event_logo_image %}
+                                <img src="{{ e.settings.event_logo_image.url }}" alt="{{ e.name }}" class="event-logo">
+                            {% else %}
+                                <div class="event-logo"><span class="fa fa-calendar"></span></div>
+                            {% endif %}
+                            <div class="event-name-text">
+                                <strong><a href='{% url "eventyay_common:event.index" organizer=e.organizer.slug event=e.slug %}'>{{ e.name }}</a></strong>
+                                <a href="{% eventurl e 'presale:event.index' %}" class="public-url" target="_blank" data-toggle="tooltip" title="{% trans 'Public URL' %}"><span class="fa fa-external-link public-url-icon"></span></a>
+                            </div>
+                        </div>
                     </td>
                     <td data-label="{% trans 'Organizer' %}">{{ e.organizer }}</td>
                     
@@ -192,11 +193,21 @@
                             <li><span>{% trans "Accepted:" %}</span> <span>{{ e.session_counts.accepted }}</span></li>
                             <li><span>{% trans "Confirmed:" %}</span> <span>{{ e.session_counts.confirmed }}</span></li>
                         </ul>
-                        <a href="{% url 'eventyay_common:event.index' organizer=e.organizer.slug event=e.slug %}"
-                           class="quotabox-more" data-toggle="tooltip" title="{% trans 'More session stats' %}"
-                           aria-label="{% trans 'More session stats' %}" data-placement="top">
-                            &middot;&middot;&middot;
-                        </a>
+                        <div class="dropdown">
+                            <a href="#" class="quotabox-more dropdown-toggle stats-dropdown-toggle" data-toggle="dropdown" title="{% trans 'More session stats' %}" aria-expanded="false">
+                                <span class="fa fa-chevron-down"></span>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-right stats-dropdown-menu">
+                                <li>
+                                    <ul class="stats-list stats-dropdown-list">
+                                        <li><span>{% trans "Pending:" %}</span> <span>{{ e.session_counts.pending }}</span></li>
+                                        <li><span>{% trans "Rejected:" %}</span> <span>{{ e.session_counts.rejected }}</span></li>
+                                        <li><span>{% trans "Withdrawn:" %}</span> <span>{{ e.session_counts.withdrawn }}</span></li>
+                                        <li><span>{% trans "Canceled:" %}</span> <span>{{ e.session_counts.canceled }}</span></li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        </div>
                     </td>
                     
                     <td data-label="{% trans 'Speakers' %}">
@@ -205,11 +216,21 @@
                             <li><span>{% trans "Accepted:" %}</span> <span>{{ e.speaker_counts.accepted }}</span></li>
                             <li><span>{% trans "Confirmed:" %}</span> <span>{{ e.speaker_counts.confirmed }}</span></li>
                         </ul>
-                        <a href="{% url 'eventyay_common:event.index' organizer=e.organizer.slug event=e.slug %}"
-                           class="quotabox-more" data-toggle="tooltip" title="{% trans 'More speaker stats' %}"
-                           aria-label="{% trans 'More speaker stats' %}" data-placement="top">
-                            &middot;&middot;&middot;
-                        </a>
+                        <div class="dropdown">
+                            <a href="#" class="quotabox-more dropdown-toggle stats-dropdown-toggle" data-toggle="dropdown" title="{% trans 'More speaker stats' %}" aria-expanded="false">
+                                <span class="fa fa-chevron-down"></span>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-right stats-dropdown-menu">
+                                <li>
+                                    <ul class="stats-list stats-dropdown-list">
+                                        <li><span>{% trans "Pending:" %}</span> <span>{{ e.speaker_counts.pending }}</span></li>
+                                        <li><span>{% trans "Rejected:" %}</span> <span>{{ e.speaker_counts.rejected }}</span></li>
+                                        <li><span>{% trans "Withdrawn:" %}</span> <span>{{ e.speaker_counts.withdrawn }}</span></li>
+                                        <li><span>{% trans "Canceled:" %}</span> <span>{{ e.speaker_counts.canceled }}</span></li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        </div>
                     </td>
                     
 
