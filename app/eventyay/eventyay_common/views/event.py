@@ -209,7 +209,7 @@ class EventList(PaginationMixin, ListView):
 
         for e in ctx['events']:
             e.session_counts = {
-                'submitted': 0, 'accepted': 0, 'confirmed': 0, 
+                'total': 0, 'submitted': 0, 'accepted': 0, 'confirmed': 0, 
                 'pending': 0, 'rejected': 0, 'withdrawn': 0, 'canceled': 0
             }
             e.speaker_counts = {
@@ -223,6 +223,8 @@ class EventList(PaginationMixin, ListView):
             event = events_by_id.get(sc['event_id'])
             if event and sc['state'] in event.session_counts:
                 event.session_counts[sc['state']] += sc['count']
+            if event and sc['state'] not in ['draft', 'deleted']:
+                event.session_counts['total'] += sc['count']
 
         for spc in speaker_counts:
             event = events_by_id.get(spc['submission__event_id'])

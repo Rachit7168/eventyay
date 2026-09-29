@@ -189,11 +189,12 @@
                     
                     <td data-label="{% trans 'Sessions' %}">
                         <ul class="stats-list">
-                            <li><span>{% trans "Submitted:" %}</span> <span>{{ e.session_counts.submitted }}</span></li>
+                            <li><span>{% trans "Total:" %}</span> <span>{{ e.session_counts.total }}</span></li>
                             <li><span>{% trans "Accepted:" %}</span> <span>{{ e.session_counts.accepted }}</span></li>
                             <li><span>{% trans "Confirmed:" %}</span> <span>{{ e.session_counts.confirmed }}</span></li>
                         </ul>
                         <ul class="stats-list collapse" id="session-stats-{{ e.pk }}">
+                            <li><span>{% trans "Submitted:" %}</span> <span>{{ e.session_counts.submitted }}</span></li>
                             <li><span>{% trans "Pending:" %}</span> <span>{{ e.session_counts.pending }}</span></li>
                             <li><span>{% trans "Rejected:" %}</span> <span>{{ e.session_counts.rejected }}</span></li>
                             <li><span>{% trans "Withdrawn:" %}</span> <span>{{ e.session_counts.withdrawn }}</span></li>
