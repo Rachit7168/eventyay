@@ -174,7 +174,7 @@ class ImportResult(TypedDict):
 
 def _sanitize_import_text(value) -> str:
     text = str(value or '').strip()
-    if text.startswith("'") and len(text) > 1:
+    if text.startswith("'") and len(text) > 1 and text[1] in ('=', '+', '-', '@'):
         text = text[1:].strip()
     return text
 
@@ -427,9 +427,18 @@ def _find_question_by_label(event: Event, target: str, label: str) -> TalkQuesti
     needle = normalize_header_value(label)
     if not needle:
         return None
+    matches = []
     for question in TalkQuestion.objects.filter(event=event, target=target, active=True):
         if needle in _question_label_keys(question):
-            return question
+            matches.append(question)
+    if len(matches) == 1:
+        return matches[0]
+    if len(matches) > 1:
+        raise ImportExecutionError(
+            _('Ambiguous question mapping for "{label}": multiple active questions match this name. Please use explicit mapping instead.').format(
+                label=label
+            )
+        )
     return None
 
 def _get_or_create_csv_question(event: Event, target: str, spec: dict, caches: dict) -> TalkQuestion:

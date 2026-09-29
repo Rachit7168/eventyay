@@ -150,11 +150,16 @@ class SpeakerExportForm(ExportForm):
     def _get_biography_value(self, obj):
         return obj._profile.biography
 
+    def _neutralize_formula(self, value):
+        if value and isinstance(value, str) and value.startswith(('=', '+', '-', '@')):
+            return f"'{value}"
+        return value
+
     def _get_job_title_value(self, obj):
-        return obj._profile.job_title
+        return self._neutralize_formula(obj._profile.job_title)
 
     def _get_organization_value(self, obj):
-        return obj._profile.organization
+        return self._neutralize_formula(obj._profile.organization)
 
     def _get_social_links_value(self, obj):
         return format_social_links_for_csv(obj._profile.social_links.all())

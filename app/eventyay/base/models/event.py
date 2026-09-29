@@ -2526,8 +2526,11 @@ class Event(
         self.vouchers.all().delete()
         self.products.all().delete()
         self.subevents.all().delete()
-        TalkQuestion.all_objects.filter(event=self).delete()
-        Submission.all_objects.filter(event=self).delete()
+        from django_scopes import scope
+
+        with scope(event=self):
+            TalkQuestion.all_objects.filter(event=self).delete()
+            Submission.all_objects.filter(event=self).delete()
         self.rooms.all().delete()
         self.tracks.all().delete()
         self.tags.all().delete()
@@ -2596,8 +2599,11 @@ class Event(
         # Clear unsent (outbox) emails linked to this event
         QueuedMail.objects.filter(event=self, sent__isnull=True).delete()
 
-        TalkQuestion.all_objects.filter(event=self).delete()
-        Submission.all_objects.filter(event=self).delete()
+        from django_scopes import scope
+
+        with scope(event=self):
+            TalkQuestion.all_objects.filter(event=self).delete()
+            Submission.all_objects.filter(event=self).delete()
         self.rooms.all().delete()
         self.tracks.all().delete()
         self.tags.all().delete()

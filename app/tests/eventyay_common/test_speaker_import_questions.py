@@ -11,6 +11,7 @@ from eventyay.base.models.question import TalkQuestionTarget
 from eventyay.base.services.talkimport import (
     ImportExecutionError,
     _apply_new_question_mappings,
+    _find_question_by_label,
     _import_speaker_row,
     _load_mapped_questions,
     _resolve_country_code,
@@ -20,6 +21,7 @@ from eventyay.base.services.talkimport import (
 )
 from eventyay.common.social_links import format_social_links_for_csv, parse_social_links_from_csv
 from eventyay.orga.forms.importers import SpeakerImportProcessForm, infer_csv_question_variant
+from eventyay.orga.forms.speaker import SpeakerExportForm
 
 
 def test_infer_csv_question_variant_from_samples():
@@ -662,3 +664,66 @@ def test_import_speaker_row_merges_existing_social_links(event, user):
             ('github', 'https://github.com/octocat'),
             ('x', 'https://x.com/ada'),
         }
+
+
+@pytest.mark.django_db
+def test_speaker_import_form_ignores_forged_question_header(event):
+    with scope(event=event):
+        form = SpeakerImportProcessForm(
+            data={
+                'email': 'csv:Email',
+                'full_name': 'csv:Name',
+                'create_question_enabled_forged-header': True,
+                'create_question_header_forged-header': 'Forged header',
+                'create_question_label_forged-header': 'Forged header label',
+                'create_question_variant_forged-header': QuestionVariant.STRING,
+            },
+            headers=['Email', 'Name', 'Real header'],
+            event=event,
+        )
+
+        assert form.is_valid(), form.errors
+        assert form.cleaned_data['new_questions'] == []
+
+
+@pytest.mark.django_db
+def test_find_question_by_label_raises_error_on_ambiguity(event):
+    with scope(event=event):
+        _create_question(
+            event,
+            question='Favourite color',
+            variant=QuestionVariant.STRING,
+            target=TalkQuestionTarget.SPEAKER,
+        )
+        _create_question(
+            event,
+            question='Favourite color',
+            variant=QuestionVariant.STRING,
+            target=TalkQuestionTarget.SPEAKER,
+        )
+
+        with pytest.raises(ImportExecutionError, match='Ambiguous question mapping for'):
+            _find_question_by_label(event, TalkQuestionTarget.SPEAKER, 'Favourite color')
+
+
+@pytest.mark.django_db
+def test_speaker_export_neutralizes_formula_leading_values(event, user):
+    with scope(event=event):
+        existing_user = User.objects.create_user(
+            email='exported.speaker@example.org',
+            fullname='Ada Lovelace',
+            password='unused',
+        )
+        profile = SpeakerProfile.objects.create(
+            event=event,
+            user=existing_user,
+            job_title='=CMD|',
+            organization='+123',
+        )
+        form = SpeakerExportForm(
+            event=event,
+        )
+        
+        obj = form._prepare_object_data(existing_user)
+        assert form._get_job_title_value(obj) == "'=CMD|"
+        assert form._get_organization_value(obj) == "'+123"

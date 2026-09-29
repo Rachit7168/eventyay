@@ -405,6 +405,8 @@ class ImportQuestionMappingMixin:
             if not cleaned.get(f'{CREATE_QUESTION_ENABLED_PREFIX}{slug}'):
                 continue
             header = (cleaned.get(f'{CREATE_QUESTION_HEADER_PREFIX}{slug}') or '').strip()
+            if header not in getattr(self, 'headers', []):
+                continue
             spec = _normalize_new_question_spec(
                 {
                     'header': header,
