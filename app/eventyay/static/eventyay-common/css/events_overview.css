@@ -123,16 +123,6 @@
     font-size: 0.9em;
 }
 
-.events-table-wrapper .stats-dropdown-menu {
-    padding: 10px;
-    min-width: 140px;
-    box-shadow: 0 6px 12px rgba(0,0,0,.175);
-}
-
-.events-table-wrapper .stats-dropdown-list {
-    margin: 0;
-    padding: 0;
-}
 
 /* Public URL */
 .events-table-wrapper .public-url-icon {

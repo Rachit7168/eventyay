@@ -193,21 +193,15 @@
                             <li><span>{% trans "Accepted:" %}</span> <span>{{ e.session_counts.accepted }}</span></li>
                             <li><span>{% trans "Confirmed:" %}</span> <span>{{ e.session_counts.confirmed }}</span></li>
                         </ul>
-                        <div class="dropdown">
-                            <a href="#" class="quotabox-more dropdown-toggle stats-dropdown-toggle" data-toggle="dropdown" title="{% trans 'More session stats' %}" aria-expanded="false">
-                                <span class="fa fa-chevron-down"></span>
-                            </a>
-                            <ul class="dropdown-menu dropdown-menu-right stats-dropdown-menu">
-                                <li>
-                                    <ul class="stats-list stats-dropdown-list">
-                                        <li><span>{% trans "Pending:" %}</span> <span>{{ e.session_counts.pending }}</span></li>
-                                        <li><span>{% trans "Rejected:" %}</span> <span>{{ e.session_counts.rejected }}</span></li>
-                                        <li><span>{% trans "Withdrawn:" %}</span> <span>{{ e.session_counts.withdrawn }}</span></li>
-                                        <li><span>{% trans "Canceled:" %}</span> <span>{{ e.session_counts.canceled }}</span></li>
-                                    </ul>
-                                </li>
-                            </ul>
-                        </div>
+                        <ul class="stats-list collapse" id="session-stats-{{ e.pk }}">
+                            <li><span>{% trans "Pending:" %}</span> <span>{{ e.session_counts.pending }}</span></li>
+                            <li><span>{% trans "Rejected:" %}</span> <span>{{ e.session_counts.rejected }}</span></li>
+                            <li><span>{% trans "Withdrawn:" %}</span> <span>{{ e.session_counts.withdrawn }}</span></li>
+                            <li><span>{% trans "Canceled:" %}</span> <span>{{ e.session_counts.canceled }}</span></li>
+                        </ul>
+                        <a href="#session-stats-{{ e.pk }}" class="quotabox-more stats-dropdown-toggle" data-toggle="collapse" title="{% trans 'More session stats' %}" aria-expanded="false">
+                            <span class="fa fa-chevron-down"></span>
+                        </a>
                     </td>
                     
                     <td data-label="{% trans 'Speakers' %}">
@@ -216,21 +210,15 @@
                             <li><span>{% trans "Accepted:" %}</span> <span>{{ e.speaker_counts.accepted }}</span></li>
                             <li><span>{% trans "Confirmed:" %}</span> <span>{{ e.speaker_counts.confirmed }}</span></li>
                         </ul>
-                        <div class="dropdown">
-                            <a href="#" class="quotabox-more dropdown-toggle stats-dropdown-toggle" data-toggle="dropdown" title="{% trans 'More speaker stats' %}" aria-expanded="false">
-                                <span class="fa fa-chevron-down"></span>
-                            </a>
-                            <ul class="dropdown-menu dropdown-menu-right stats-dropdown-menu">
-                                <li>
-                                    <ul class="stats-list stats-dropdown-list">
-                                        <li><span>{% trans "Pending:" %}</span> <span>{{ e.speaker_counts.pending }}</span></li>
-                                        <li><span>{% trans "Rejected:" %}</span> <span>{{ e.speaker_counts.rejected }}</span></li>
-                                        <li><span>{% trans "Withdrawn:" %}</span> <span>{{ e.speaker_counts.withdrawn }}</span></li>
-                                        <li><span>{% trans "Canceled:" %}</span> <span>{{ e.speaker_counts.canceled }}</span></li>
-                                    </ul>
-                                </li>
-                            </ul>
-                        </div>
+                        <ul class="stats-list collapse" id="speaker-stats-{{ e.pk }}">
+                            <li><span>{% trans "Pending:" %}</span> <span>{{ e.speaker_counts.pending }}</span></li>
+                            <li><span>{% trans "Rejected:" %}</span> <span>{{ e.speaker_counts.rejected }}</span></li>
+                            <li><span>{% trans "Withdrawn:" %}</span> <span>{{ e.speaker_counts.withdrawn }}</span></li>
+                            <li><span>{% trans "Canceled:" %}</span> <span>{{ e.speaker_counts.canceled }}</span></li>
+                        </ul>
+                        <a href="#speaker-stats-{{ e.pk }}" class="quotabox-more stats-dropdown-toggle" data-toggle="collapse" title="{% trans 'More speaker stats' %}" aria-expanded="false">
+                            <span class="fa fa-chevron-down"></span>
+                        </a>
                     </td>
                     
 
