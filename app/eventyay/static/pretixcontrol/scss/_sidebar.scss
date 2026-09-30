@@ -29,11 +29,28 @@
   display: none !important;
 }
 
+@media (min-width: 768px) {
+  body.sidebar-minimized .sidebar {
+    transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+    // Lay the menu out at its final width while the sidebar opens, so labels do not wrap mid-transition.
+    &:hover .sidebar-nav {
+      animation: sidebar-hold-width 0.2s;
+    }
+  }
+}
+
+@keyframes sidebar-hold-width {
+  from,
+  to {
+    min-width: $sidebar-width;
+  }
+}
+
 body.sidebar-minimized {
-  .sidebar {
+  .sidebar:not(:hover) {
     width: $sidebar-minimized-width;
     overflow: hidden;
-    transition: none;
 
     .nav>li {
       >a {
@@ -89,7 +106,8 @@ body.sidebar-minimized {
 }
 
 // When sidebar is fully expanded (not minimized) on desktop
-body:not(.sidebar-minimized) .sidebar {
+body:not(.sidebar-minimized) .sidebar,
+body.sidebar-minimized .sidebar:hover {
   width: $sidebar-width;
 
   .nav>li>a {
