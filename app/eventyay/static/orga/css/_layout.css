@@ -233,12 +233,14 @@ aside.sidebar {
   overflow-x: hidden;
   overflow-y: auto;
   
-  &:not(.sidebar-uncollapsed) {
-    transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  @media (prefers-reduced-motion: no-preference) {
+    &:not(.sidebar-uncollapsed) {
+      transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
-    /* Lay the menu out at its final width while the sidebar opens, so labels do not wrap mid-transition. */
-    &:hover > * {
-      animation: sidebar-hold-width 0.2s;
+      /* Lay the menu out at its final width while the sidebar opens, so labels do not wrap mid-transition. */
+      &:hover > * {
+        animation: sidebar-hold-width 0.2s;
+      }
     }
   }
 

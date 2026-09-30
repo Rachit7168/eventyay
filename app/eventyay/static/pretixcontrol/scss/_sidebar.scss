@@ -29,7 +29,7 @@
   display: none !important;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 768px) and (prefers-reduced-motion: no-preference) {
   body.sidebar-minimized .sidebar {
     transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
