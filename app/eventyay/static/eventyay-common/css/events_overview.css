@@ -116,7 +116,7 @@
 /* Stats Dropdown */
 .events-table-wrapper .stats-dropdown-toggle {
     display: block;
-    text-align: center;
+    text-align: left;
     cursor: pointer;
     color: inherit;
     padding-top: 2px;
