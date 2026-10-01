@@ -164,6 +164,8 @@ class OrganizerSpeakerList(
 
 def speaker_search(request, *args, **kwargs):
     search = request.GET.get("search")
+    event_id = request.GET.get("event")
+    
     if not search or len(search) < 3:
         return JsonResponse({"count": 0, "results": []})
 
@@ -171,11 +173,23 @@ def speaker_search(request, *args, **kwargs):
         events = get_speaker_access_events_for_user(
             user=request.user, organizer=request.organizer
         )
+        
+        from django.db.models import Prefetch
+        from eventyay.base.models import SpeakerProfile
+        
+        prefetch = 'profiles'
+        if event_id:
+            prefetch = Prefetch(
+                'profiles', 
+                queryset=SpeakerProfile.objects.filter(event_id=event_id),
+                to_attr='current_profiles'
+            )
+            
         users = (
             User.objects.filter(profiles__event__in=events)
             .filter(Q(fullname__icontains=search) | Q(email__icontains=search))
             .distinct()
-            .prefetch_related('profiles')[:8]
+            .prefetch_related(prefetch)[:8]
         )
         users = list(users)
 
@@ -186,7 +200,7 @@ def speaker_search(request, *args, **kwargs):
                 {
                     "email": user.email,
                     "name": user.fullname,
-                    "biography": next((p.biography for p in user.profiles.all() if p.biography), ''),
+                    "biography": next((p.biography for p in (user.current_profiles if hasattr(user, 'current_profiles') else user.profiles.all()) if p.biography), ''),
                     "label": get_speaker_choice_label(name=user.fullname, email=user.email),
                 }
                 for user in users
