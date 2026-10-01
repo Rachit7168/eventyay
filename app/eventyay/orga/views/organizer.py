@@ -174,7 +174,8 @@ def speaker_search(request, *args, **kwargs):
         users = (
             User.objects.filter(profiles__event__in=events)
             .filter(Q(fullname__icontains=search) | Q(email__icontains=search))
-            .distinct()[:8]
+            .distinct()
+            .prefetch_related('profiles')[:8]
         )
         users = list(users)
 
@@ -185,6 +186,7 @@ def speaker_search(request, *args, **kwargs):
                 {
                     "email": user.email,
                     "name": user.fullname,
+                    "biography": next((p.biography for p in user.profiles.all() if p.biography), ''),
                     "label": get_speaker_choice_label(name=user.fullname, email=user.email),
                 }
                 for user in users
