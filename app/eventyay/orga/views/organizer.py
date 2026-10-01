@@ -2,7 +2,7 @@ import logging
 
 from django.contrib import messages
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Prefetch, Q
 from django.http import HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
@@ -25,7 +25,7 @@ from eventyay.common.views.mixins import (
     Sortable,
 )
 from eventyay.event.forms import OrganizerForm
-from eventyay.base.models import Event, User
+from eventyay.base.models import Event, SpeakerProfile, User
 from eventyay.base.models.organizer import Organizer
 from eventyay.orga.forms.submission import get_speaker_choice_label
 from eventyay.person.forms import UserSpeakerFilterForm
@@ -174,24 +174,30 @@ def speaker_search(request, *args, **kwargs):
             user=request.user, organizer=request.organizer
         )
         
-        from django.db.models import Prefetch
-        from eventyay.base.models import SpeakerProfile
-        
-        prefetch = 'profiles'
+        prefetch = None
         if event_id:
+            try:
+                event_id = int(event_id)
+            except (ValueError, TypeError):
+                event_id = None
+                
+        if event_id and events.filter(pk=event_id).exists():
             prefetch = Prefetch(
                 'profiles', 
                 queryset=SpeakerProfile.objects.filter(event_id=event_id),
                 to_attr='current_profiles'
             )
             
-        users = (
+        users_qs = (
             User.objects.filter(profiles__event__in=events)
             .filter(Q(fullname__icontains=search) | Q(email__icontains=search))
             .distinct()
-            .prefetch_related(prefetch)[:8]
         )
-        users = list(users)
+        
+        if prefetch:
+            users_qs = users_qs.prefetch_related(prefetch)
+            
+        users = list(users_qs[:8])
 
     return JsonResponse(
         {
@@ -200,7 +206,7 @@ def speaker_search(request, *args, **kwargs):
                 {
                     "email": user.email,
                     "name": user.fullname,
-                    "biography": next((p.biography for p in (user.current_profiles if hasattr(user, 'current_profiles') else user.profiles.all()) if p.biography), ''),
+                    "biography": next((p.biography for p in getattr(user, 'current_profiles', []) if p.biography), ''),
                     "label": get_speaker_choice_label(name=user.fullname, email=user.email),
                 }
                 for user in users

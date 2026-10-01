@@ -330,7 +330,7 @@ class AddSpeakerForm(forms.Form):
         label=_('Speaker name'),
         help_text=_('The name of the speaker that should be displayed publicly.'),
         required=False,
-        widget=forms.TextInput(attrs={'data-required': 'true'}),
+        widget=forms.TextInput(),
     )
     biography = forms.CharField(
         label=_('Biography'),
@@ -419,10 +419,10 @@ class AddSpeakerForm(forms.Form):
                 existing_biography = bool(existing_profile and existing_profile.biography)
 
         if action == 'add':
-            if not data.get('name'):
-                self.add_error('name', _('This field is required.'))
-                
             speaker_added = email or data.get('name') or data.get('biography')
+            if not speaker_added:
+                self.add_error('name', _('Please provide at least a name, email, or biography.'))
+                
             if (
                 not self.draft_save
                 and speaker_added

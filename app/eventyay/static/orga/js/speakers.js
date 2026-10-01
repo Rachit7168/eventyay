@@ -63,21 +63,16 @@ const initUserSearch = () => {
             let nameInput = document.querySelector("#id_name")
             if (!nameInput) nameInput = document.querySelector("#id_speaker")
             if (!nameInput) nameInput = document.querySelector("#id_speaker-name")
-            if (nameInput && ev.detail.customProperties.name) {
-                nameInput.value = ev.detail.customProperties.name
+            if (nameInput && 'name' in ev.detail.customProperties) {
+                nameInput.value = ev.detail.customProperties.name || ''
             }
             
             let bioInput = document.querySelector("#id_speaker-biography")
-            if (bioInput && ev.detail.customProperties.biography) {
-                bioInput.value = ev.detail.customProperties.biography
+            if (bioInput && 'biography' in ev.detail.customProperties) {
+                const bioValue = ev.detail.customProperties.biography || ''
+                bioInput.value = bioValue
                 if (bioInput.__eventyayTiptapEditor) {
-                    bioInput.__eventyayTiptapEditor.commands.setContent(ev.detail.customProperties.biography);
-                } else if (window.jQuery) {
-                    if (window.jQuery(bioInput).data('trumbowyg')) {
-                        window.jQuery(bioInput).trumbowyg('html', ev.detail.customProperties.biography);
-                    } else if (window.jQuery(bioInput).data('summernote')) {
-                        window.jQuery(bioInput).summernote('code', ev.detail.customProperties.biography);
-                    }
+                    bioInput.__eventyayTiptapEditor.commands.setContent(bioValue);
                 }
             }
         }
