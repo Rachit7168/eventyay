@@ -400,7 +400,8 @@ class AddSpeakerForm(forms.Form):
     def clean(self):
         data = super().clean()
 
-        action = data.get('speaker_action') or 'none'
+        default_action = 'add' if getattr(self, 'require_name', False) else 'none'
+        action = data.get('speaker_action') or default_action
         
         # If no speaker is to be added, clear the other fields so they are ignored.
         if action == 'none':
