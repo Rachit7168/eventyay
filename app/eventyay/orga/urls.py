@@ -302,6 +302,16 @@ urlpatterns = [
                                 name='submissions.speakers.delete',
                             ),
                             path(
+                                'speakers/invitations/<int:pk>/resend',
+                                submission.SubmissionSpeakerResendInvitation.as_view(),
+                                name='submissions.speakers.resend_invitation',
+                            ),
+                            path(
+                                'speakers/invitations/<int:pk>/revoke',
+                                submission.SubmissionSpeakerRevokeInvitation.as_view(),
+                                name='submissions.speakers.revoke_invitation',
+                            ),
+                            path(
                                 'etherpad/generate',
                                 submission.SubmissionEtherpadGenerate.as_view(),
                                 name='submissions.etherpad.generate',
@@ -370,7 +380,6 @@ urlpatterns = [
                     name='event.speaker_autocomplete',
                 ),
                 path('speakers/', speaker.SpeakerList.as_view(), name='speakers.list'),
-                path('speakers/new/', speaker.SpeakerCreate.as_view(), name='speakers.create'),
                 path(
                     'speakers/<code>/',
                     include(
