@@ -151,12 +151,6 @@ body.sidebar-minimized .sidebar:focus-within .context-selector .context-indicato
   }
 }
 
-/* 
- * Adjust indent for nested sidebar items to vertically align with the parent's text.
- * Note: These rules intentionally duplicate and override the legacy SCSS styles 
- * (which had incorrect padding values) because SCSS files are being deprecated 
- * and removed from the project in favor of CSS.
- */
 .sidebar .nav-second-level li a {
   padding-left: 43px;
 }
