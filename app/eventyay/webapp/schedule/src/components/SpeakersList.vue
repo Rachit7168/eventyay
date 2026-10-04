@@ -841,7 +841,7 @@ export default {
 		display: flex
 		align-items: center
 		gap: 8px
-		padding: 6px 8px 0
+		padding: 6px 0 0
 		flex-wrap: wrap
 		min-width: 0
 		width: 100%
@@ -860,7 +860,9 @@ export default {
 			gap: 8px
 			border: 1px solid #ddd
 			border-radius: 6px
-			padding: 6px 10px
+			padding: 0 10px
+			min-height: 36px
+			box-sizing: border-box
 			background: #fff
 			flex: 1 1 260px
 			min-width: 220px
@@ -905,8 +907,11 @@ export default {
 		.filter-btn
 			display: flex
 			align-items: center
+			justify-content: center
 			gap: 5px
-			padding: 6px 12px
+			padding: 0 12px
+			min-height: 36px
+			box-sizing: border-box
 			border: 1px solid #ddd
 			border-radius: 6px
 			background: #fff
@@ -951,12 +956,15 @@ export default {
 				flex-shrink: 0
 				margin-left: 6px
 			&.clear-filters-btn
-				padding: 6px 10px
+				padding: 0 10px
 				justify-content: center
 			&.mobile-toggle-btn
 				display: none
-				padding: 6px 10px
+				padding: 0 10px
 				font-weight: 600
+			&.view-btn
+				padding: 0 10px
+				flex: 0 0 auto
 		.dropdown-menu
 			position: absolute
 			top: calc(100% + 4px)
@@ -1045,7 +1053,7 @@ export default {
 
 		.featured-speakers-grid
 			display: flex
-			justify-content: center
+			justify-content: flex-start
 			align-items: flex-start
 			gap: 18px
 			width: 100%
@@ -1059,7 +1067,7 @@ export default {
 			gap: 18px
 			flex: 1 1 0
 			min-width: 0
-			max-width: 400px
+			max-width: none
 
 		.featured-speaker-column
 			width: 100%
@@ -1338,7 +1346,7 @@ export default {
 @media (max-width: 600px)
 	.c-speakers-list
 		.speakers-toolbar
-			padding: 6px 8px 0
+			padding: 6px 0 0
 			gap: 6px
 			flex-wrap: nowrap
 			.search-box
