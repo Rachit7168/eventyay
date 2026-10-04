@@ -3,11 +3,28 @@
  * Empty HTML such as <p></p> must not pass when the textarea is required.
  */
 
+const INVISIBLE_CHARS_RE = /[\u200b\u200c\u200d\u2060\ufeff\u00ad]/g
+
+function decodeBasicEntities(text) {
+  return String(text)
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&#160;/g, ' ')
+    .replace(/&#x0*a0;/gi, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+}
+
 function isEmptyRichText(html) {
   if (!html) return true
-  const tmp = document.createElement('div')
-  tmp.innerHTML = String(html)
-  return !(tmp.textContent || '').replace(/\u00a0/g, ' ').trim()
+  // Strip tags without assigning to innerHTML (avoids XSS sink / scanner findings).
+  const text = decodeBasicEntities(String(html).replace(/<[^>]*>/g, ''))
+    .replace(INVISIBLE_CHARS_RE, '')
+    .replace(/\u00a0/g, ' ')
+    .trim()
+  return !text
 }
 
 function ensureErrorElement(wrapper, message) {
@@ -56,6 +73,23 @@ function syncAndValidateTextarea(textarea) {
   return true
 }
 
+function bindLiveValidation(textarea) {
+  const revalidate = () => {
+    syncAndValidateTextarea(textarea)
+  }
+
+  if (!textarea.dataset.richtextRequiredBound) {
+    textarea.dataset.richtextRequiredBound = 'true'
+    textarea.addEventListener('input', revalidate)
+  }
+
+  const editor = textarea.__eventyayTiptapEditor
+  if (editor?.on && !textarea.dataset.richtextEditorBound) {
+    textarea.dataset.richtextEditorBound = 'true'
+    editor.on('update', revalidate)
+  }
+}
+
 function onSubmit(event) {
   const form = event.target
   if (!(form instanceof HTMLFormElement)) return
@@ -64,6 +98,7 @@ function onSubmit(event) {
 
   let valid = true
   textareas.forEach((textarea) => {
+    bindLiveValidation(textarea)
     if (!syncAndValidateTextarea(textarea)) valid = false
   })
   if (!valid) {
@@ -72,4 +107,19 @@ function onSubmit(event) {
   }
 }
 
+function init() {
+  document.querySelectorAll('textarea[data-tiptap-profile][required]').forEach((textarea) => {
+    bindLiveValidation(textarea)
+  })
+}
+
 document.addEventListener('submit', onSubmit, true)
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init)
+} else {
+  init()
+}
+
+// Tiptap mounts asynchronously; bind again when editors are ready.
+window.addEventListener('eventyay:tiptap-ready', init)
