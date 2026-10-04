@@ -50,10 +50,10 @@ function scrollToFormErrors() {
   const target = alert || fieldError
   if (!target) return
 
-  target.style.scrollMarginTop = `${navbarOffset() + 16}px`
   const top = target.getBoundingClientRect().top + window.scrollY - navbarOffset() - 16
+  // Use only window.scrollTo so the fixed navbar offset is preserved
+  // (scrollIntoView would ignore that offset and tuck the alert under the bar).
   window.scrollTo({ top: Math.max(0, top), behavior: 'auto' })
-  target.scrollIntoView({ behavior: 'auto', block: 'start', inline: 'nearest' })
 }
 
 function onSubmit(event) {
