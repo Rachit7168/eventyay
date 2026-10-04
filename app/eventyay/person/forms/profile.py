@@ -44,6 +44,7 @@ from eventyay.common.forms.widgets import (
     RichTextWidget,
 )
 from eventyay.common.text.phrases import phrases
+from eventyay.common.text.rich_text import is_empty_rich_text
 from eventyay.consts import SizeKey
 from eventyay.schedule.forms import AvailabilitiesFormMixin
 
@@ -236,6 +237,10 @@ class SpeakerProfileForm(
         # Reorder fields based on configuration
         self.order_fields_by_config('speaker')
 
+        if biography_field := self.fields.get('biography'):
+            if biography_field.required:
+                biography_field.widget.attrs['data-required-message'] = str(_('This field is required.'))
+
         if self.is_bound and not self.is_valid() and 'availabilities' in self.errors:
             # Replace self.data with a version that uses initial["availabilities"]
             # in order to have event and timezone data available
@@ -283,6 +288,13 @@ class SpeakerProfileForm(
 
     def clean_avatar_license(self):
         return validate_avatar_license_text(self.cleaned_data.get('avatar_license'))
+
+    def clean_biography(self):
+        value = self.cleaned_data.get('biography')
+        field = self.fields.get('biography')
+        if field and field.required and is_empty_rich_text(value):
+            raise ValidationError(_('This field is required.'))
+        return value
 
     def clean(self):
         data = super().clean()
