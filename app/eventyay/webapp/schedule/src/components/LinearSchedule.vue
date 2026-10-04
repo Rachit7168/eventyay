@@ -391,12 +391,12 @@ export default {
 			font-size: 14px
 			font-weight: 500
 			color: $clr-secondary-text-light
-			padding-left: 5px
+			padding-left: 12px
 			.day
 				font-weight: 600
 		.break
 			z-index: 10
-			margin: 8px
+			margin: 8px 12px
 			padding: 8px
 			border-radius: 4px
 			background-color: $clr-grey-200
@@ -413,9 +413,9 @@ export default {
 		.bucket
 			.bucket-label
 				font-size: 13px
-				padding-left: 8px
+				padding-left: 12px
 			.break
-				margin: 6px 4px
+				margin: 6px 12px
 				.title
 					font-size: 16px
 
@@ -425,7 +425,7 @@ export default {
 		.bucket-label
 			font-size: 12px
 		.break
-			margin: 4px
+			margin: 4px 12px
 			padding: 4px
 			.title
 				font-size: 16px

@@ -457,8 +457,7 @@ expandClampedSessionText()
 	align-items: stretch
 	min-width: 0
 	min-height: 96px
-	margin: 8px 0
-	margin-right: 8px
+	margin: 8px 12px
 	overflow: hidden
 	color: rgb(13 15 16)
 	position: relative
@@ -842,12 +841,13 @@ expandClampedSessionText()
 @media (max-width: 900px)
 	.c-linear-schedule-session, .break
 		min-width: 0
-		margin-right: 4px
+		margin-left: 12px
+		margin-right: 12px
 
 .density-compact .c-linear-schedule-session,
 .density-compact .break
 	min-height: 64px
-	margin: 4px 4px
+	margin: 4px 12px
 	font-size: 12px
 	.time-box
 		width: 56px
@@ -884,7 +884,7 @@ expandClampedSessionText()
 .density-comfortable .c-linear-schedule-session,
 .density-comfortable .break
 	min-height: 120px
-	margin: 12px 8px
+	margin: 12px
 	font-size: 16px
 	.time-box
 		width: 72px
