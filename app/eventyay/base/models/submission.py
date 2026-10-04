@@ -1058,20 +1058,40 @@ class Submission(GenerateCode, PretalxModel):
 
     def add_speaker(
         self,
-        email,
+        email=None,
         name=None,
         locale=None,
         user=None,
         biography=None,
         send_immediately=True,
     ):
+        from django.utils.crypto import get_random_string
+
         from eventyay.common.urls import build_absolute_uri
+        from eventyay.person.services import create_user
 
         from .auth import User
         from .mail import MailTemplateRoles
         from .profile import SpeakerProfile
         from .speaker_invitation import SpeakerInvitation
-        from eventyay.person.services import create_user
+
+        email = (email or '').strip() or None
+        normalized_name = (name or '').strip()
+
+        if not email:
+            # Display-only / VIP speakers: no account invite until an email is added later.
+            speaker = User.objects.create_user(
+                email=None,
+                password=get_random_string(32),
+                fullname=normalized_name,
+            )
+            profile, _ = SpeakerProfile.objects.get_or_create(user=speaker, event=self.event)
+            if biography and not profile.biography:
+                profile.biography = biography
+                profile.save(update_fields=['biography'])
+            self.speakers.add(speaker)
+            self.log_action('eventyay.submission.speakers.add', person=user, orga=True)
+            return speaker, None
 
         user_created = False
         context = {}
@@ -1079,7 +1099,6 @@ class Submission(GenerateCode, PretalxModel):
             speaker = User.objects.get(email__iexact=email)
             if not speaker.profiles.filter(event=self.event).exists():
                 SpeakerProfile.objects.create(user=speaker, event=self.event)
-            normalized_name = name.strip() if name else ""
             if normalized_name and speaker.fullname != normalized_name:
                 speaker.fullname = normalized_name
                 speaker.save(update_fields=['fullname'])
