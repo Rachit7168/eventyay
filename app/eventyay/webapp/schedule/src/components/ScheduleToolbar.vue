@@ -1148,6 +1148,17 @@ export default {
 			color: #666
 		.filter-dropdown-area
 			position: relative
+			> .toolbar-btn:not(.icon-only)
+				border: 1px solid #ddd
+				border-radius: 6px
+				padding: 0 10px
+				height: 32px
+				justify-content: center
+				gap: 6px
+				background: #fff
+				&:hover
+					border-color: #bbb
+					background: #f8f8f8
 		.filter-dropdown-menu
 			position: absolute
 			left: 0
@@ -1815,9 +1826,6 @@ export default {
 			min-width: 0
 			grid-column: 1
 			align-self: center
-			> .toolbar-filters > .filter-dropdown-area:first-child > .toolbar-btn,
-			> .mobile-toggle-btn:first-child
-				padding-left: 0
 		.toolbar-center
 			flex: none
 			justify-content: center
@@ -1831,8 +1839,6 @@ export default {
 			grid-column: 3
 			justify-self: end
 			align-self: center
-			.fullscreen-desktop .toolbar-btn
-				padding-right: 0
 
 @media (max-width: 1024px)
 	.c-schedule-toolbar
