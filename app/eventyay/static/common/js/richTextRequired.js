@@ -44,6 +44,29 @@ function clearError(wrapper) {
   wrapper.classList.remove('is-invalid')
 }
 
+function fieldAnchor(textarea) {
+  return (
+    textarea.closest('.form-group, .mb-3, [class*="form-field"]') ||
+    textarea.closest('[data-tiptap-wrapper]') ||
+    textarea
+  )
+}
+
+function revealInvalidField(textarea) {
+  const editor = textarea.__eventyayTiptapEditor
+  const anchor = fieldAnchor(textarea)
+  anchor.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  if (editor?.commands?.focus) {
+    editor.commands.focus('end')
+  } else {
+    try {
+      textarea.focus({ preventScroll: true })
+    } catch {
+      textarea.focus()
+    }
+  }
+}
+
 function syncAndValidateTextarea(textarea) {
   const editor = textarea.__eventyayTiptapEditor
   if (editor) {
@@ -64,7 +87,6 @@ function syncAndValidateTextarea(textarea) {
     if (wrapper) {
       wrapper.classList.add('is-invalid')
       ensureErrorElement(wrapper, message)
-      editor?.commands?.focus?.()
     }
     return false
   }
@@ -96,14 +118,17 @@ function onSubmit(event) {
   const textareas = form.querySelectorAll('textarea[data-tiptap-profile][required]')
   if (!textareas.length) return
 
-  let valid = true
+  let firstInvalid = null
   textareas.forEach((textarea) => {
     bindLiveValidation(textarea)
-    if (!syncAndValidateTextarea(textarea)) valid = false
+    if (!syncAndValidateTextarea(textarea) && !firstInvalid) {
+      firstInvalid = textarea
+    }
   })
-  if (!valid) {
+  if (firstInvalid) {
     event.preventDefault()
     event.stopPropagation()
+    revealInvalidField(firstInvalid)
   }
 }
 
