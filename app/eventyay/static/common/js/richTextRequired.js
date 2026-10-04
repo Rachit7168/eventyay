@@ -3,11 +3,13 @@
  * Empty HTML such as <p></p> must not pass when the field is required.
  *
  * Native HTML5 `required` on a display:none textarea is removed: the browser
- * would block submit without showing a message. Validation is handled here.
+ * would block submit without showing a message. Validation is handled here and
+ * mirrors Django form errors (alert-danger + field invalid-feedback).
  */
 
 const INVISIBLE_CHARS_RE = /[\u200b\u200c\u200d\u2060\ufeff\u00ad]/g
 const REQUIRED_SELECTOR = 'textarea[data-tiptap-profile][data-richtext-required="true"]'
+const FORM_ERROR_TEXT = 'We had trouble saving your input – Please see below for details.'
 
 function decodeBasicEntities(text) {
   return String(text)
@@ -31,6 +33,55 @@ function isEmptyRichText(html) {
   return !text
 }
 
+function fieldAnchor(textarea) {
+  return (
+    textarea.closest('.form-group') ||
+    textarea.closest('[data-tiptap-wrapper]') ||
+    textarea
+  )
+}
+
+function navbarOffset() {
+  const raw = getComputedStyle(document.documentElement).getPropertyValue('--navbar-height')
+  const parsed = Number.parseInt(raw, 10)
+  return Number.isFinite(parsed) ? parsed : 56
+}
+
+function ensureFormAlert(form) {
+  let alert = form.querySelector('[data-richtext-form-error-alert]')
+  if (alert) return alert
+
+  const existing = form.querySelector('.alert.alert-danger[role="alert"]')
+  if (existing) {
+    existing.setAttribute('data-richtext-form-error-alert', 'true')
+    return existing
+  }
+
+  alert = document.createElement('div')
+  alert.className = 'alert alert-danger'
+  alert.setAttribute('role', 'alert')
+  alert.setAttribute('data-richtext-form-error-alert', 'true')
+
+  const inner = document.createElement('div')
+  inner.textContent =
+    form.dataset.richtextFormError ||
+    form.getAttribute('data-richtext-form-error') ||
+    FORM_ERROR_TEXT
+  alert.appendChild(inner)
+
+  const csrf = form.querySelector('input[name="csrfmiddlewaretoken"]')
+  if (csrf?.nextSibling) {
+    csrf.parentNode.insertBefore(alert, csrf.nextSibling)
+  } else {
+    form.prepend(alert)
+  }
+  return alert
+}
+
+function clearFormAlert(form) {
+  form.querySelector('[data-richtext-form-error-alert]')?.remove()
+}
+
 function ensureErrorElement(anchor, message) {
   let error = anchor.querySelector('[data-richtext-required-error]')
   if (!error) {
@@ -50,48 +101,27 @@ function ensureErrorElement(anchor, message) {
 
 function clearError(anchor) {
   anchor?.querySelector?.('[data-richtext-required-error]')?.remove()
-  anchor?.classList?.remove('is-invalid')
+  anchor?.classList?.remove('is-invalid', 'has-error')
   const wrapper = anchor?.querySelector?.('[data-tiptap-wrapper]')
   wrapper?.classList?.remove('is-invalid')
 }
 
-function fieldAnchor(textarea) {
-  return (
-    textarea.closest('.form-group') ||
-    textarea.closest('[data-tiptap-wrapper]') ||
-    textarea
-  )
-}
-
-function navbarOffset() {
-  const raw = getComputedStyle(document.documentElement).getPropertyValue('--navbar-height')
-  const parsed = Number.parseInt(raw, 10)
-  return Number.isFinite(parsed) ? parsed : 56
-}
-
-function revealInvalidField(textarea) {
+function revealInvalidField(textarea, form) {
   const editor = textarea.__eventyayTiptapEditor
   const anchor = fieldAnchor(textarea)
-  anchor.style.scrollMarginTop = `${navbarOffset() + 16}px`
+  const alert = form.querySelector('[data-richtext-form-error-alert]')
+  const target = alert || anchor
+  target.style.scrollMarginTop = `${navbarOffset() + 16}px`
 
   const jump = () => {
-    // Prefer window scroll: orga content lives in the document scroller, and
-    // scrollIntoView alone can no-op or land behind the sticky navbar.
-    const top = anchor.getBoundingClientRect().top + window.scrollY - navbarOffset() - 16
+    const top = target.getBoundingClientRect().top + window.scrollY - navbarOffset() - 16
     window.scrollTo({ top: Math.max(0, top), behavior: 'auto' })
-    anchor.scrollIntoView({ behavior: 'auto', block: 'center', inline: 'nearest' })
+    target.scrollIntoView({ behavior: 'auto', block: 'start', inline: 'nearest' })
     if (editor?.commands?.focus) {
       editor.commands.focus('end')
-    } else {
-      try {
-        textarea.focus({ preventScroll: true })
-      } catch {
-        textarea.focus()
-      }
     }
   }
 
-  // Wait a frame so the error node is laid out before measuring.
   requestAnimationFrame(() => {
     requestAnimationFrame(jump)
   })
@@ -134,7 +164,7 @@ function syncAndValidateTextarea(textarea) {
     'This field is required.'
   if (isEmptyRichText(textarea.value)) {
     textarea.setCustomValidity(message)
-    anchor.classList.add('is-invalid')
+    anchor.classList.add('is-invalid', 'has-error')
     wrapper?.classList?.add('is-invalid')
     ensureErrorElement(anchor, message)
     return false
@@ -150,6 +180,12 @@ function bindLiveValidation(textarea) {
 
   const revalidate = () => {
     syncAndValidateTextarea(textarea)
+    const form = textarea.closest('form')
+    if (!form) return
+    const stillInvalid = Array.from(form.querySelectorAll(REQUIRED_SELECTOR)).some(
+      (el) => !syncAndValidateTextarea(el)
+    )
+    if (!stillInvalid) clearFormAlert(form)
   }
 
   if (!textarea.dataset.richtextRequiredBound) {
@@ -168,7 +204,6 @@ function onSubmit(event) {
   const form = event.target
   if (!(form instanceof HTMLFormElement)) return
 
-  // Adopt required attrs before querying, including late-rendered fields.
   form.querySelectorAll('textarea[data-tiptap-profile]').forEach(adoptNativeRequired)
 
   const textareas = form.querySelectorAll(REQUIRED_SELECTOR)
@@ -184,7 +219,10 @@ function onSubmit(event) {
   if (firstInvalid) {
     event.preventDefault()
     event.stopPropagation()
-    revealInvalidField(firstInvalid)
+    ensureFormAlert(form)
+    revealInvalidField(firstInvalid, form)
+  } else {
+    clearFormAlert(form)
   }
 }
 
@@ -202,5 +240,4 @@ if (document.readyState === 'loading') {
   init()
 }
 
-// Tiptap mounts asynchronously; bind again when editors are ready.
 window.addEventListener('eventyay:tiptap-ready', init)

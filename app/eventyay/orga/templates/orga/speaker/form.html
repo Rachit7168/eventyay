@@ -78,7 +78,7 @@
             </ul>
         </span>
     </div>
-    <form method="post" enctype="multipart/form-data">
+    <form method="post" enctype="multipart/form-data" data-richtext-form-error="{% translate 'We had trouble saving your input – Please see below for details.' %}">
         {% csrf_token %}
         {% include "common/forms/errors.html" %}
 
