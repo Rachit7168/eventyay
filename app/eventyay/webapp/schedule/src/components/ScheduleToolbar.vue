@@ -1110,8 +1110,6 @@ export default {
 		flex-wrap: nowrap
 		gap: 8px
 		min-height: 40px
-		padding: 0 12px
-		box-sizing: border-box
 	.tb-icon
 		width: 16px
 		height: 16px
@@ -1811,12 +1809,15 @@ export default {
 			grid-template-columns: auto minmax(0, 1fr) auto
 			align-items: center
 			gap: 8px
-			padding: 0 12px
+			padding: 0
 		.toolbar-left
 			flex: none
 			min-width: 0
 			grid-column: 1
 			align-self: center
+			> .toolbar-filters > .filter-dropdown-area:first-child > .toolbar-btn,
+			> .mobile-toggle-btn:first-child
+				padding-left: 0
 		.toolbar-center
 			flex: none
 			justify-content: center
@@ -1830,6 +1831,8 @@ export default {
 			grid-column: 3
 			justify-self: end
 			align-self: center
+			.fullscreen-desktop .toolbar-btn
+				padding-right: 0
 
 @media (max-width: 1024px)
 	.c-schedule-toolbar
@@ -1840,7 +1843,7 @@ export default {
 			align-items: center
 			height: auto
 			min-height: 40px
-			padding: 6px 12px
+			padding: 6px 0
 			gap: 6px
 			.toolbar-left
 				grid-area: left
@@ -2070,7 +2073,7 @@ export default {
 		.toolbar-btn.icon-only[aria-label]::after
 			display: none
 		.toolbar-row
-			padding: 6px 12px
+			padding: 6px 0
 			.toolbar-center
 				.day-btn
 					font-size: 13px
