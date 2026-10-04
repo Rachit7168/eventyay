@@ -1067,7 +1067,7 @@ export default {
 			gap: 18px
 			flex: 1 1 0
 			min-width: 0
-			max-width: none
+			max-width: 400px
 
 		.featured-speaker-column
 			width: 100%
