@@ -775,6 +775,8 @@ class Submission(GenerateCode, PretalxModel):
             return
 
         for speaker in self.speakers.all():
+            if not speaker.email:
+                continue
             template.to_mail(
                 user=speaker,
                 locale=self.get_email_locale(speaker.locale),
@@ -1065,8 +1067,6 @@ class Submission(GenerateCode, PretalxModel):
         biography=None,
         send_immediately=True,
     ):
-        from django.utils.crypto import get_random_string
-
         from eventyay.common.urls import build_absolute_uri
         from eventyay.person.services import create_user
 
