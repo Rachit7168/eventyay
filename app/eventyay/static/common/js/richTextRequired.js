@@ -63,19 +63,38 @@ function fieldAnchor(textarea) {
   )
 }
 
+function navbarOffset() {
+  const raw = getComputedStyle(document.documentElement).getPropertyValue('--navbar-height')
+  const parsed = Number.parseInt(raw, 10)
+  return Number.isFinite(parsed) ? parsed : 56
+}
+
 function revealInvalidField(textarea) {
   const editor = textarea.__eventyayTiptapEditor
   const anchor = fieldAnchor(textarea)
-  anchor.scrollIntoView({ behavior: 'smooth', block: 'center' })
-  if (editor?.commands?.focus) {
-    editor.commands.focus('end')
-  } else {
-    try {
-      textarea.focus({ preventScroll: true })
-    } catch {
-      textarea.focus()
+  anchor.style.scrollMarginTop = `${navbarOffset() + 16}px`
+
+  const jump = () => {
+    // Prefer window scroll: orga content lives in the document scroller, and
+    // scrollIntoView alone can no-op or land behind the sticky navbar.
+    const top = anchor.getBoundingClientRect().top + window.scrollY - navbarOffset() - 16
+    window.scrollTo({ top: Math.max(0, top), behavior: 'auto' })
+    anchor.scrollIntoView({ behavior: 'auto', block: 'center', inline: 'nearest' })
+    if (editor?.commands?.focus) {
+      editor.commands.focus('end')
+    } else {
+      try {
+        textarea.focus({ preventScroll: true })
+      } catch {
+        textarea.focus()
+      }
     }
   }
+
+  // Wait a frame so the error node is laid out before measuring.
+  requestAnimationFrame(() => {
+    requestAnimationFrame(jump)
+  })
 }
 
 function isMarkedRequired(textarea) {
