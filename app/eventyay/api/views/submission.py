@@ -77,6 +77,7 @@ class AddSpeakerSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
     name = serializers.CharField(required=True, allow_blank=False)
     locale = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    biography = serializers.CharField(required=False, allow_blank=True)
 
 
 class RemoveSpeakerSerializer(serializers.Serializer):
@@ -431,7 +432,25 @@ class SubmissionViewSet(PretalxViewSetMixin, viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
         submission = self.get_object()
-        submission.add_speaker(email=data['email'], name=data.get('name'), locale=data.get('locale'))
+
+        if submission.event.cfp.require_biography:
+            from eventyay.common.text.rich_text import is_empty_rich_text
+            from eventyay.base.models.profile import SpeakerProfile
+
+            provided_bio = data.get('biography')
+            user = User.objects.filter(email__iexact=data['email']).first()
+            profile = SpeakerProfile.objects.filter(user=user, event=submission.event).first() if user else None
+            
+            final_biography = provided_bio if provided_bio else (profile.biography if profile else '')
+            if is_empty_rich_text(final_biography):
+                return Response({'biography': ['This field is required.']}, status=status.HTTP_400_BAD_REQUEST)
+
+        submission.add_speaker(
+            email=data['email'], 
+            name=data.get('name'), 
+            locale=data.get('locale'),
+            biography=data.get('biography')
+        )
         submission.refresh_from_db()
         return Response(SubmissionOrgaSerializer(submission).data)
 

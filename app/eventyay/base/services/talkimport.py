@@ -904,8 +904,7 @@ def _import_speaker_row(event, settings, record, acting_user, caches=None):
     if not normalized_email:
         raise ImportExecutionError(_('Invalid email address.'))
 
-    if event.cfp.require_biography and is_empty_rich_text(biography):
-        raise ImportExecutionError(_('Biography is required.'))
+
 
     name = full_name or f'{first_name} {last_name}'.strip()
     if not name:
@@ -986,6 +985,11 @@ def _import_speaker_row(event, settings, record, acting_user, caches=None):
             user=user,
             event=event,
         )
+
+        final_biography = biography if biography else profile.biography
+        if event.cfp.require_biography and is_empty_rich_text(final_biography):
+            raise ImportExecutionError(_('Biography is required.'))
+
         profile_update_fields = []
         if biography:
             profile.biography = biography
