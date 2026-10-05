@@ -598,6 +598,16 @@ export default {
 					}
 					return nodes
 				})()
+
+			if (this.$refs.featuredSpeakersGrid) {
+				const openDetails = this.$refs.featuredSpeakersGrid.querySelectorAll('details.featured-speaker-card[open]')
+				openDetails.forEach(details => {
+					if (!path.includes(details)) {
+						details.removeAttribute('open')
+					}
+				})
+			}
+
 			if (path.includes(this.$el)) return
 			this.closeToolbarOverlays()
 		},
