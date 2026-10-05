@@ -151,7 +151,7 @@ class SpeakerExportForm(ExportForm):
         return obj._profile.biography
 
     def _neutralize_formula(self, value):
-        if value and isinstance(value, str) and value.startswith(('=', '+', '-', '@')):
+        if value and isinstance(value, str) and value.lstrip().startswith(('=', '+', '-', '@', '|')):
             return f"'{value}"
         return value
 

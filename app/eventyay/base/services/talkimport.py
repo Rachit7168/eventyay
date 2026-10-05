@@ -428,7 +428,7 @@ def _find_question_by_label(event: Event, target: str, label: str) -> TalkQuesti
     if not needle:
         return None
     matches = []
-    for question in TalkQuestion.objects.filter(event=event, target=target, active=True):
+    for question in TalkQuestion.all_objects.filter(event=event, target=target):
         if needle in _question_label_keys(question):
             matches.append(question)
     if len(matches) == 1:
@@ -1074,6 +1074,11 @@ def _sync_import_answers(
 
     if import_keys:
         stale_answers = stale_answers.exclude(question__import_key__in=import_keys)
+    
+    mapped_question_ids = {q_id for q_id, _ in caches.get('question_mappings', [])}
+    if mapped_question_ids:
+        stale_answers = stale_answers.exclude(question_id__in=mapped_question_ids)
+        
     for answer in stale_answers:
         answer.remove(force=True)
 
