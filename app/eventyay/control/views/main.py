@@ -86,57 +86,8 @@ class EventList(PaginationMixin, ListView):
                     round(q.cached_availability_paid_orders / q.size * 100) if q.size > 0 else 100,
                 )
                 
-        page_event_ids = [e.pk for e in ctx['events']]
-        
-        with scope(event=page_event_ids):
-            submission_counts = list(
-                Submission.objects.filter(event_id__in=page_event_ids)
-                .values('event_id', 'state')
-                .annotate(count=Count('id'))
-            )
-            
-            speaker_counts = list(
-                SpeakerRole.objects.filter(submission__event_id__in=page_event_ids)
-                .exclude(submission__state__in=['draft', 'deleted'])
-                .values('submission__event_id', 'submission__state')
-                .annotate(count=Count('user_id', distinct=True))
-            )
-            
-            speaker_totals = list(
-                SpeakerRole.objects.filter(submission__event_id__in=page_event_ids)
-                .exclude(submission__state__in=['draft', 'deleted'])
-                .values('submission__event_id')
-                .annotate(count=Count('user_id', distinct=True))
-            )
-
-        for e in ctx['events']:
-            e.session_counts = {
-                'total': 0, 'submitted': 0, 'accepted': 0, 'confirmed': 0, 
-                'pending': 0, 'rejected': 0, 'withdrawn': 0, 'canceled': 0
-            }
-            e.speaker_counts = {
-                'total': 0, 'accepted': 0, 'confirmed': 0, 
-                'pending': 0, 'rejected': 0, 'withdrawn': 0, 'canceled': 0
-            }
-        
-        events_by_id = {e.pk: e for e in ctx['events']}
-        
-        for sc in submission_counts:
-            event = events_by_id.get(sc['event_id'])
-            if event and sc['state'] in event.session_counts:
-                event.session_counts[sc['state']] += sc['count']
-            if event and sc['state'] not in ['draft', 'deleted']:
-                event.session_counts['total'] += sc['count']
-
-        for spc in speaker_counts:
-            event = events_by_id.get(spc['submission__event_id'])
-            if event and spc['submission__state'] in event.speaker_counts:
-                event.speaker_counts[spc['submission__state']] += spc['count']
-
-        for st in speaker_totals:
-            event = events_by_id.get(st['submission__event_id'])
-            if event:
-                event.speaker_counts['total'] = st['count']
+        from eventyay.base.services.stats import attach_dashboard_stats
+        ctx['events'] = attach_dashboard_stats(ctx['events'])
 
         return ctx
 

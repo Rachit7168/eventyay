@@ -31,16 +31,16 @@
     {% else %}
         
         <ul class="nav nav-tabs events-overview-tabs">
-            <li role="presentation" {% if filter_form.status.value == 'live' %}class="active"{% endif %}>
+            <li role="presentation" {% if filter_form.status.value == ['live'] %}class="active"{% endif %}>
                 <a href="?{% url_replace request 'status' 'live' 'tab' 'live' %}">{% trans "Live" %}</a>
             </li>
-            <li role="presentation" {% if filter_form.status.value == 'notlive' %}class="active"{% endif %}>
-                <a href="?{% url_replace request 'status' 'notlive' 'tab' 'notlive' %}">{% trans "Draft" %}</a>
+            <li role="presentation" {% if filter_form.status.value == ['draft'] %}class="active"{% endif %}>
+                <a href="?{% url_replace request 'status' 'draft' 'tab' 'draft' %}">{% trans "Draft" %}</a>
             </li>
-            <li role="presentation" {% if filter_form.status.value == 'date_past' %}class="active"{% endif %}>
-                <a href="?{% url_replace request 'status' 'date_past' 'tab' 'date_past' %}">{% trans "Past" %}</a>
+            <li role="presentation" {% if filter_form.status.value == ['past'] %}class="active"{% endif %}>
+                <a href="?{% url_replace request 'status' 'past' 'tab' 'past' %}">{% trans "Past" %}</a>
             </li>
-            <li role="presentation" {% if not filter_form.status.value or filter_form.status.value == '' %}class="active"{% endif %}>
+            <li role="presentation" {% if not filter_form.status.value or filter_form.status.value|length != 1 %}class="active"{% endif %}>
                 <a href="?{% url_replace request 'status' '' 'tab' 'all' %}">{% trans "All" %}</a>
             </li>
         </ul>
@@ -150,7 +150,7 @@
                             {% endif %}
                             <div class="event-name-text">
                                 <strong><a href='{% url "eventyay_common:event.index" organizer=e.organizer.slug event=e.slug %}'>{{ e.name }}</a></strong>
-                                <a href="{% eventurl e 'presale:event.index' %}" class="public-url" target="_blank" data-toggle="tooltip" title="{% trans 'Public URL' %}"><span class="fa fa-external-link public-url-icon"></span></a>
+                                <a href="{% eventurl e 'presale:event.index' %}" class="public-url" target="_blank" rel="noopener noreferrer" data-toggle="tooltip" title="{% trans 'Public URL' %}"><span class="fa fa-external-link public-url-icon"></span></a>
                             </div>
                         </div>
                     </td>
@@ -214,6 +214,7 @@
                             <li><span>{% trans "Confirmed:" %}</span> <span>{{ e.speaker_counts.confirmed }}</span></li>
                         </ul>
                         <ul class="stats-list collapse" id="speaker-stats-{{ e.pk }}">
+                            <li><span>{% trans "Submitted:" %}</span> <span>{{ e.speaker_counts.submitted }}</span></li>
                             <li><span>{% trans "Pending:" %}</span> <span>{{ e.speaker_counts.pending }}</span></li>
                             <li><span>{% trans "Rejected:" %}</span> <span>{{ e.speaker_counts.rejected }}</span></li>
                             <li><span>{% trans "Withdrawn:" %}</span> <span>{{ e.speaker_counts.withdrawn }}</span></li>
