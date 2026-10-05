@@ -92,6 +92,7 @@ class SpeakerProfileForm(
             'after finishing the proposal process.'
         ),
         required=False,
+        widget=forms.EmailInput(attrs={'autocomplete': 'off'}),
     )
     USER_FIELDS = [
         'fullname',
