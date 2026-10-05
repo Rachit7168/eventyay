@@ -1307,7 +1307,7 @@ var widgetComponentOptions = {
     }
 };
 Vue.component('pretix-widget', widgetComponentOptions);
-Vue.component('eventyay-widget', widgetComponentOptions);
+Vue.component('eventyay-ticket-widget', widgetComponentOptions);
 
 var buttonComponentOptions = {
     template: ('<div class="pretix-widget-wrapper">'
@@ -1594,7 +1594,7 @@ function isolateWidgetElement(element, targetUrl) {
     if (rootNode && rootNode.host) {
         return element;
     }
-    var host = document.createElement('eventyay-widget-host');
+    var host = document.createElement('eventyay-ticket-widget-host');
     var shadow = host.attachShadow({mode: 'open'});
     var href = widgetStylesheetUrl(targetUrl);
     if (href) {
@@ -1618,7 +1618,7 @@ function widgetMountParent(app) {
     if (!(rootNode && rootNode.host)) {
         return document.body;
     }
-    var portal = document.createElement('eventyay-widget-host');
+    var portal = document.createElement('eventyay-ticket-widget-host');
     document.body.appendChild(portal);
     var shadow = portal.attachShadow({mode: 'open'});
     var link = rootNode.querySelector('link[rel="stylesheet"]');
@@ -1697,11 +1697,11 @@ var create_widget = function (element) {
     }
 
     var tagName = element.tagName.toLowerCase();
-    if (tagName !== "eventyay-widget" && tagName !== "pretix-widget") {
+    if (tagName !== "eventyay-ticket-widget" && tagName !== "pretix-widget") {
         while (element.firstChild) {
             element.removeChild(element.firstChild);
         }
-        element.appendChild(document.createElement("eventyay-widget"));
+        element.appendChild(document.createElement("eventyay-ticket-widget"));
     }
 
     element = isolateWidgetElement(element, target_url);
@@ -1835,12 +1835,12 @@ window.EventyayWidget.addLoadListener = function (f) {
     window.EventyayWidget._loaded.push(f);
 }
 window.EventyayWidget.buildWidgets = function () {
-    document.createElement("eventyay-widget");
+    document.createElement("eventyay-ticket-widget");
     document.createElement("eventyay-button");
     document.createElement("pretix-widget");
     document.createElement("pretix-button");
     docReady(function () {
-        var widgets = document.querySelectorAll("eventyay-widget, div.eventyay-widget-compat, pretix-widget, div.pretix-widget-compat");
+        var widgets = document.querySelectorAll("eventyay-ticket-widget, div.eventyay-ticket-widget-compat, pretix-widget, div.pretix-widget-compat");
         var wlength = widgets.length;
         for (var i = 0; i < wlength; i++) {
             var widget = widgets[i];

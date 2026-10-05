@@ -41,10 +41,10 @@
                     {% endblocktrans %}
                 </p>
                 {% if form.cleaned_data.compatibility_mode %}
-                    <pre>&lt;div class="eventyay-widget-compat" event="{% abseventurl request.event 'presale:event.index' %}"{% if form.cleaned_data.subevent %} subevent="{{ form.cleaned_data.subevent.pk }}"{% endif %}{% if form.cleaned_data.voucher %} voucher="{{ form.cleaned_data.voucher }}"{% endif %}&gt;&lt;/div&gt;
+                    <pre>&lt;div class="eventyay-ticket-widget-compat" event="{% abseventurl request.event 'presale:event.index' %}"{% if form.cleaned_data.subevent %} subevent="{{ form.cleaned_data.subevent.pk }}"{% endif %}{% if form.cleaned_data.voucher %} voucher="{{ form.cleaned_data.voucher }}"{% endif %}&gt;&lt;/div&gt;
 &lt;noscript&gt;
-   &lt;div class="pretix-widget"&gt;
-        &lt;div class="pretix-widget-info-message"&gt;
+   &lt;div class="eventyay-ticket-widget"&gt;
+        &lt;div class="eventyay-ticket-widget-info-message"&gt;
                 {% blocktrans trimmed with a_attr='target="_blank" rel="noopener" href="'|add:indexurl|add:'"'|safe %}
                     JavaScript is disabled in your browser. To access our ticket shop without JavaScript,
                     please &lt;a {{ a_attr }}&gt;click here&lt;/a&gt;.
@@ -53,10 +53,10 @@
     &lt;/div&gt;
 &lt;/noscript&gt;</pre>
                 {% else %}
-                    <pre>&lt;eventyay-widget event="{% abseventurl request.event 'presale:event.index' %}"{% if form.cleaned_data.subevent %} subevent="{{ form.cleaned_data.subevent.pk }}"{% endif %}{% if form.cleaned_data.voucher %} voucher="{{ form.cleaned_data.voucher }}"{% endif %}&gt;&lt;/eventyay-widget&gt;
+                    <pre>&lt;eventyay-ticket-widget event="{% abseventurl request.event 'presale:event.index' %}"{% if form.cleaned_data.subevent %} subevent="{{ form.cleaned_data.subevent.pk }}"{% endif %}{% if form.cleaned_data.voucher %} voucher="{{ form.cleaned_data.voucher }}"{% endif %}&gt;&lt;/eventyay-ticket-widget&gt;
 &lt;noscript&gt;
-   &lt;div class="pretix-widget"&gt;
-        &lt;div class="pretix-widget-info-message"&gt;
+   &lt;div class="eventyay-ticket-widget"&gt;
+        &lt;div class="eventyay-ticket-widget-info-message"&gt;
             {% blocktrans trimmed with a_attr='target="_blank" rel="noopener" href="'|add:indexurl|add:'"'|safe %}
                 JavaScript is disabled in your browser. To access our ticket shop without JavaScript,
                 please &lt;a {{ a_attr }}&gt;click here&lt;/a&gt;.
@@ -85,10 +85,10 @@
 &lt;script type="text/javascript" src="{{ urlprefix }}{% url "presale:widget.js" lang=form.cleaned_data.language %}" async&gt;&lt;/script&gt;
 
 &lt;div class="not-prose"&gt;
-&lt;div class="eventyay-widget-compat" event="{% abseventurl request.event 'presale:event.index' %}"{% if form.cleaned_data.subevent %} subevent="{{ form.cleaned_data.subevent.pk }}"{% endif %}{% if form.cleaned_data.voucher %} voucher="{{ form.cleaned_data.voucher }}"{% endif %}&gt;&lt;/div&gt;
+&lt;div class="eventyay-ticket-widget-compat" event="{% abseventurl request.event 'presale:event.index' %}"{% if form.cleaned_data.subevent %} subevent="{{ form.cleaned_data.subevent.pk }}"{% endif %}{% if form.cleaned_data.voucher %} voucher="{{ form.cleaned_data.voucher }}"{% endif %}&gt;&lt;/div&gt;
 &lt;noscript&gt;
-   &lt;div class="pretix-widget"&gt;
-        &lt;div class="pretix-widget-info-message"&gt;
+   &lt;div class="eventyay-ticket-widget"&gt;
+        &lt;div class="eventyay-ticket-widget-info-message"&gt;
                 {% blocktrans trimmed with a_attr='target="_blank" rel="noopener" href="'|add:indexurl|add:'"'|safe %}
                     JavaScript is disabled in your browser. To access our ticket shop without JavaScript,
                     please &lt;a {{ a_attr }}&gt;click here&lt;/a&gt;.
@@ -102,10 +102,10 @@
 &lt;script type="text/javascript" src="{{ urlprefix }}{% url "presale:widget.js" lang=form.cleaned_data.language %}" async&gt;&lt;/script&gt;
 
 &lt;div class="not-prose"&gt;
-&lt;eventyay-widget event="{% abseventurl request.event 'presale:event.index' %}"{% if form.cleaned_data.subevent %} subevent="{{ form.cleaned_data.subevent.pk }}"{% endif %}{% if form.cleaned_data.voucher %} voucher="{{ form.cleaned_data.voucher }}"{% endif %}&gt;&lt;/eventyay-widget&gt;
+&lt;eventyay-ticket-widget event="{% abseventurl request.event 'presale:event.index' %}"{% if form.cleaned_data.subevent %} subevent="{{ form.cleaned_data.subevent.pk }}"{% endif %}{% if form.cleaned_data.voucher %} voucher="{{ form.cleaned_data.voucher }}"{% endif %}&gt;&lt;/eventyay-ticket-widget&gt;
 &lt;noscript&gt;
-   &lt;div class="pretix-widget"&gt;
-        &lt;div class="pretix-widget-info-message"&gt;
+   &lt;div class="eventyay-ticket-widget"&gt;
+        &lt;div class="eventyay-ticket-widget-info-message"&gt;
             {% blocktrans trimmed with a_attr='target="_blank" rel="noopener" href="'|add:indexurl|add:'"'|safe %}
                 JavaScript is disabled in your browser. To access our ticket shop without JavaScript,
                 please &lt;a {{ a_attr }}&gt;click here&lt;/a&gt;.

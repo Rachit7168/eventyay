@@ -12,7 +12,7 @@ $widget-alert-danger-text: #a94442;
 .pretix-widget-hidden {
   display: none;
 }
-.pretix-widget, .pretix-widget-alert-box {
+.pretix-widget, .eventyay-ticket-widget, .pretix-widget-alert-box {
   a {
     color: $link-color;
     text-decoration: none;
@@ -110,7 +110,7 @@ $widget-alert-danger-text: #a94442;
     }
   }
 }
-.pretix-widget {
+.pretix-widget, .eventyay-ticket-widget {
   margin: 10px 0;
   padding: 0 10px;
   border: 1px solid rgba(0, 0, 0, 0.15);
@@ -133,7 +133,7 @@ $widget-alert-danger-text: #a94442;
     cursor: pointer;
   }
 
-  .pretix-widget-info-message {
+  .pretix-widget-info-message, .eventyay-ticket-widget-info-message {
     padding: 10px;
     text-align: left;
     margin: 10px 0;
