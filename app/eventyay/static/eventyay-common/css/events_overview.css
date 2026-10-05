@@ -79,14 +79,14 @@
 }
 
 /* Column specific widths for perfectly even spacing */
-.events-table-wrapper .table > thead > tr > th:nth-child(1) { width: 5%; }
-.events-table-wrapper .table > thead > tr > th:nth-child(2) { width: 15%; }
-.events-table-wrapper .table > thead > tr > th:nth-child(3) { width: 15%; }
-.events-table-wrapper .table > thead > tr > th:nth-child(4) { width: 10%; }
+.events-table-wrapper .table > thead > tr > th:nth-child(1) { width: 24%; }
+.events-table-wrapper .table > thead > tr > th:nth-child(2) { width: 12%; }
+.events-table-wrapper .table > thead > tr > th:nth-child(3) { width: 12%; }
+.events-table-wrapper .table > thead > tr > th:nth-child(4) { width: 12%; }
 .events-table-wrapper .table > thead > tr > th:nth-child(5) { width: 10%; }
-.events-table-wrapper .table > thead > tr > th:nth-child(6) { width: 12%; }
-.events-table-wrapper .table > thead > tr > th:nth-child(7) { width: 12%; }
-.events-table-wrapper .table > thead > tr > th:nth-child(8) { width: 12%; }
+.events-table-wrapper .table > thead > tr > th:nth-child(6) { width: 9%; }
+.events-table-wrapper .table > thead > tr > th:nth-child(7) { width: 9%; }
+.events-table-wrapper .table > thead > tr > th:nth-child(8) { width: 8%; }
 .events-table-wrapper .table > thead > tr > th:nth-child(9) { 
     width: 4%;
     white-space: nowrap; 

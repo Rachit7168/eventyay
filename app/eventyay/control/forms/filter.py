@@ -1249,7 +1249,11 @@ class EventFilterForm(FilterForm):
             ('draft', _('Draft')),
             ('past', _('Past')),
         ),
-        widget=forms.CheckboxSelectMultiple,
+        widget=forms.SelectMultiple(attrs={
+            'data-model-select2': 'tags',
+            'data-placeholder': _('Status'),
+            'class': 'form-control select2-static',
+        }),
         required=False,
         initial=['live', 'draft', 'past'],
     )
