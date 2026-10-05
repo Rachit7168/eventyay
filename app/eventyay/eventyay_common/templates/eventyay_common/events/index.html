@@ -32,13 +32,13 @@
     {% else %}
         
         <ul class="nav nav-tabs events-overview-tabs">
-            <li role="presentation" {% if filter_form.status.value == ['live'] %}class="active"{% endif %}>
+            <li role="presentation" {% if filter_form.status.value|join:"," == "live" %}class="active"{% endif %}>
                 <a href="?{% url_replace request 'status' 'live' 'tab' 'live' %}">{% trans "Live" %}</a>
             </li>
-            <li role="presentation" {% if filter_form.status.value == ['draft'] %}class="active"{% endif %}>
+            <li role="presentation" {% if filter_form.status.value|join:"," == "draft" %}class="active"{% endif %}>
                 <a href="?{% url_replace request 'status' 'draft' 'tab' 'draft' %}">{% trans "Draft" %}</a>
             </li>
-            <li role="presentation" {% if filter_form.status.value == ['past'] %}class="active"{% endif %}>
+            <li role="presentation" {% if filter_form.status.value|join:"," == "past" %}class="active"{% endif %}>
                 <a href="?{% url_replace request 'status' 'past' 'tab' 'past' %}">{% trans "Past" %}</a>
             </li>
             <li role="presentation" {% if not filter_form.status.value or filter_form.status.value|length != 1 %}class="active"{% endif %}>
