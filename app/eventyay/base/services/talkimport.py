@@ -21,6 +21,7 @@ from django_scopes import scope
 
 from eventyay.base.i18n import language
 from eventyay.base.operational_logging import OUTCOME_FAILURE, log_event
+from eventyay.common.text.rich_text import is_empty_rich_text
 from eventyay.base.models import (
     Answer,
     CachedFile,
@@ -902,6 +903,9 @@ def _import_speaker_row(event, settings, record, acting_user, caches=None):
     normalized_email = _normalize_email_address(email)
     if not normalized_email:
         raise ImportExecutionError(_('Invalid email address.'))
+
+    if event.cfp.require_biography and is_empty_rich_text(biography):
+        raise ImportExecutionError(_('Biography is required.'))
 
     name = full_name or f'{first_name} {last_name}'.strip()
     if not name:
