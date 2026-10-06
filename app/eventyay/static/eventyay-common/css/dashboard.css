@@ -359,11 +359,11 @@
     width: max-content;
     max-width: 250px;
 }
-.hover-pills-container:hover .hidden-pills {
+.hover-pills-container.show-pills .hidden-pills {
     display: flex;
 }
 .hover-pills-container .toggle-pills {
-    cursor: default;
+    cursor: pointer;
     padding: 2px 6px;
 }
 
