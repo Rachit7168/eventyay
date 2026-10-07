@@ -275,6 +275,7 @@
                     {% block content %}{% endblock content %}
                 </main>
             </div>
+            {% block footer %}
             <footer>
                 {% if is_html_export %}
                     <div id="exporttimestamp" class="text-muted mb-4">
@@ -307,6 +308,7 @@
                 {% endfor %}
                 {% include "common/includes/core_footer.html" %}
             </footer>
+            {% endblock %}
         </div>
         {% include "common/includes/modals.html" %}
         {% if current_event %}
