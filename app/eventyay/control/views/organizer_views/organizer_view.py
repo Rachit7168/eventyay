@@ -436,17 +436,16 @@ class OrganizerDetail(OrganizerDetailViewMixin, OrganizerPermissionRequiredMixin
     def _cloneable_event_ids(self, events):
         if 'can_create_events' not in self.request.orgapermset:
             return frozenset()
-        user = self.request.user
-        request = self.request
+        
+        if not events:
+            return frozenset()
+            
         return frozenset(
-            event.pk
-            for event in events
-            if user.has_event_permission(
-                event.organizer,
-                event,
-                'can_change_event_settings',
-                request=request,
+            self.request.user.get_events_with_permission(
+                'can_change_event_settings', request=self.request
             )
+            .filter(pk__in=[event.pk for event in events])
+            .values_list('pk', flat=True)
         )
 
 
