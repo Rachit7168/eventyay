@@ -210,10 +210,7 @@ def include_public_featured_speaker_metadata(user, event):
     return are_featured_speakers_visible(user, event)
 
 
-@rules.predicate
-def use_tracks(user, obj):
-    event = obj.event
-    return event.tracks.exists()
+
 
 
 @rules.predicate
