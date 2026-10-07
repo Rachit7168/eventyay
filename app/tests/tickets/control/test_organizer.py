@@ -2,6 +2,7 @@ import datetime
 
 import pytest
 from django.db import transaction
+from django.urls import reverse
 from django_scopes import scopes_disabled
 
 from eventyay.base.models import Event, Organizer, Team, User
@@ -51,6 +52,34 @@ class OrganizerTest(SoupTest):
         doc = self.get_doc('/control/organizer/ccc/')
         tabletext = doc.select('#page-wrapper .table')[0].text
         self.assertIn('30C3', tabletext)
+
+    def test_organizer_detail_shows_clone_link_when_user_can_clone(self):
+        clone_url = reverse(
+            'eventyay_common:event.clone',
+            kwargs={'organizer': self.orga1.slug, 'event': self.event1.slug},
+        )
+        doc = self.get_doc('/control/organizer/ccc/')
+        self.assertIn(clone_url, doc.decode())
+
+    def test_organizer_detail_hides_clone_link_without_event_settings_permission(self):
+        with scopes_disabled():
+            limited_team = Team.objects.create(
+                organizer=self.orga1,
+                can_create_events=True,
+                can_change_event_settings=False,
+                can_change_items=True,
+            )
+            limited_user = User.objects.create_user('limited@dummy.dummy', 'dummy')
+            limited_team.members.add(limited_user)
+            limited_team.limit_events.add(self.event1)
+
+        self.client.login(email='limited@dummy.dummy', password='dummy')
+        clone_url = reverse(
+            'eventyay_common:event.clone',
+            kwargs={'organizer': self.orga1.slug, 'event': self.event1.slug},
+        )
+        doc = self.get_doc('/control/organizer/ccc/')
+        self.assertNotIn(clone_url, doc.decode())
 
     def test_organizer_settings(self):
         doc = self.get_doc('/control/organizer/%s/edit' % (self.orga1.slug,))

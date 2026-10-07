@@ -430,7 +430,24 @@ class OrganizerDetail(OrganizerDetailViewMixin, OrganizerPermissionRequiredMixin
         ctx['meta_fields'] = [self.filter_form[f'meta_{p.name}'] for p in self.organizer.meta_properties.all()]
         ctx['event_series_creation_enabled'] = is_event_series_creation_enabled(self.request)
         ctx['meetup_creation_enabled'] = is_meetup_creation_enabled(self.request)
+        ctx['cloneable_event_ids'] = self._cloneable_event_ids(ctx.get('events') or [])
         return ctx
+
+    def _cloneable_event_ids(self, events):
+        if 'can_create_events' not in self.request.orgapermset:
+            return frozenset()
+        user = self.request.user
+        request = self.request
+        return frozenset(
+            event.pk
+            for event in events
+            if user.has_event_permission(
+                event.organizer,
+                event,
+                'can_change_event_settings',
+                request=request,
+            )
+        )
 
 
 class OrganizerDetailViewMixin:
