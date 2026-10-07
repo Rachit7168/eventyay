@@ -390,7 +390,6 @@ class SubmissionSpeakers(ReviewerSubmissionFilter, SubmissionViewMixin, FormView
         kwargs = super().get_form_kwargs()
         kwargs['event'] = self.request.event
         kwargs['require_name'] = True
-        kwargs['include_biography'] = True
         kwargs['submission'] = self.object
         return kwargs
 
@@ -533,7 +532,6 @@ class SubmissionContent(ActionFromUrl, ReviewerSubmissionFilter, SubmissionViewM
                 data=self.request.POST if self.request.method == 'POST' else None,
                 event=self.request.event,
                 prefix='speaker',
-                include_biography=True,
                 draft_save=self.request.POST.get('state') == SubmissionStates.DRAFT,
             )
 
