@@ -1400,3 +1400,29 @@ def test_submission_list_hides_track_name_for_anonymised(orga_client, submission
     # the span has no inner text with the track name.
     assert f">{track.name}<" not in content
 
+
+@pytest.mark.django_db
+def test_orga_submission_speakers_tab_omits_biography(orga_client, event, submission):
+    with scope(event=event):
+        event.cfp.fields["biography"] = {"visibility": "optional"}
+        event.cfp.save()
+
+    response = orga_client.get(submission.orga_urls.speakers)
+    assert response.status_code == 200
+    form = response.context.get("form")
+    assert form is not None
+    assert "biography" not in form.fields
+
+
+@pytest.mark.django_db
+def test_orga_submission_create_proposal_includes_biography(orga_client, event):
+    with scope(event=event):
+        event.cfp.fields["biography"] = {"visibility": "optional"}
+        event.cfp.save()
+
+    response = orga_client.get(event.orga_urls.new_submission)
+    assert response.status_code == 200
+    form = response.context.get("new_speaker_form")
+    assert form is not None
+    assert "biography" in form.fields
+
