@@ -915,7 +915,9 @@ class Schedule(PretalxModel):
             'release_warning': self.release_warning_message(),
             'acknowledgement_messages': self.release_acknowledgement_messages(talk_warnings),
         }
-        if self.event.tracks.exists():
+        with scope(event=self.event):
+            has_tracks = self.event.tracks.exists()
+        if has_tracks:
             warnings['no_track'] = talks.filter(submission__track_id__isnull=True)
         return warnings
 

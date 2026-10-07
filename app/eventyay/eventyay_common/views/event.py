@@ -1055,10 +1055,11 @@ class EventLive(TemplateView):
                         'url': cfp.urls.text,
                     }
                 )
+            with scope(event=self.request.event):
+                track_count = self.request.event.tracks.count()
             if (
-                self.request.event.tracks.exists()
-                and cfp.request_track
-                and self.request.event.tracks.count() < 2
+                cfp.request_track
+                and track_count < 2
             ):
                 suggestions.append(
                     {
