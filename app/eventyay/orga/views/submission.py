@@ -836,7 +836,7 @@ class SubmissionList(EventPermissionRequired, BaseSubmissionList):
 
     @context
     def show_tracks(self):
-        if self.request.event.get_feature_flag('use_tracks'):
+        if self.request.event.tracks.exists():
             if self.limit_tracks:
                 return len(self.limit_tracks) > 1
             return self.request.event.tracks.all().count() > 1
@@ -862,7 +862,7 @@ class SubmissionList(EventPermissionRequired, BaseSubmissionList):
                 urls = []
             submission.session_video_urls = urls
             submission.session_video_urls_json = json.dumps(urls)
-        if self.request.event.get_feature_flag('use_tracks'):
+        if self.request.event.tracks.exists():
             ctx['track_colors'] = {
                 track.pk: track.color
                 for track in self.request.event.tracks.all()
@@ -1077,7 +1077,7 @@ class SubmissionStatsMixin:
     def show_tracks(self):
         if not self.can_view_submission_stats:
             return False
-        return bool(self.request.event.get_feature_flag('use_tracks'))
+        return bool(self.request.event.tracks.exists())
 
     @context
     @cached_property

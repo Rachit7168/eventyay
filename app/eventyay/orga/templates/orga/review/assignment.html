@@ -40,7 +40,7 @@
                 <tr>
                     <th class="col col-md-4">{% translate "Team" %}</th>
                     <th class="col col-md-3">{% translate "Members" %}</th>
-                    {% if request.event|get_feature_flag:"use_tracks" %}
+                    {% if request.event.tracks.all %}
                         <th class="col col-md-3">{% translate "Limited to tracks" %}</th>
                     {% endif %}
                     <th></th>
@@ -74,7 +74,7 @@
                                 -
                             {% endif %}
                         </td>
-                        {% if request.event|get_feature_flag:"use_tracks" %}
+                        {% if request.event.tracks.all %}
                             <td>
                                 {% for track in team.limit_tracks.all %}
                                     <span class="badge color-secondary">{{ track.name }}</span>

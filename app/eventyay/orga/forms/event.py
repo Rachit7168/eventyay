@@ -506,7 +506,7 @@ class ReviewScoreCategoryForm(I18nHelpText, I18nModelForm):
     def __init__(self, *args, event=None, **kwargs):
         self.event = event
         super().__init__(*args, **kwargs)
-        if not event or not event.get_feature_flag('use_tracks'):
+        if not event or not event.tracks.exists():
             self.fields.pop('limit_tracks')
         else:
             self.fields['limit_tracks'].queryset = event.tracks.all()

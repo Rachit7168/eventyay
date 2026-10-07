@@ -1056,7 +1056,7 @@ class EventLive(TemplateView):
                     }
                 )
             if (
-                self.request.event.get_feature_flag('use_tracks')
+                self.request.event.tracks.exists()
                 and cfp.request_track
                 and self.request.event.tracks.count() < 2
             ):
