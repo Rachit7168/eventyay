@@ -1059,7 +1059,7 @@ class EventLive(TemplateView):
                 track_count = self.request.event.tracks.count()
             if (
                 cfp.request_track
-                and track_count < 2
+                and track_count == 0
             ):
                 suggestions.append(
                     {

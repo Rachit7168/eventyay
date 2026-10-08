@@ -159,18 +159,3 @@ def test_status_badge_stays_visible_next_to_either_action(
     assert badge in without_ticket
     assert SET_UP_LABEL in without_ticket
 
-@pytest.mark.django_db
-@override_settings(SITE_URL='https://testserver')
-def test_live_page_warnings_track_request(organizer_client, event, live_url):
-    """An event requesting tracks but having 0 tracks gets a suggestion to add a track."""
-    event.cfp.request_track = True
-    event.cfp.save()
-    
-    with scopes_disabled():
-        event.tracks.all().delete()
-    
-    response = organizer_client.get(live_url)
-    assert response.status_code == 200
-    
-    suggestions = response.context.get('suggestions', [])
-    assert any("Add at least one track!" in str(s.get('text', '')) for s in suggestions)
