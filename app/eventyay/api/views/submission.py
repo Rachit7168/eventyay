@@ -438,12 +438,18 @@ class SubmissionViewSet(PretalxViewSetMixin, viewsets.ModelViewSet):
             from eventyay.base.models.profile import SpeakerProfile
 
             provided_bio = data.get('biography')
+            if provided_bio and is_empty_rich_text(provided_bio):
+                provided_bio = None
+
             user = User.objects.filter(email__iexact=data['email']).first()
             profile = SpeakerProfile.objects.filter(user=user, event=submission.event).first() if user else None
             
             final_biography = provided_bio if provided_bio else (profile.biography if profile else '')
             if is_empty_rich_text(final_biography):
                 return Response({'biography': ['This field is required.']}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Update data so we don't pass empty rich text to add_speaker
+            data['biography'] = provided_bio
 
         submission.add_speaker(
             email=data['email'], 

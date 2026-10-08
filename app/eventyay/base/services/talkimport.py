@@ -986,6 +986,9 @@ def _import_speaker_row(event, settings, record, acting_user, caches=None):
             event=event,
         )
 
+        if biography and is_empty_rich_text(biography):
+            biography = None
+
         final_biography = biography if biography else profile.biography
         if event.cfp.require_biography and is_empty_rich_text(final_biography):
             raise ImportExecutionError(_('Biography is required.'))
