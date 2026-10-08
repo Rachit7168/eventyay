@@ -86,11 +86,14 @@
             <div class="col-md-6 hide-optional">{{ form.email.as_field_group }}</div>
             <div class="col-md-6">{{ form.name.as_field_group }}</div>
         </div>
-        {% if form.locale %}
-            <div class="row hide-optional">
-                <div class="col-md-6 hide-optional">{{ form.locale.as_field_group }}</div>
+        <div class="row hide-optional">
+            <div class="col-md-6 hide-optional">{% if form.locale %}{{ form.locale.as_field_group }}{% endif %}</div>
+            <div class="col-md-6">
+                <label class="inline-form-label add-speaker-btn-spacer" aria-hidden="true">&nbsp;</label>
+                <button type="submit" class="btn btn-success btn-block" data-add-speaker-submit
+                            data-sending-text="{% translate 'Sending invitation…' %}"><i class="fa fa-plus"></i> {% translate "Add speaker" %}</button>
             </div>
-        {% endif %}
+        </div>
         {% if form.biography %}
             <div class="row">
                 <div class="col-md-12">{{ form.biography.as_field_group }}</div>
@@ -98,10 +101,6 @@
         {% endif %}
         <div class="row">
             <div class="col-md-6">{{ form.send_immediately.as_field_group }}</div>
-            <div class="col-md-6">
-                <button type="submit" class="btn btn-success btn-block" data-add-speaker-submit
-                            data-sending-text="{% translate 'Sending invitation…' %}"><i class="fa fa-plus"></i> {% translate "Add speaker" %}</button>
-            </div>
         </div>
     </form>
 </div></div>{% endif %}
