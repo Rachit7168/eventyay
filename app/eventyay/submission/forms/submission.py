@@ -250,7 +250,7 @@ class InfoForm(
     def clean(self):
         cleaned_data = super().clean()
 
-        if 'submission_type' in self.fields and not cleaned_data.get('submission_type'):
+        if 'submission_type' in self.fields and not cleaned_data.get('submission_type') and not self.has_error('submission_type'):
             self.add_error('submission_type', forms.ValidationError(_('This field is required.'), code='required_step_field'))
 
         if self.not_strict and not self.draft_save:
