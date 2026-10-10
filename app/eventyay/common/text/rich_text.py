@@ -9,7 +9,7 @@ from django.utils.html import strip_tags
 
 # Zero-width / format characters that look empty but survive str.strip().
 _INVISIBLE_CHARS_RE = re.compile(
-    '[\u200b\u200c\u200d\u2060\ufeff\u00ad]'
+    '[\u200b-\u200f\u202a-\u202e\u2060-\u2069\ufeff\u00ad]'
 )
 
 

@@ -904,8 +904,6 @@ def _import_speaker_row(event, settings, record, acting_user, caches=None):
     if not normalized_email:
         raise ImportExecutionError(_('Invalid email address.'))
 
-
-
     name = full_name or f'{first_name} {last_name}'.strip()
     if not name:
         raise ImportExecutionError(_('Missing speaker name.'))

@@ -59,6 +59,7 @@ from eventyay.base.services.talkimport import import_submission_records
 from eventyay.common import exceptions
 from eventyay.common.auth import TokenAuthentication
 from eventyay.common.exceptions import SubmissionError
+from eventyay.common.text.rich_text import is_empty_rich_text
 from eventyay.talk_rules.submission import (
     questions_for_user,
     speaker_profiles_for_user,
@@ -434,16 +435,13 @@ class SubmissionViewSet(PretalxViewSetMixin, viewsets.ModelViewSet):
         submission = self.get_object()
 
         if submission.event.cfp.require_biography:
-            from eventyay.common.text.rich_text import is_empty_rich_text
-            from eventyay.base.models.profile import SpeakerProfile
-
             provided_bio = data.get('biography')
             if provided_bio and is_empty_rich_text(provided_bio):
                 provided_bio = None
 
             user = User.objects.filter(email__iexact=data['email']).first()
-            profile = SpeakerProfile.objects.filter(user=user, event=submission.event).first() if user else None
-            
+            profile = user.event_profile(submission.event) if user else None
+
             final_biography = provided_bio if provided_bio else (profile.biography if profile else '')
             if is_empty_rich_text(final_biography):
                 return Response({'biography': ['This field is required.']}, status=status.HTTP_400_BAD_REQUEST)
@@ -452,8 +450,8 @@ class SubmissionViewSet(PretalxViewSetMixin, viewsets.ModelViewSet):
             data['biography'] = provided_bio
 
         submission.add_speaker(
-            email=data['email'], 
-            name=data.get('name'), 
+            email=data['email'],
+            name=data.get('name'),
             locale=data.get('locale'),
             biography=data.get('biography')
         )

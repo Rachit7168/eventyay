@@ -67,11 +67,7 @@ class SpeakerSerializer(FlexFieldsSerializerMixin, PretalxSerializer):
     def to_representation(self, instance):
         data = super().to_representation(instance)
         request = self.context.get('request')
-        if (
-            self.event
-            and request
-            and request.user.has_perm('base.orga_list_speakerprofile', self.event)
-        ):
+        if self.event and request and request.user.is_authenticated:
             from eventyay.talk_rules.orga import (
                 can_view_speaker_emails,
                 can_view_speaker_names,
@@ -96,6 +92,8 @@ class SpeakerSerializer(FlexFieldsSerializerMixin, PretalxSerializer):
                 data.pop('organization', None)
                 data.pop('avatar_url', None)
                 data.pop('social_links', None)
+                data.pop('avatar_source', None)
+                data.pop('avatar_license', None)
             elif hide_emails:
                 data.pop('email', None)
         return data
@@ -237,8 +235,11 @@ class SpeakerUpdateSerializer(SpeakerOrgaSerializer):
     avatar = UploadedFileField(required=False, source='speaker.user')
 
     def validate_biography(self, value):
-        if self.event and self.event.cfp.require_biography and is_empty_rich_text(value):
-            raise exceptions.ValidationError('This field is required.')
+        if is_empty_rich_text(value):
+            if self.event and self.event.cfp.require_biography:
+                from django.utils.translation import gettext_lazy as _
+                raise exceptions.ValidationError(_('This field is required.'))
+            return ""
         return value
 
     def validate_avatar(self, avatar):

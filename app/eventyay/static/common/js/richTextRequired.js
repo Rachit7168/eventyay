@@ -40,8 +40,7 @@ function navbarOffset() {
 }
 
 function scrollToFormErrors() {
-  const form = document.querySelector('form[data-richtext-form-error], form .alert.alert-danger')
-    ?.closest?.('form') || document.querySelector('form .alert.alert-danger')?.closest('form')
+  const form = document.querySelector('form[data-richtext-form-error], form .alert.alert-danger')?.closest('form')
   if (!form) return
 
   const alert = form.querySelector('.alert.alert-danger')
