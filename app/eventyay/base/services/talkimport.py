@@ -1,4 +1,5 @@
 import datetime as dt
+import hashlib
 import json
 import logging
 import re
@@ -18,6 +19,7 @@ from django.utils.crypto import get_random_string
 from django.utils.dateparse import parse_datetime
 from django.utils.timezone import is_naive, make_aware, now
 from django.utils.translation import gettext as _
+from django.utils.text import slugify
 from django_scopes import scope
 
 from eventyay.base.i18n import language
@@ -174,7 +176,7 @@ class ImportResult(TypedDict):
 
 def _sanitize_import_text(value) -> str:
     text = str(value or '').strip()
-    if text.startswith("'") and len(text) > 1 and text[1] in ('=', '+', '-', '@'):
+    if text.startswith("'") and len(text) > 1 and text[1] in ('=', '+', '-', '@', '|'):
         text = text[1:].strip()
     return text
 
@@ -207,7 +209,12 @@ def _normalize_import_record(record, settings):
     return {key: _normalize_import_value(record.get(key), key=key) for key in settings}
 
 def _normalize_extra_key(key) -> str:
-    return re.sub(r'[^a-z0-9]+', '_', str(key or '').strip().lower()).strip('_')
+    key_str = str(key or '').strip()
+    base = slugify(key_str, allow_unicode=True).replace('-', '_')
+    key_hash = hashlib.md5(key_str.encode('utf-8')).hexdigest()[:6]
+    if base:
+        return f"{base}_{key_hash}"
+    return key_hash
 
 def _humanize_import_key(key: str) -> str:
     label_overrides = {
@@ -431,14 +438,20 @@ def _find_question_by_label(event: Event, target: str, label: str) -> TalkQuesti
     for question in TalkQuestion.all_objects.filter(event=event, target=target):
         if needle in _question_label_keys(question):
             matches.append(question)
-    if len(matches) == 1:
-        return matches[0]
-    if len(matches) > 1:
+    
+    active_matches = [q for q in matches if q.active]
+    if len(active_matches) == 1:
+        return active_matches[0]
+    
+    if len(active_matches) > 1 or (not active_matches and len(matches) > 1):
         raise ImportExecutionError(
             _('Ambiguous question mapping for "{label}": multiple active questions match this name. Please use explicit mapping instead.').format(
                 label=label
             )
         )
+    
+    if len(matches) == 1:
+        return matches[0]
     return None
 
 def _get_or_create_csv_question(event: Event, target: str, spec: dict, caches: dict) -> TalkQuestion:
@@ -476,9 +489,19 @@ def _get_or_create_csv_question(event: Event, target: str, spec: dict, caches: d
             is_visible_to_reviewers=True,
             position=_next_import_question_position(event, target, caches),
         )
-    elif not question.active:
-        question.active = True
-        question.save(update_fields=['active'])
+    else:
+        if spec.get('variant') and question.variant != spec['variant']:
+            raise ImportExecutionError(
+                _('Cannot map column "{header}" to existing question "{label}" because the column type ({new_variant}) does not match the existing question type ({old_variant}).').format(
+                    header=spec['header'],
+                    label=spec['label'],
+                    new_variant=spec['variant'],
+                    old_variant=question.variant,
+                )
+            )
+        if not question.active:
+            question.active = True
+            question.save(update_fields=['active'])
     created_cache[cache_key] = question
     return question
 
@@ -564,6 +587,8 @@ def _serialize_answer_value(value, variant: str) -> str:
     if variant == TalkQuestionVariant.BOOLEAN:
         if isinstance(value, bool):
             return 'True' if value else 'False'
+        if not str(value).strip():
+            return ''
         return 'True' if _truthy(str(value).strip().lower()) else 'False'
 
     if isinstance(value, dict):
@@ -1830,7 +1855,7 @@ def _set_question_answer(
             return
 
     answer_text = _serialize_answer_value(answer_value, question.variant)
-    if not answer_text and question.variant != TalkQuestionVariant.BOOLEAN:
+    if not answer_text:
         return
     lookup = {'question': question}
     defaults = {'answer': answer_text}

@@ -711,7 +711,7 @@ def test_speaker_export_neutralizes_formula_leading_values(event, user):
     with scope(event=event):
         existing_user = User.objects.create_user(
             email='exported.speaker@example.org',
-            fullname='Ada Lovelace',
+            fullname='@Ada Lovelace',
             password='unused',
         )
         profile = SpeakerProfile.objects.create(
@@ -719,11 +719,80 @@ def test_speaker_export_neutralizes_formula_leading_values(event, user):
             user=existing_user,
             job_title='=CMD|',
             organization='+123',
+            biography='-test',
         )
+        SpeakerSocialLink.objects.create(profile=profile, network='github', url='|https://github.com/octocat')
+        
         form = SpeakerExportForm(
             event=event,
         )
         
         obj = form._prepare_object_data(existing_user)
-        assert form._get_job_title_value(obj) == "'=CMD|"
-        assert form._get_organization_value(obj) == "'+123"
+        queryset = [obj]
+        fields = ['fullname', 'biography', 'job_title', 'organization', 'social_links']
+        data = form.get_data(queryset, fields, [])
+        
+        # emulate csv_export logic which applies _neutralize_formula
+        for key, value in data[0].items():
+            if isinstance(value, list):
+                value = ', '.join(str(item) for item in value if item is not None)
+            data[0][key] = form._neutralize_formula(value)
+            
+        assert data[0]['Full name'] == "'@Ada Lovelace"
+        assert data[0]['Biography'] == "'-test"
+        assert data[0]['Job title/role'] == "'=CMD|"
+        assert data[0]['Organization'] == "'+123"
+        assert data[0]['Social links'] == "'github: |https://github.com/octocat"
+
+
+def test_normalize_extra_key_prevents_collisions():
+    from eventyay.base.services.talkimport import _normalize_extra_key
+    key1 = _normalize_extra_key('T-shirt size')
+    key2 = _normalize_extra_key('T shirt size')
+    assert key1 != key2
+    assert key1.startswith('t_shirt_size_')
+    assert key2.startswith('t_shirt_size_')
+
+
+@pytest.mark.django_db
+def test_get_or_create_csv_question_rejects_incompatible_variant(event):
+    from eventyay.base.services.talkimport import _get_or_create_csv_question
+    with scope(event=event):
+        spec_text = {
+            'header': 'Bio',
+            'label': 'Biography',
+            'variant': QuestionVariant.TEXT,
+            'mapping': 'csv:Bio',
+        }
+        _get_or_create_csv_question(event, TalkQuestionTarget.SPEAKER, spec_text, {})
+        
+        spec_string = {
+            'header': 'Bio',
+            'label': 'Biography',
+            'variant': QuestionVariant.STRING,
+            'mapping': 'csv:Bio',
+        }
+        with pytest.raises(ImportExecutionError, match='does not match the existing question type'):
+            _get_or_create_csv_question(event, TalkQuestionTarget.SPEAKER, spec_string, {})
+
+
+@pytest.mark.django_db
+def test_find_question_by_label_prefers_active_over_inactive(event):
+    with scope(event=event):
+        _create_question(
+            event,
+            question='Favourite color',
+            variant=QuestionVariant.STRING,
+            target=TalkQuestionTarget.SPEAKER,
+            active=False,
+        )
+        active = _create_question(
+            event,
+            question='Favourite color',
+            variant=QuestionVariant.STRING,
+            target=TalkQuestionTarget.SPEAKER,
+            active=True,
+        )
+        
+        found = _find_question_by_label(event, TalkQuestionTarget.SPEAKER, 'Favourite color')
+        assert found == active

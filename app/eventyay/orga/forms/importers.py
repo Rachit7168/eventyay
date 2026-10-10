@@ -400,12 +400,20 @@ class ImportQuestionMappingMixin:
             self.new_question_slugs.append(slug)
 
     def collect_new_questions(self, cleaned: dict) -> list[dict[str, str]]:
+        mapped_headers = set()
+        for name, value in cleaned.items():
+            if name.startswith('question_') or name in getattr(self, 'core_field_names', []):
+                if isinstance(value, str) and value.startswith('csv:'):
+                    mapped_headers.add(value[4:])
+
         specs = []
         for slug in self.new_question_slugs:
             if not cleaned.get(f'{CREATE_QUESTION_ENABLED_PREFIX}{slug}'):
                 continue
             header = (cleaned.get(f'{CREATE_QUESTION_HEADER_PREFIX}{slug}') or '').strip()
             if header not in getattr(self, 'headers', []):
+                continue
+            if header in mapped_headers:
                 continue
             spec = _normalize_new_question_spec(
                 {
