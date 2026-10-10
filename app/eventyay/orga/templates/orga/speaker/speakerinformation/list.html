@@ -11,7 +11,7 @@
 
 {% block list_content %}
     <div class="table-responsive-sm">
-        {% with has_tracks=request.event.tracks.all %}
+        {% with has_tracks=request.event.tracks.exists %}
         <table class="table table-sm table-flip table-sticky">
             <thead>
                 <tr>

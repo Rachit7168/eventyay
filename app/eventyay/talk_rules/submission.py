@@ -37,6 +37,12 @@ orga_or_reviewer_can_change_submission = orga_can_change_submissions | (is_revie
 
 
 @rules.predicate
+def use_tracks(user, obj):
+    event = getattr(obj, 'event', None) or obj
+    return bool(event and event.tracks.exists())
+
+
+@rules.predicate
 def is_cfp_open(user, obj):
     event = getattr(obj, 'event', None)
     return bool(event and event.talks_published and hasattr(event, 'cfp') and event.cfp.is_open)

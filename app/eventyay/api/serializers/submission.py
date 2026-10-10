@@ -145,8 +145,10 @@ class SubmissionSerializer(FlexFieldsSerializerMixin, PretalxSerializer):
         # many=True fields are wrapped in ManyRelatedField; the live queryset lives on child_relation.
         self.fields['tags'].child_relation.queryset = self.event.tags.all()
 
-        with scope(event=self.event):
-            has_tracks = self.event.tracks.exists()
+        has_tracks = False
+        if self.event:
+            with scope(event=self.event):
+                has_tracks = self.event.tracks.exists()
         if not has_tracks:
             self.fields.pop('track', None)
         request_require_fields = [

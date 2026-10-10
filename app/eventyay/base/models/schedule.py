@@ -917,8 +917,8 @@ class Schedule(PretalxModel):
         }
         with scope(event=self.event):
             has_tracks = self.event.tracks.exists()
-        if has_tracks and self.event.cfp.require_track:
-            warnings['no_track'] = talks.filter(submission__track_id__isnull=True)
+            if has_tracks:
+                warnings['no_track'] = talks.filter(submission__track_id__isnull=True)
         return warnings
 
     @cached_property

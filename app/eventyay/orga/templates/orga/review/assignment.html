@@ -35,7 +35,7 @@
                 <i class="fa fa-plus"></i> {% translate "New team" %}
             </a>
         </div>
-        {% with has_tracks=request.event.tracks.all %}
+        {% with has_tracks=request.event.tracks.exists %}
         <table class="table table-sm table-flip">
             <thead>
                 <tr>
