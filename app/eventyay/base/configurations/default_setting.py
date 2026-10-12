@@ -2330,7 +2330,7 @@ Your {event} team"""
             widget=I18nTextarea,
             widget_kwargs={'attrs': {'rows': '2'}},
             help_text=_(
-                'This text will appear on your ticket layout / PDF, not in your shop'
+                'This text will appear on your ticket layout / PDF, not in your shop.'
             ),
         ),
     },
@@ -2448,7 +2448,7 @@ Your {event} team"""
             label=_('Info text'),
             widget=I18nTextarea,
             help_text=_(
-                'This text will appear on your ticket layout / PDF, not in your shop'
+                'This text will appear on your ticket layout / PDF, not in your shop.'
             ),
         ),
     },
