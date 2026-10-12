@@ -2403,7 +2403,7 @@ Your {event} team"""
             label=_('Additional success message'),
             help_text=_(
                 'This message will be shown after an order has been created successfully. It will be shown in '
-                'additional to the default text.'
+                'addition to the default text.'
             ),
             widget_kwargs={'attrs': {'rows': '2'}},
             widget=I18nTextarea,
