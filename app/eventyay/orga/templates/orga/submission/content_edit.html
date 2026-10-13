@@ -152,19 +152,81 @@
                             <span class="optional">{% translate "Optional" %}</span>
                         </label>
                         <div class="col-md-9">
-                            <select id="id_existing_speaker_id" name="existing_speaker_id"
-                                    class="form-control"
-                                    aria-label="{% translate 'Link existing speaker' %}">
-                                <option value="">{% translate "— do not link a speaker —" %}</option>
-                                {% for profile in existing_speakers %}
-                                    <option value="{{ profile.pk }}"
-                                        {% if selected_existing_speaker_id == profile.pk|stringformat:"s" %}selected{% endif %}>
-                                        {{ profile.user.get_display_name }}
-                                        {% if profile.user.email %}({{ profile.user.email }}){% endif %}
-                                    </option>
-                                {% endfor %}
-                            </select>
+                            <div data-speaker-links>
+                                {% if selected_existing_speaker_ids %}
+                                    {% for selected_id in selected_existing_speaker_ids %}
+                                        <div class="row mb-2" data-speaker-link-row>
+                                            <div class="col-md-11">
+                                                <select {% if forloop.first %}id="id_existing_speaker_id"{% endif %}
+                                                        name="existing_speaker_id"
+                                                        class="form-control"
+                                                        aria-label="{% translate 'Link existing speaker' %}">
+                                                    <option value="">{% translate "— do not link a speaker —" %}</option>
+                                                    {% for profile in existing_speakers %}
+                                                        <option value="{{ profile.pk }}"
+                                                            {% if selected_id == profile.pk|stringformat:"s" %}selected{% endif %}>
+                                                            {{ profile.user.get_display_name }}
+                                                            {% if profile.user.email %}({{ profile.user.email }}){% endif %}
+                                                        </option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                            <div class="col-md-1">
+                                                <button type="button" class="btn btn-danger btn-sm" data-remove-speaker-link title="{% translate 'Remove' %}" aria-label="{% translate 'Remove' %}">
+                                                    <i class="fa fa-minus" aria-hidden="true"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                {% else %}
+                                    <div class="row mb-2" data-speaker-link-row>
+                                        <div class="col-md-11">
+                                            <select id="id_existing_speaker_id" name="existing_speaker_id"
+                                                    class="form-control"
+                                                    aria-label="{% translate 'Link existing speaker' %}">
+                                                <option value="">{% translate "— do not link a speaker —" %}</option>
+                                                {% for profile in existing_speakers %}
+                                                    <option value="{{ profile.pk }}">
+                                                        {{ profile.user.get_display_name }}
+                                                        {% if profile.user.email %}({{ profile.user.email }}){% endif %}
+                                                    </option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="col-md-1">
+                                            <button type="button" class="btn btn-danger btn-sm" data-remove-speaker-link title="{% translate 'Remove' %}" aria-label="{% translate 'Remove' %}">
+                                                <i class="fa fa-minus" aria-hidden="true"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <p class="mt-2 mb-0">
+                                <button type="button" class="btn btn-sm btn-info" id="link-another-speaker">
+                                    <i class="fa fa-plus" aria-hidden="true"></i> {% translate "Link another speaker" %}
+                                </button>
+                            </p>
                         </div>
+                        <template id="speaker-link-row-template">
+                            <div class="row mb-2" data-speaker-link-row>
+                                <div class="col-md-11">
+                                    <select name="existing_speaker_id" class="form-control" aria-label="{% translate 'Link existing speaker' %}">
+                                        <option value="">{% translate "— do not link a speaker —" %}</option>
+                                        {% for profile in existing_speakers %}
+                                            <option value="{{ profile.pk }}">
+                                                {{ profile.user.get_display_name }}
+                                                {% if profile.user.email %}({{ profile.user.email }}){% endif %}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-1">
+                                    <button type="button" class="btn btn-danger btn-sm" data-remove-speaker-link title="{% translate 'Remove' %}" aria-label="{% translate 'Remove' %}">
+                                        <i class="fa fa-minus" aria-hidden="true"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </template>
                     </div>
 
                     {# Add new speaker toggle #}

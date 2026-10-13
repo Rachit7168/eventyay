@@ -557,6 +557,7 @@ class SubmissionContent(ActionFromUrl, ReviewerSubmissionFilter, SubmissionViewM
                 include_biography=True,
                 allow_no_email=True,
                 include_speaker_questions=True,
+                email_autocomplete=False,
                 draft_save=self.request.POST.get('state') == SubmissionStates.DRAFT,
             )
 
@@ -576,9 +577,14 @@ class SubmissionContent(ActionFromUrl, ReviewerSubmissionFilter, SubmissionViewM
 
     @context
     @cached_property
-    def selected_existing_speaker_id(self):
-        """Re-populate the existing-speaker select on a failed POST."""
-        return self.request.POST.get('existing_speaker_id', '')
+    def selected_existing_speaker_ids(self):
+        """Re-populate the existing-speaker selects on a failed POST."""
+        selected = []
+        for raw_pk in self.request.POST.getlist('existing_speaker_id'):
+            raw_pk = str(raw_pk).strip()
+            if raw_pk and raw_pk not in selected:
+                selected.append(raw_pk)
+        return selected
 
     @cached_property
     def _questions_form(self):
@@ -718,7 +724,7 @@ class SubmissionContent(ActionFromUrl, ReviewerSubmissionFilter, SubmissionViewM
 
         if created:
             add_new_speaker = self.request.POST.get('add_new_speaker') == 'on'
-            existing_speaker_id = self.request.POST.get('existing_speaker_id', '').strip()
+            existing_speaker_ids = self.selected_existing_speaker_ids
 
             # Only validate the speaker sub-form when the "add new speaker" toggle is on.
             if add_new_speaker and not self.new_speaker_form.is_valid():
@@ -761,17 +767,20 @@ class SubmissionContent(ActionFromUrl, ReviewerSubmissionFilter, SubmissionViewM
                                 biography=self.new_speaker_form.cleaned_data.get('biography'),
                             )
                             self.new_speaker_form.save_speaker_questions(speaker)
-                    elif existing_speaker_id:
+                    elif existing_speaker_ids:
                         try:
+                            requested_ids = [int(pk) for pk in existing_speaker_ids]
+                        except (TypeError, ValueError):
+                            requested_ids = []
+                        if requested_ids:
                             with scope(event=self.request.event):
-                                profile = SpeakerProfile.objects.get(
-                                    pk=int(existing_speaker_id),
+                                profiles = SpeakerProfile.objects.filter(
+                                    pk__in=requested_ids,
                                     event=self.request.event,
                                     user__isnull=False,
-                                )
-                            form.instance.speakers.add(profile.user)
-                        except (SpeakerProfile.DoesNotExist, ValueError, TypeError):
-                            pass
+                                ).select_related('user')
+                            for profile in profiles:
+                                form.instance.speakers.add(profile.user)
                 else:
                     formset_result = self.save_formset(form.instance)
                     if not formset_result:

@@ -642,9 +642,7 @@ def test_orga_create_submission_preserves_speaker_after_form_error(orga_client, 
     assert not speaker_form.errors
     assert response.status_code == 200
     assert speaker_form["email"].value() == "foo@bar.com"
-    assert list(speaker_form.fields["email"].widget.choices) == [
-        ("foo@bar.com", "Foo Speaker (foo@bar.com)")
-    ]
+    assert speaker_form["email"].field.widget.input_type == "email"
     with scope(event=event):
         assert event.submissions.count() == 0
 

@@ -293,6 +293,7 @@ class AddSpeakerForm(QuestionFieldsMixin, forms.Form):
         submission=None,
         allow_no_email=False,
         include_speaker_questions=False,
+        email_autocomplete=True,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
@@ -302,6 +303,8 @@ class AddSpeakerForm(QuestionFieldsMixin, forms.Form):
         self.submission = submission
         self.allow_no_email = allow_no_email
         self.fields['email'].hide_optional = True
+        if not email_autocomplete:
+            self.fields['email'].widget = forms.EmailInput(attrs={'autocomplete': 'off'})
 
         self.biography_required = False
         if not include_biography:

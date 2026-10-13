@@ -7,6 +7,25 @@
  *  - Hides the email field when the speaker does not require an email.
  */
 
+function refreshRemoveButtons(section) {
+  if (!section) return
+  const rows = section.querySelectorAll('[data-speaker-link-row]')
+  rows.forEach((row) => {
+    const button = row.querySelector('[data-remove-speaker-link]')
+    if (button) {
+      button.hidden = rows.length < 2
+    }
+  })
+}
+
+function appendTemplateRow(template, container) {
+  if (!(template instanceof HTMLTemplateElement) || !container) return null
+  const row = template.content.cloneNode(true).firstElementChild
+  if (!row) return null
+  container.appendChild(row)
+  return row
+}
+
 function applySpeakerControls({ addSpeakerCheckbox, newSpeakerSection, existingSpeakerSection }) {
   const addChecked = Boolean(addSpeakerCheckbox?.checked)
   const noEmailCheckbox = newSpeakerSection?.querySelector('input[name$="no_email"]') ?? null
@@ -43,9 +62,25 @@ function initSubmissionCreateSpeaker() {
   const addSpeakerCheckbox = document.getElementById('id_add_new_speaker')
   const newSpeakerSection = document.getElementById('new_speaker_section')
   const existingSpeakerSection = document.getElementById('existing_speaker_section')
+  const linkAnotherButton = document.getElementById('link-another-speaker')
+  const rowTemplate = document.getElementById('speaker-link-row-template')
   const controls = { addSpeakerCheckbox, newSpeakerSection, existingSpeakerSection }
 
   const refresh = () => applySpeakerControls(controls)
+
+  existingSpeakerSection?.addEventListener('click', (event) => {
+    const removeButton = event.target.closest?.('[data-remove-speaker-link]')
+    if (!removeButton || removeButton.disabled || !existingSpeakerSection.contains(removeButton)) return
+    removeButton.closest('[data-speaker-link-row]')?.remove()
+    refreshRemoveButtons(existingSpeakerSection)
+  })
+
+  linkAnotherButton?.addEventListener('click', () => {
+    if (linkAnotherButton.disabled) return
+    const links = existingSpeakerSection?.querySelector('[data-speaker-links]')
+    appendTemplateRow(rowTemplate, links)
+    refreshRemoveButtons(existingSpeakerSection)
+  })
 
   addSpeakerCheckbox?.addEventListener('change', refresh)
   form?.addEventListener('change', (event) => {
@@ -55,6 +90,7 @@ function initSubmissionCreateSpeaker() {
   })
 
   refresh()
+  refreshRemoveButtons(existingSpeakerSection)
 }
 
 initSubmissionCreateSpeaker()
