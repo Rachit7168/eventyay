@@ -763,11 +763,12 @@ class SubmissionContent(ActionFromUrl, ReviewerSubmissionFilter, SubmissionViewM
                             self.new_speaker_form.save_speaker_questions(speaker)
                     elif existing_speaker_id:
                         try:
-                            profile = SpeakerProfile.objects.get(
-                                pk=int(existing_speaker_id),
-                                event=self.request.event,
-                                user__isnull=False,
-                            )
+                            with scope(event=self.request.event):
+                                profile = SpeakerProfile.objects.get(
+                                    pk=int(existing_speaker_id),
+                                    event=self.request.event,
+                                    user__isnull=False,
+                                )
                             form.instance.speakers.add(profile.user)
                         except (SpeakerProfile.DoesNotExist, ValueError, TypeError):
                             pass
