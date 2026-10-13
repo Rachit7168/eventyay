@@ -4,7 +4,7 @@
  * Manages the speaker section on the "Create proposal" page:
  *  - Toggles the new-speaker form on/off via the "Add new speaker" checkbox.
  *  - Disables the "Link existing speaker" select while the toggle is on.
- *  - Hides the email field when the speaker does not require an email.
+ *  - Hides the email field and "Send immediately" when the speaker does not require an email.
  */
 
 function refreshRemoveButtons(section) {
@@ -35,6 +35,11 @@ function applySpeakerControls({ addSpeakerCheckbox, newSpeakerSection, existingS
     ? newSpeakerSection.querySelector(`[name="${CSS.escape(emailName)}"]`)
     : null
   const emailWrapper = emailField ? emailField.closest('.form-group') : null
+  const sendName = noEmailCheckbox?.name?.replace(/no_email$/, 'send_immediately')
+  const sendField = sendName
+    ? newSpeakerSection.querySelector(`[name="${CSS.escape(sendName)}"]`)
+    : null
+  const sendWrapper = sendField ? sendField.closest('.form-group') : null
 
   if (newSpeakerSection) {
     newSpeakerSection.classList.toggle('d-none', !addChecked)
@@ -47,6 +52,11 @@ function applySpeakerControls({ addSpeakerCheckbox, newSpeakerSection, existingS
     emailWrapper?.classList.toggle('d-none', addChecked && noEmail)
     emailField.disabled = !addChecked || noEmail
     emailField.required = addChecked && !noEmail
+  }
+
+  if (sendField) {
+    sendWrapper?.classList.toggle('d-none', addChecked && noEmail)
+    sendField.disabled = !addChecked || noEmail
   }
 
   if (existingSpeakerSection) {
