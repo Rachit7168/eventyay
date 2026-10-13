@@ -39,6 +39,7 @@ from eventyay.base.models import (
     User,
 )
 from eventyay.base.models.base import CachedFile
+from eventyay.base.models.cfp import BUILTIN_SESSION_FIELDS, BUILTIN_SPEAKER_FIELDS, normalize_field_order
 from eventyay.common.views.helpers import is_ajax_request
 from eventyay.base.models.mail import MailTemplateRoles
 from eventyay.base.services.etherpad import (
@@ -480,6 +481,126 @@ class SubmissionSpeakerRevokeInvitation(SubmissionSpeakers):
         return redirect(self.object.orga_urls.speakers)
 
 
+SESSION_FIELD_TEMPLATE_ORDER = (
+    'title',
+    'submission_type',
+    'track',
+    'tags',
+    'abstract',
+    'description',
+    'notes',
+    'internal_notes',
+    'content_locale',
+    'do_not_record',
+    'is_featured',
+    'duration',
+    'slot_count',
+    'image',
+    'slides',
+    'session_videos',
+    'etherpad_url',
+)
+
+
+def ordered_session_fields(submission_form, questions_form, event, *, include_session_videos):
+    """Session fields in CfP order, with custom questions placed among them."""
+    cfp = getattr(event, 'cfp', None) if hasattr(event, 'cfp') else None
+    saved_order = []
+    if cfp is not None:
+        saved_order = cfp.settings.get('fields_config', {}).get('session', []) or []
+    order = normalize_field_order(list(saved_order) or list(BUILTIN_SESSION_FIELDS), 'session')
+    builtin_names = set(BUILTIN_SESSION_FIELDS)
+
+    entries = []
+    for name in SESSION_FIELD_TEMPLATE_ORDER:
+        if name == 'session_videos':
+            if include_session_videos:
+                entries.append('session_videos')
+            continue
+        field = submission_form.fields.get(name)
+        if field is None or field.widget.is_hidden:
+            continue
+        entries.append(submission_form[name])
+
+    def entry_name(entry):
+        if entry == 'session_videos':
+            return 'session_videos'
+        return entry.name
+
+    def index_by_name(items):
+        return {entry_name(entry): index for index, entry in enumerate(items)}
+
+    placed = index_by_name(entries)
+    last_index = -1
+    for item in order:
+        name = item if isinstance(item, str) else None
+        if not name:
+            continue
+        if name in builtin_names:
+            if name in placed:
+                last_index = placed[name]
+            continue
+        question_name = name if name.startswith('question_') else f'question_{name}'
+        if question_name not in questions_form.fields or question_name in placed:
+            continue
+        insert_at = last_index + 1
+        entries.insert(insert_at, questions_form[question_name])
+        placed = index_by_name(entries)
+        last_index = placed[question_name]
+
+    for name in questions_form.fields:
+        if name not in placed:
+            entries.append(questions_form[name])
+    return entries
+
+
+# Organizer create-speaker fields that are not part of the public CfP order.
+SPEAKER_CFP_FIELD_ALIASES = {
+    'fullname': 'name',
+}
+
+
+def ordered_speaker_fields(speaker_form, event):
+    """Speaker fields in CfP order, with custom questions placed among them."""
+    if speaker_form is None:
+        return []
+    cfp = getattr(event, 'cfp', None) if hasattr(event, 'cfp') else None
+    saved_order = []
+    if cfp is not None:
+        saved_order = cfp.settings.get('fields_config', {}).get('speaker', []) or []
+    order = normalize_field_order(list(saved_order) or list(BUILTIN_SPEAKER_FIELDS), 'speaker')
+
+    entries = []
+    placed = set()
+
+    def append_field(name):
+        if name in placed or name not in speaker_form.fields:
+            return
+        field = speaker_form.fields[name]
+        if field.widget.is_hidden:
+            return
+        entries.append(speaker_form[name])
+        placed.add(name)
+
+    for name in ('email', 'no_email'):
+        append_field(name)
+
+    for item in order:
+        name = item if isinstance(item, str) else None
+        if not name:
+            continue
+        form_name = SPEAKER_CFP_FIELD_ALIASES.get(name, name)
+        if form_name in speaker_form.fields:
+            append_field(form_name)
+            continue
+        question_name = name if name.startswith('question_') else f'question_{name}'
+        append_field(question_name)
+
+    for name in speaker_form.fields:
+        append_field(name)
+    return entries
+
+
 def create_speaker_without_email(submission, *, name, biography, locale, actor):
     """Create a speaker who has no account email and no invitation."""
     speaker = User(
@@ -520,6 +641,20 @@ class SubmissionContent(ActionFromUrl, ReviewerSubmissionFilter, SubmissionViewM
     @context
     def size_warning(self):
         return SizeFileInput.get_size_warning()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['ordered_session_fields'] = ordered_session_fields(
+            context['form'],
+            self._questions_form,
+            self.request.event,
+            include_session_videos=self.action != 'create' and self.session_videos_enabled,
+        )
+        context['ordered_speaker_fields'] = ordered_speaker_fields(
+            self.new_speaker_form,
+            self.request.event,
+        )
+        return context
 
     @cached_property
     def _formset(self):
