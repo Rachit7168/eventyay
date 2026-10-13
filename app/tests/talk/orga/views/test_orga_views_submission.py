@@ -658,6 +658,7 @@ def test_orga_create_submission_does_not_save_before_speaker_validation(orga_cli
             "abstract": "abstract",
             "content_locale": "en",
             "description": "description",
+            "add_new_speaker": "on",
             "speaker-name": "Foo Speaker",
             "speaker-locale": "en",
             "state": "submitted",

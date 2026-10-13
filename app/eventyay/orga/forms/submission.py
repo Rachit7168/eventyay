@@ -3,6 +3,7 @@ import json
 from django import forms
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils.translation import gettext_lazy as _
+from django_scopes import scope
 from django_scopes.forms import SafeModelChoiceField, SafeModelMultipleChoiceField
 
 from eventyay.base.models import Submission, SubmissionStates, TalkQuestionTarget, User
@@ -347,7 +348,10 @@ class AddSpeakerForm(QuestionFieldsMixin, forms.Form):
             and (email := self.data.get(email_key))
         ):
             existing_user = User.objects.filter(email__iexact=email).first()
-            existing_profile = existing_user.profiles.filter(event=self.event).first() if existing_user else None
+            existing_profile = None
+            if existing_user:
+                with scope(event=self.event):
+                    existing_profile = existing_user.profiles.filter(event=self.event).first()
             if existing_profile and existing_profile.biography:
                 self.fields['biography'].required = False
         if not event.named_locales or len(event.named_locales) < 2:
@@ -406,7 +410,8 @@ class AddSpeakerForm(QuestionFieldsMixin, forms.Form):
         if email:
             existing_user = User.objects.filter(email__iexact=email).first()
             if existing_user:
-                existing_profile = existing_user.profiles.filter(event=self.event).first()
+                with scope(event=self.event):
+                    existing_profile = existing_user.profiles.filter(event=self.event).first()
                 existing_biography = bool(existing_profile and existing_profile.biography)
 
         adding_speaker = bool(data.get('no_email') or email or data.get('name'))
