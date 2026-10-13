@@ -603,6 +603,7 @@ def test_orga_can_create_submission(orga_client, event, known_speaker, orga_user
             "slot_count": 1,
             "notes": "notes",
             "internal_notes": "internal_notes",
+            "add_new_speaker": "on",
             "speaker-email": "foo@bar.com" if not known_speaker else orga_user.email,
             "speaker-name": "Foo Speaker",
             "speaker-locale": "en",

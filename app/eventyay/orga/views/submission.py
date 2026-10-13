@@ -31,6 +31,7 @@ from eventyay.base.models import (
     SpeakerInvitation,
     SpeakerInvitationMailStates,
     SpeakerInvitationStates,
+    SpeakerProfile,
     Submission,
     SubmissionComment,
     SubmissionStates,
@@ -479,6 +480,24 @@ class SubmissionSpeakerRevokeInvitation(SubmissionSpeakers):
         return redirect(self.object.orga_urls.speakers)
 
 
+def create_speaker_without_email(submission, *, name, biography, locale, actor):
+    """Create a speaker who has no account email and no invitation."""
+    speaker = User(
+        email=None,
+        fullname=(name or '').strip(),
+        locale=locale or submission.event.locale,
+        timezone=submission.event.timezone,
+    )
+    speaker.save()
+    profile = SpeakerProfile(user=speaker, event=submission.event)
+    if biography:
+        profile.biography = biography
+    profile.save()
+    submission.speakers.add(speaker)
+    submission.log_action('eventyay.submission.speakers.add', person=actor, orga=True)
+    return speaker
+
+
 class SubmissionContent(ActionFromUrl, ReviewerSubmissionFilter, SubmissionViewMixin, CreateOrUpdateView):
     model = Submission
     form_class = SubmissionForm
@@ -547,11 +566,10 @@ class SubmissionContent(ActionFromUrl, ReviewerSubmissionFilter, SubmissionViewM
         """Speakers already registered for this event, used for linking on creation."""
         if self.get_object():
             return []
-        from eventyay.base.models import SpeakerProfile
         with scope(event=self.request.event):
             return (
                 SpeakerProfile.objects
-                .filter(event=self.request.event)
+                .filter(event=self.request.event, user__isnull=False)
                 .select_related('user')
                 .order_by('user__fullname')
             )
@@ -725,9 +743,18 @@ class SubmissionContent(ActionFromUrl, ReviewerSubmissionFilter, SubmissionViewM
                         # New speaker — only add if an email (or no_email) was supplied.
                         email = self.new_speaker_form.cleaned_data.get('email', '')
                         no_email = self.new_speaker_form.cleaned_data.get('no_email', False)
-                        if email or no_email:
+                        if no_email:
+                            speaker = create_speaker_without_email(
+                                form.instance,
+                                name=self.new_speaker_form.cleaned_data.get('name', ''),
+                                biography=self.new_speaker_form.cleaned_data.get('biography'),
+                                locale=self.new_speaker_form.cleaned_data.get('locale'),
+                                actor=self.request.user,
+                            )
+                            self.new_speaker_form.save_speaker_questions(speaker)
+                        elif email:
                             speaker, _invitation = form.instance.add_speaker(
-                                email=email if not no_email else '',
+                                email=email,
                                 name=self.new_speaker_form.cleaned_data.get('name', ''),
                                 locale=self.new_speaker_form.cleaned_data.get('locale'),
                                 user=self.request.user,
@@ -735,16 +762,15 @@ class SubmissionContent(ActionFromUrl, ReviewerSubmissionFilter, SubmissionViewM
                             )
                             self.new_speaker_form.save_speaker_questions(speaker)
                     elif existing_speaker_id:
-                        # Link existing speaker to this new submission.
-                        from eventyay.base.models import SpeakerProfile
                         try:
                             profile = SpeakerProfile.objects.get(
                                 pk=int(existing_speaker_id),
                                 event=self.request.event,
+                                user__isnull=False,
                             )
                             form.instance.speakers.add(profile.user)
                         except (SpeakerProfile.DoesNotExist, ValueError, TypeError):
-                            pass  # Silently skip invalid links.
+                            pass
                 else:
                     formset_result = self.save_formset(form.instance)
                     if not formset_result:

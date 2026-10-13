@@ -367,16 +367,13 @@ class AddSpeakerForm(QuestionFieldsMixin, forms.Form):
     def clean(self):
         data = super().clean()
 
-        # When no_email is checked, clear email and skip email-related validation.
         if self.allow_no_email and data.get('no_email'):
             data['email'] = ''
             self.cleaned_data['email'] = ''
-            return data
-
-        if data.get('name') and not data.get('email'):
+        elif data.get('name') and not data.get('email'):
             self.add_error('email', _('Please provide an email address.'))
 
-        if self.submission and (email := data.get('email')):
+        if not data.get('no_email') and self.submission and (email := data.get('email')):
             if self.submission.has_speaker_email(email):
                 self.add_error(
                     'email',
@@ -391,9 +388,10 @@ class AddSpeakerForm(QuestionFieldsMixin, forms.Form):
                 existing_profile = existing_user.profiles.filter(event=self.event).first()
                 existing_biography = bool(existing_profile and existing_profile.biography)
 
+        adding_speaker = bool(data.get('no_email') or email or data.get('name'))
         if (
             not self.draft_save
-            and email
+            and adding_speaker
             and getattr(self, 'biography_required', False)
             and not existing_biography
             and not data.get('biography')
