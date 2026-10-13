@@ -5,13 +5,13 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils.translation import gettext_lazy as _
 from django_scopes.forms import SafeModelChoiceField, SafeModelMultipleChoiceField
 
-from eventyay.base.models import Submission, SubmissionStates, User
+from eventyay.base.models import Submission, SubmissionStates, TalkQuestionTarget, User
 from eventyay.base.models.cfp import default_fields
 from eventyay.base.models.resource import get_slide_resources
 from eventyay.base.services.etherpad import validate_etherpad_url
 from eventyay.base.settings import GlobalSettingsObject
 from eventyay.common.forms.fields import ImageField
-from eventyay.common.forms.mixins import ReadOnlyFlag, RequestRequire
+from eventyay.common.forms.mixins import QuestionFieldsMixin, ReadOnlyFlag, RequestRequire
 from eventyay.common.forms.renderers import InlineFormLabelRenderer, InlineFormRenderer
 from eventyay.common.forms.widgets import (
     EnhancedSelect,
@@ -248,7 +248,7 @@ def get_speaker_choice_label(*, name: str | None, email: str) -> str:
     return f'{name} ({email})' if name else email
 
 
-class AddSpeakerForm(forms.Form):
+class AddSpeakerForm(QuestionFieldsMixin, forms.Form):
     email = forms.EmailField(
         label=phrases.cfp.speaker_email,
         help_text=_('The email address of the speaker holding the session. They will be invited to create an account.'),
@@ -291,6 +291,8 @@ class AddSpeakerForm(forms.Form):
         include_biography=False,
         draft_save=False,
         submission=None,
+        allow_no_email=False,
+        include_speaker_questions=False,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
@@ -298,6 +300,8 @@ class AddSpeakerForm(forms.Form):
         self.require_name = require_name
         self.draft_save = draft_save
         self.submission = submission
+        self.allow_no_email = allow_no_email
+        self.fields['email'].hide_optional = True
 
         self.biography_required = False
         if not include_biography:
@@ -331,8 +335,44 @@ class AddSpeakerForm(forms.Form):
             self.fields['locale'].choices = event.named_locales
             self.fields['locale'].initial = event.locale
 
+        # Inject no_email checkbox right after the email field when allowed.
+        if self.allow_no_email and 'email' in self.fields:
+            self.fields['no_email'] = forms.BooleanField(
+                label=_('This speaker does not require an email'),
+                help_text=_('No account or invitation email will be created for this speaker.'),
+                required=False,
+                initial=False,
+            )
+            field_order = list(self.fields.keys())
+            field_order.remove('no_email')
+            field_order.insert(field_order.index('email') + 1, 'no_email')
+            self.fields = {k: self.fields[k] for k in field_order}
+
+        if include_speaker_questions and event is not None:
+            self.inject_questions_into_fields(
+                target=TalkQuestionTarget.SPEAKER,
+                event=event,
+            )
+
+    def save_speaker_questions(self, speaker):
+        self.speaker = speaker
+        for key, value in self.cleaned_data.items():
+            if key.startswith('question_'):
+                self.save_questions(key, value)
+
+    @property
+    def speaker_question_fields(self):
+        return [field for field in self if field.name.startswith('question_')]
+
     def clean(self):
         data = super().clean()
+
+        # When no_email is checked, clear email and skip email-related validation.
+        if self.allow_no_email and data.get('no_email'):
+            data['email'] = ''
+            self.cleaned_data['email'] = ''
+            return data
+
         if data.get('name') and not data.get('email'):
             self.add_error('email', _('Please provide an email address.'))
 

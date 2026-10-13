@@ -532,11 +532,35 @@ class SubmissionContent(ActionFromUrl, ReviewerSubmissionFilter, SubmissionViewM
         if not self.get_object():
             return AddSpeakerForm(
                 data=self.request.POST if self.request.method == 'POST' else None,
+                files=self.request.FILES if self.request.method == 'POST' else None,
                 event=self.request.event,
                 prefix='speaker',
                 include_biography=True,
+                allow_no_email=True,
+                include_speaker_questions=True,
                 draft_save=self.request.POST.get('state') == SubmissionStates.DRAFT,
             )
+
+    @context
+    @cached_property
+    def existing_speakers(self):
+        """Speakers already registered for this event, used for linking on creation."""
+        if self.get_object():
+            return []
+        from eventyay.base.models import SpeakerProfile
+        with scope(event=self.request.event):
+            return (
+                SpeakerProfile.objects
+                .filter(event=self.request.event)
+                .select_related('user')
+                .order_by('user__fullname')
+            )
+
+    @context
+    @cached_property
+    def selected_existing_speaker_id(self):
+        """Re-populate the existing-speaker select on a failed POST."""
+        return self.request.POST.get('existing_speaker_id', '')
 
     @cached_property
     def _questions_form(self):
@@ -673,9 +697,15 @@ class SubmissionContent(ActionFromUrl, ReviewerSubmissionFilter, SubmissionViewM
         if not self._questions_form.is_valid():
             messages.error(self.request, phrases.base.error_saving_changes)
             return self.form_invalid(form)
-        if created and not self.new_speaker_form.is_valid():
-            messages.error(self.request, phrases.base.error_saving_changes)
-            return self.form_invalid(form)
+
+        if created:
+            add_new_speaker = self.request.POST.get('add_new_speaker') == 'on'
+            existing_speaker_id = self.request.POST.get('existing_speaker_id', '').strip()
+
+            # Only validate the speaker sub-form when the "add new speaker" toggle is on.
+            if add_new_speaker and not self.new_speaker_form.is_valid():
+                messages.error(self.request, phrases.base.error_saving_changes)
+                return self.form_invalid(form)
 
         self.object = form.instance
         form.instance.event = self.request.event
@@ -691,14 +721,30 @@ class SubmissionContent(ActionFromUrl, ReviewerSubmissionFilter, SubmissionViewM
                     raise RollbackTransaction()
 
                 if created:
-                    if email := self.new_speaker_form.cleaned_data['email']:
-                        form.instance.add_speaker(
-                            email=email,
-                            name=self.new_speaker_form.cleaned_data['name'],
-                            locale=self.new_speaker_form.cleaned_data.get('locale'),
-                            user=self.request.user,
-                            biography=self.new_speaker_form.cleaned_data.get('biography'),
-                        )
+                    if add_new_speaker:
+                        # New speaker — only add if an email (or no_email) was supplied.
+                        email = self.new_speaker_form.cleaned_data.get('email', '')
+                        no_email = self.new_speaker_form.cleaned_data.get('no_email', False)
+                        if email or no_email:
+                            speaker, _invitation = form.instance.add_speaker(
+                                email=email if not no_email else '',
+                                name=self.new_speaker_form.cleaned_data.get('name', ''),
+                                locale=self.new_speaker_form.cleaned_data.get('locale'),
+                                user=self.request.user,
+                                biography=self.new_speaker_form.cleaned_data.get('biography'),
+                            )
+                            self.new_speaker_form.save_speaker_questions(speaker)
+                    elif existing_speaker_id:
+                        # Link existing speaker to this new submission.
+                        from eventyay.base.models import SpeakerProfile
+                        try:
+                            profile = SpeakerProfile.objects.get(
+                                pk=int(existing_speaker_id),
+                                event=self.request.event,
+                            )
+                            form.instance.speakers.add(profile.user)
+                        except (SpeakerProfile.DoesNotExist, ValueError, TypeError):
+                            pass  # Silently skip invalid links.
                 else:
                     formset_result = self.save_formset(form.instance)
                     if not formset_result:
