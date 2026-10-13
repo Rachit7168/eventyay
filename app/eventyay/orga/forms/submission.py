@@ -315,9 +315,11 @@ class AddSpeakerForm(QuestionFieldsMixin, forms.Form):
             if visibility == 'do_not_ask':
                 self.fields.pop('biography', None)
             else:
-                # Keep optional unless a speaker is actually added; validate in clean().
                 self.biography_required = visibility == 'required'
-                self.fields['biography'].required = False
+                self.fields['biography'].required = self.biography_required and not self.draft_save
+        if 'name' in self.fields:
+            # CfP full name is always required.
+            self.fields['name'].required = not self.draft_save
         email_key = self.add_prefix('email')
         name_key = self.add_prefix('name')
         email_widget = self.fields['email'].widget
@@ -327,11 +329,27 @@ class AddSpeakerForm(QuestionFieldsMixin, forms.Form):
         if require_name:
             self.fields['email'].required = True
             self.fields['name'].required = True
-            if self.is_bound and self.data.get(email_key) and not self.data.get(name_key):
-                existing_user = User.objects.filter(email__iexact=self.data[email_key]).only('fullname').first()
-                if existing_user and existing_user.fullname:
-                    self.data = self.data.copy()
-                    self.data[name_key] = existing_user.fullname
+        if (
+            'name' in self.fields
+            and self.fields['name'].required
+            and self.is_bound
+            and self.data.get(email_key)
+            and not self.data.get(name_key)
+        ):
+            existing_user = User.objects.filter(email__iexact=self.data[email_key]).only('fullname').first()
+            if existing_user and existing_user.fullname:
+                self.data = self.data.copy()
+                self.data[name_key] = existing_user.fullname
+        if (
+            'biography' in self.fields
+            and self.fields['biography'].required
+            and self.is_bound
+            and (email := self.data.get(email_key))
+        ):
+            existing_user = User.objects.filter(email__iexact=email).first()
+            existing_profile = existing_user.profiles.filter(event=self.event).first() if existing_user else None
+            if existing_profile and existing_profile.biography:
+                self.fields['biography'].required = False
         if not event.named_locales or len(event.named_locales) < 2:
             self.fields.pop('locale')
         else:
@@ -392,10 +410,12 @@ class AddSpeakerForm(QuestionFieldsMixin, forms.Form):
                 existing_biography = bool(existing_profile and existing_profile.biography)
 
         adding_speaker = bool(data.get('no_email') or email or data.get('name'))
+        biography_field = self.fields.get('biography')
         if (
             not self.draft_save
             and adding_speaker
             and getattr(self, 'biography_required', False)
+            and not (biography_field and biography_field.required)
             and not existing_biography
             and not data.get('biography')
         ):
