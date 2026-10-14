@@ -699,8 +699,15 @@ class SubmissionContent(ActionFromUrl, ReviewerSubmissionFilter, SubmissionViewM
     @context
     @cached_property
     def existing_speakers(self):
-        """Speakers already registered for this event, used for linking on creation."""
+        """Speakers already registered for this event, used for linking on creation.
+
+        Only returned when the requesting user has permission to list speaker
+        profiles; team members subject to "always hide speaker details" receive
+        an empty list so speaker names/emails are not disclosed on this page.
+        """
         if self.get_object():
+            return []
+        if not self.request.user.has_perm('base.orga_list_speakerprofile', self.request.event):
             return []
         with scope(event=self.request.event):
             return (
@@ -709,6 +716,12 @@ class SubmissionContent(ActionFromUrl, ReviewerSubmissionFilter, SubmissionViewM
                 .select_related('user')
                 .order_by('user__fullname')
             )
+
+    @context
+    @cached_property
+    def show_existing_speaker_emails(self):
+        """Whether the current user may see speaker email addresses in the link-speaker dropdown."""
+        return self.request.user.has_perm('base.orga_view_speaker_emails', self.request.event)
 
     @context
     @cached_property

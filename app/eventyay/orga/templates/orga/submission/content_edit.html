@@ -151,7 +151,7 @@
                                                         <option value="{{ profile.pk }}"
                                                             {% if selected_id == profile.pk|stringformat:"s" %}selected{% endif %}>
                                                             {{ profile.user.get_display_name }}
-                                                            {% if profile.user.email %}({{ profile.user.email }}){% endif %}
+                                                            {% if show_existing_speaker_emails and profile.user.email %}({{ profile.user.email }}){% endif %}
                                                         </option>
                                                     {% endfor %}
                                                 </select>
@@ -173,7 +173,7 @@
                                                 {% for profile in existing_speakers %}
                                                     <option value="{{ profile.pk }}">
                                                         {{ profile.user.get_display_name }}
-                                                        {% if profile.user.email %}({{ profile.user.email }}){% endif %}
+                                                        {% if show_existing_speaker_emails and profile.user.email %}({{ profile.user.email }}){% endif %}
                                                     </option>
                                                 {% endfor %}
                                             </select>
@@ -200,7 +200,7 @@
                                         {% for profile in existing_speakers %}
                                             <option value="{{ profile.pk }}">
                                                 {{ profile.user.get_display_name }}
-                                                {% if profile.user.email %}({{ profile.user.email }}){% endif %}
+                                                {% if show_existing_speaker_emails and profile.user.email %}({{ profile.user.email }}){% endif %}
                                             </option>
                                         {% endfor %}
                                     </select>

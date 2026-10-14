@@ -6,7 +6,7 @@ from django.utils.translation import gettext_lazy as _
 from django_scopes import scope
 from django_scopes.forms import SafeModelChoiceField, SafeModelMultipleChoiceField
 
-from eventyay.base.models import Submission, SubmissionStates, TalkQuestionTarget, User
+from eventyay.base.models import SpeakerProfile, Submission, SubmissionStates, TalkQuestionTarget, User
 from eventyay.base.models.cfp import default_fields
 from eventyay.base.models.resource import get_slide_resources
 from eventyay.base.services.etherpad import validate_etherpad_url
@@ -336,11 +336,20 @@ class AddSpeakerForm(QuestionFieldsMixin, forms.Form):
             and self.is_bound
             and self.data.get(email_key)
             and not self.data.get(name_key)
+            and event is not None
         ):
-            existing_user = User.objects.filter(email__iexact=self.data[email_key]).only('fullname').first()
-            if existing_user and existing_user.fullname:
+            # Only autofill the name from users who already have a speaker
+            # profile for *this* event to avoid leaking names across events.
+            with scope(event=event):
+                existing_profile = (
+                    SpeakerProfile.objects
+                    .filter(event=event, user__email__iexact=self.data[email_key])
+                    .select_related('user')
+                    .first()
+                )
+            if existing_profile and existing_profile.user.fullname:
                 self.data = self.data.copy()
-                self.data[name_key] = existing_user.fullname
+                self.data[name_key] = existing_profile.user.fullname
         if (
             'biography' in self.fields
             and self.fields['biography'].required
