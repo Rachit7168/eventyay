@@ -930,7 +930,8 @@ def test_orga_session_videos_render_as_labeled_links(orga_client, event, submiss
     assert edit.status_code == 200
     assert 'data-session-video-formset' in edit.text
     assert 'data-session-video-add' in edit.text
-    assert edit.text.count('name="session_video_urls"') == 3
+    live_rows = edit.text.split('<template data-session-video-empty-row>', 1)[0]
+    assert live_rows.count('name="session_video_urls"') == 3
     assert '<textarea' not in edit.text[edit.text.index('data-session-video-formset'):edit.text.index('data-session-video-add')]
 
 

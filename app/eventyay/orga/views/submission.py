@@ -51,6 +51,7 @@ from eventyay.base.views.tasks import AsyncAction
 from eventyay.common.exceptions import SubmissionError
 from eventyay.common.forms.fields import SizeFileInput
 from eventyay.common.session_video import (
+    SESSION_VIDEO_URL_LIMIT,
     get_submission_video_url,
     prefetch_submission_video_urls,
     session_videos_enabled as event_session_videos_enabled,
@@ -593,6 +594,10 @@ class SubmissionContent(ActionFromUrl, ReviewerSubmissionFilter, SubmissionViewM
         return list(self.session_video_urls)
 
     @context
+    def session_video_url_limit(self):
+        return SESSION_VIDEO_URL_LIMIT
+
+    @context
     @property
     def session_video_urls_error(self):
         return getattr(self, '_session_video_urls_error', None)
@@ -611,6 +616,12 @@ class SubmissionContent(ActionFromUrl, ReviewerSubmissionFilter, SubmissionViewM
             return True
         if not self.request.user.has_perm('base.orga_update_submission', self.request.event):
             return True
+        posted_fields = self.request.POST.getlist('session_video_urls')
+        if len(posted_fields) > SESSION_VIDEO_URL_LIMIT:
+            self._session_video_urls_error = gettext(
+                'You can add at most %(limit)s video links.'
+            ) % {'limit': SESSION_VIDEO_URL_LIMIT}
+            return False
         try:
             set_submission_video_urls(submission, self._posted_session_video_urls())
         except ValueError as exc:

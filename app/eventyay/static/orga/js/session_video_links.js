@@ -3,12 +3,13 @@
  * Rows are cloned from a <template> so new inputs are not built with innerHTML.
  */
 
-function bindSessionVideoRow(row) {
+function bindSessionVideoRow(row, onRemove) {
     const removeButton = row.querySelector('[data-session-video-remove]')
     if (!removeButton || removeButton.dataset.sessionVideoBound === 'true') return
     removeButton.dataset.sessionVideoBound = 'true'
     removeButton.addEventListener('click', () => {
         row.remove()
+        onRemove()
     })
 }
 
@@ -24,14 +25,31 @@ export function initSessionVideoLinks(root = document) {
     const addButton = formset.querySelector('[data-session-video-add]')
     if (!rows || !(emptyRow instanceof HTMLTemplateElement) || !addButton) return
 
-    rows.querySelectorAll('[data-session-video-row]').forEach(bindSessionVideoRow)
+    const maxRows = Number.parseInt(formset.dataset.maxRows || '', 10)
+    const atRowLimit = () => Number.isFinite(maxRows)
+        && rows.querySelectorAll('[data-session-video-row]').length >= maxRows
+
+    const syncAddButton = () => {
+        addButton.disabled = atRowLimit()
+    }
+
+    const onRemove = () => {
+        syncAddButton()
+    }
+
+    rows.querySelectorAll('[data-session-video-row]').forEach((row) => {
+        bindSessionVideoRow(row, onRemove)
+    })
+    syncAddButton()
 
     addButton.addEventListener('click', () => {
+        if (atRowLimit()) return
         const newRow = emptyRow.content.querySelector('[data-session-video-row]')
         if (!newRow) return
         const row = newRow.cloneNode(true)
         rows.appendChild(row)
-        bindSessionVideoRow(row)
+        bindSessionVideoRow(row, onRemove)
+        syncAddButton()
         const input = row.querySelector('input')
         if (input) input.focus()
     })

@@ -17,6 +17,9 @@ from eventyay.base.models import (
 from eventyay.common.video_embed import get_video_embed_info, parse_video_urls
 
 SESSION_VIDEO_IMPORT_KEY = 'session_video'
+# Each edit-form row is its own POST field. Stay far under Django's
+# DATA_UPLOAD_MAX_NUMBER_FIELDS so a long list still saves.
+SESSION_VIDEO_URL_LIMIT = 20
 
 
 def session_videos_enabled(event) -> bool:
@@ -148,6 +151,11 @@ def set_submission_video_urls(submission, urls: list[str] | None) -> list[str]:
             raise ValueError(gettext('Please enter a valid YouTube, Vimeo, or Wikimedia Commons URL.'))
         seen.add(raw)
         cleaned.append(raw)
+
+    if len(cleaned) > SESSION_VIDEO_URL_LIMIT:
+        raise ValueError(
+            gettext('You can add at most %(limit)s video links.') % {'limit': SESSION_VIDEO_URL_LIMIT}
+        )
 
     stored = '\n'.join(cleaned)
     if not session_videos_enabled(submission.event):

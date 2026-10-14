@@ -87,7 +87,11 @@
                         <span class="optional">{% translate "Optional" %}</span>
                     </label>
                     <div class="col-md-9">
-                        <div class="session-video-link-formset" data-session-video-formset>
+                        <div
+                            class="session-video-link-formset"
+                            data-session-video-formset
+                            data-max-rows="{{ session_video_url_limit }}"
+                        >
                             <div data-session-video-rows>
                                 {% for url in session_video_url_rows %}
                                     <div class="row session-video-link-row align-items-center mb-2" data-session-video-row>
@@ -142,7 +146,11 @@
                                 </button>
                             </p>
                         </div>
-                        <small class="form-text text-muted">{% translate "YouTube, Vimeo, or Wikimedia Commons URL." %}</small>
+                        <small class="form-text text-muted">
+                            {% blocktranslate with limit=session_video_url_limit trimmed %}
+                                YouTube, Vimeo, or Wikimedia Commons URL. Up to {{ limit }} links.
+                            {% endblocktranslate %}
+                        </small>
                         {% if session_video_urls_error %}
                             <div class="help-block">{{ session_video_urls_error }}</div>
                         {% endif %}
