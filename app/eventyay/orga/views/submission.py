@@ -57,7 +57,7 @@ from eventyay.common.session_video import (
     set_submission_video_urls,
     video_urls_from_prefetched_submission,
 )
-from eventyay.common.video_embed import parse_video_urls
+from eventyay.common.video_embed import describe_video_link, parse_video_urls
 from eventyay.common.text.phrases import phrases
 from eventyay.common.views.generic import CreateOrUpdateView, OrgaCRUDView
 from eventyay.common.views.mixins import (
@@ -582,25 +582,37 @@ class SubmissionContent(ActionFromUrl, ReviewerSubmissionFilter, SubmissionViewM
 
     @context
     @cached_property
-    def session_video_urls_text(self):
-        if self.request.method == 'POST' and 'session_video_urls' in self.request.POST:
-            return self.request.POST['session_video_urls']
-        return '\n'.join(self.session_video_urls)
+    def session_video_links(self):
+        return [describe_video_link(url) for url in self.session_video_urls]
+
+    @context
+    @cached_property
+    def session_video_url_rows(self):
+        if self.request.method == 'POST':
+            return self._posted_session_video_urls()
+        return list(self.session_video_urls)
 
     @context
     @property
     def session_video_urls_error(self):
         return getattr(self, '_session_video_urls_error', None)
 
+    def _posted_session_video_urls(self):
+        urls = []
+        for value in self.request.POST.getlist('session_video_urls'):
+            for line in str(value).splitlines():
+                raw = line.strip()
+                if raw:
+                    urls.append(raw)
+        return urls
+
     def _save_session_video_urls(self, submission):
         if not event_session_videos_enabled(self.request.event):
             return True
         if not self.request.user.has_perm('base.orga_update_submission', self.request.event):
             return True
-        raw = self.request.POST.get('session_video_urls', '')
-        urls = [line.strip() for line in raw.splitlines() if line.strip()]
         try:
-            set_submission_video_urls(submission, urls)
+            set_submission_video_urls(submission, self._posted_session_video_urls())
         except ValueError as exc:
             self._session_video_urls_error = str(exc)
             return False

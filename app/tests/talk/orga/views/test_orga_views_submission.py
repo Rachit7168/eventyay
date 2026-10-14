@@ -16,6 +16,7 @@ from eventyay.common.session_video import (
     ensure_session_video_question,
     get_session_video_question,
     get_submission_video_url,
+    set_submission_video_urls,
 )
 
 @pytest.mark.django_db
@@ -903,6 +904,60 @@ def test_orga_can_save_session_videos_from_submission_edit(orga_client, event, s
     assert response.status_code == 200
     with scope(event=event):
         assert get_submission_video_url(submission) == url
+
+
+@pytest.mark.django_db
+def test_orga_session_videos_render_as_labeled_links(orga_client, event, submission):
+    urls = [
+        'https://youtu.be/dQw4w9WgXcQ',
+        'https://vimeo.com/123456789',
+        'https://commons.wikimedia.org/wiki/File:Big_Buck_Bunny_medium.ogv',
+    ]
+    with scope(event=event):
+        ensure_session_video_question(event)
+        set_submission_video_urls(submission, urls)
+
+    detail = orga_client.get(submission.orga_urls.base)
+    assert detail.status_code == 200
+    assert 'fa-youtube-play' in detail.text
+    assert 'YouTube:' in detail.text
+    assert 'fa-vimeo' in detail.text
+    assert 'Vimeo:' in detail.text
+    assert 'fa-wikipedia-w' in detail.text
+    assert 'Wikimedia Commons:' in detail.text
+
+    edit = orga_client.get(submission.orga_urls.edit)
+    assert edit.status_code == 200
+    assert 'data-session-video-formset' in edit.text
+    assert 'data-session-video-add' in edit.text
+    assert edit.text.count('name="session_video_urls"') == 3
+    assert '<textarea' not in edit.text[edit.text.index('data-session-video-formset'):edit.text.index('data-session-video-add')]
+
+
+@pytest.mark.django_db
+def test_orga_can_save_multiple_session_video_rows(orga_client, event, submission):
+    with scope(event=event):
+        ensure_session_video_question(event)
+    urls = [
+        'https://youtu.be/dQw4w9WgXcQ',
+        'https://vimeo.com/123456789',
+    ]
+    response = orga_client.post(
+        submission.orga_urls.edit,
+        data={
+            'abstract': submission.abstract,
+            'content_locale': submission.content_locale,
+            'title': submission.title,
+            'submission_type': submission.submission_type.pk,
+            'session_video_urls': urls,
+            'resource-TOTAL_FORMS': 0,
+            'resource-INITIAL_FORMS': 0,
+        },
+        follow=True,
+    )
+    assert response.status_code == 200
+    with scope(event=event):
+        assert get_submission_video_url(submission) == '\n'.join(urls)
 
 
 @pytest.mark.django_db

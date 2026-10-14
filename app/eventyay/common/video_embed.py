@@ -5,6 +5,8 @@ from __future__ import annotations
 import re
 from urllib.parse import parse_qs, quote, unquote, urlencode, urlparse
 
+from django.utils.translation import gettext
+
 _YOUTUBE_HOSTS = frozenset(
     {
         'youtube.com',
@@ -234,3 +236,31 @@ def get_video_embed_info(url: str | None) -> dict[str, object] | None:
         }
 
     return None
+
+
+def describe_video_link(url: str) -> dict[str, str]:
+    """Return provider label and icon for a stored session video URL.
+
+    Unknown URLs still return the original address so the organiser can see them,
+    with a generic link icon and no provider name.
+    """
+    info = get_video_embed_info(url)
+    provider = str((info or {}).get('provider') or '')
+    if provider == 'youtube':
+        label = gettext('YouTube')
+        icon_class = 'fa-youtube-play'
+    elif provider == 'vimeo':
+        label = gettext('Vimeo')
+        icon_class = 'fa-vimeo'
+    elif provider == 'wikimedia_commons':
+        label = gettext('Wikimedia Commons')
+        icon_class = 'fa-wikipedia-w'
+    else:
+        label = ''
+        icon_class = 'fa-link'
+    return {
+        'url': url,
+        'provider': provider,
+        'label': label,
+        'icon_class': icon_class,
+    }
