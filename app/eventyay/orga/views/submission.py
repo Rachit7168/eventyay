@@ -568,11 +568,13 @@ class SubmissionContent(ActionFromUrl, ReviewerSubmissionFilter, SubmissionViewM
     @context
     @cached_property
     def session_videos_enabled(self):
+        """Return whether session video links are enabled for the current event."""
         return event_session_videos_enabled(self.request.event)
 
     @context
     @cached_property
     def session_video_urls(self):
+        """Return the list of stored video URLs for the current submission."""
         if not event_session_videos_enabled(self.request.event):
             return []
         submission = self.get_object()
@@ -584,25 +586,30 @@ class SubmissionContent(ActionFromUrl, ReviewerSubmissionFilter, SubmissionViewM
     @context
     @cached_property
     def session_video_links(self):
+        """Return described video link dictionaries with labels and icons."""
         return [describe_video_link(url) for url in self.session_video_urls]
 
     @context
     @cached_property
     def session_video_url_rows(self):
+        """Return video URL rows for editing from POST data or stored URLs."""
         if self.request.method == 'POST':
             return self._posted_session_video_urls()
         return list(self.session_video_urls)
 
     @context
     def session_video_url_limit(self):
+        """Return the maximum number of session video links allowed."""
         return SESSION_VIDEO_URL_LIMIT
 
     @context
     @property
     def session_video_urls_error(self):
+        """Return any error message from saving session video URLs."""
         return getattr(self, '_session_video_urls_error', None)
 
     def _posted_session_video_urls(self):
+        """Extract non-empty video URLs line-by-line from submitted form values."""
         urls = []
         for value in self.request.POST.getlist('session_video_urls'):
             for line in str(value).splitlines():
@@ -612,16 +619,11 @@ class SubmissionContent(ActionFromUrl, ReviewerSubmissionFilter, SubmissionViewM
         return urls
 
     def _save_session_video_urls(self, submission):
+        """Validate and save submitted video URLs to the submission."""
         if not event_session_videos_enabled(self.request.event):
             return True
         if not self.request.user.has_perm('base.orga_update_submission', self.request.event):
             return True
-        posted_fields = self.request.POST.getlist('session_video_urls')
-        if len(posted_fields) > SESSION_VIDEO_URL_LIMIT:
-            self._session_video_urls_error = gettext(
-                'You can add at most %(limit)s video links.'
-            ) % {'limit': SESSION_VIDEO_URL_LIMIT}
-            return False
         try:
             set_submission_video_urls(submission, self._posted_session_video_urls())
         except ValueError as exc:

@@ -7,6 +7,7 @@ from urllib.parse import parse_qs, quote, unquote, urlencode, urlparse
 
 from django.utils.translation import gettext
 
+
 _YOUTUBE_HOSTS = frozenset(
     {
         'youtube.com',
@@ -47,6 +48,7 @@ def _parse_time_to_seconds(value: str | None) -> int | None:
 
 
 def _fragment_time_value(fragment: str | None) -> str | None:
+    """Extract time value from URL fragment (e.g., 't=90')."""
     if not fragment:
         return None
     if fragment.startswith('t='):
@@ -55,6 +57,7 @@ def _fragment_time_value(fragment: str | None) -> str | None:
 
 
 def _youtube_id(parsed) -> str | None:
+    """Extract YouTube video ID from parsed URL."""
     host = (parsed.hostname or '').lower()
     path = parsed.path or ''
     if host in ('youtu.be', 'www.youtu.be'):
@@ -73,6 +76,7 @@ def _youtube_id(parsed) -> str | None:
 
 
 def _youtube_start_seconds(parsed) -> int | None:
+    """Extract YouTube start time in seconds from parsed URL query or fragment."""
     query = parse_qs(parsed.query)
     for key in ('start', 't'):
         values = query.get(key) or []
@@ -89,6 +93,7 @@ def _youtube_start_seconds(parsed) -> int | None:
 
 
 def _vimeo_id(parsed) -> str | None:
+    """Extract Vimeo video ID from parsed URL."""
     host = (parsed.hostname or '').lower()
     if host not in _VIMEO_HOSTS:
         return None
@@ -122,6 +127,7 @@ def _vimeo_time_hash(parsed) -> str | None:
 
 
 def _youtube_embed_url(video_id: str, parsed) -> str:
+    """Build YouTube no-cookie embed URL with optional start parameter."""
     params = {'autoplay': '0'}
     start = _youtube_start_seconds(parsed)
     if start:
@@ -162,11 +168,13 @@ def _commons_file_name(parsed) -> str | None:
 
 
 def _commons_embed_url(file_name: str) -> str:
+    """Build Wikimedia Commons embed player URL."""
     encoded = quote(file_name, safe='')
     return f'https://commons.wikimedia.org/wiki/File:{encoded}?embedplayer=yes'
 
 
 def _vimeo_embed_url(video_id: str, parsed) -> str:
+    """Build Vimeo player embed URL with optional time fragment."""
     # autoplay=0 keeps the player paused on load; timestamps use the #t= fragment.
     embed_url = f'https://player.vimeo.com/video/{video_id}?{urlencode({"autoplay": "0"})}'
     time_hash = _vimeo_time_hash(parsed)

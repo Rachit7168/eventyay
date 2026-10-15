@@ -8,16 +8,23 @@ from django.utils.timezone import now
 from django_scopes import scope
 from PIL import Image
 
-from eventyay.base.models.log import ActivityLog
 from eventyay.base.models import Answer, Availability, Submission, SubmissionStates
-from eventyay.base.models.question import TalkQuestionRequired as QuestionRequired, TalkQuestionVariant as QuestionVariant
+from eventyay.base.models.log import ActivityLog
+from eventyay.base.models.question import (
+    TalkQuestionRequired as QuestionRequired,
+)
+from eventyay.base.models.question import (
+    TalkQuestionVariant as QuestionVariant,
+)
 from eventyay.common.session_video import (
     SESSION_VIDEO_IMPORT_KEY,
+    SESSION_VIDEO_URL_LIMIT,
     ensure_session_video_question,
     get_session_video_question,
     get_submission_video_url,
     set_submission_video_urls,
 )
+
 
 @pytest.mark.django_db
 def test_orga_can_see_submissions(orga_client, event, submission):
@@ -932,7 +939,10 @@ def test_orga_session_videos_render_as_labeled_links(orga_client, event, submiss
     assert 'data-session-video-add' in edit.text
     live_rows = edit.text.split('<template data-session-video-empty-row>', 1)[0]
     assert live_rows.count('name="session_video_urls"') == 3
-    assert '<textarea' not in edit.text[edit.text.index('data-session-video-formset'):edit.text.index('data-session-video-add')]
+    formset_html = edit.text[
+        edit.text.index('data-session-video-formset'):edit.text.index('data-session-video-add')
+    ]
+    assert '<textarea' not in formset_html
 
 
 @pytest.mark.django_db
@@ -959,6 +969,57 @@ def test_orga_can_save_multiple_session_video_rows(orga_client, event, submissio
     assert response.status_code == 200
     with scope(event=event):
         assert get_submission_video_url(submission) == '\n'.join(urls)
+
+
+@pytest.mark.django_db
+def test_orga_session_video_rows_ignore_blanks_and_duplicates_under_limit(orga_client, event, submission):
+    with scope(event=event):
+        ensure_session_video_question(event)
+    urls = [
+        'https://youtu.be/dQw4w9WgXcQ',
+        'https://vimeo.com/123456789',
+    ] + [''] * 10 + ['https://youtu.be/dQw4w9WgXcQ'] * 9
+    assert len(urls) == 21
+    response = orga_client.post(
+        submission.orga_urls.edit,
+        data={
+            'abstract': submission.abstract,
+            'content_locale': submission.content_locale,
+            'title': submission.title,
+            'submission_type': submission.submission_type.pk,
+            'session_video_urls': urls,
+            'resource-TOTAL_FORMS': 0,
+            'resource-INITIAL_FORMS': 0,
+        },
+        follow=True,
+    )
+    assert response.status_code == 200
+    with scope(event=event):
+        assert get_submission_video_url(submission) == 'https://youtu.be/dQw4w9WgXcQ\nhttps://vimeo.com/123456789'
+
+
+@pytest.mark.django_db
+def test_orga_session_video_rows_exceeding_limit_shows_error(orga_client, event, submission):
+    with scope(event=event):
+        ensure_session_video_question(event)
+    urls = [f'https://youtu.be/video{index:05d}' for index in range(SESSION_VIDEO_URL_LIMIT + 1)]
+    response = orga_client.post(
+        submission.orga_urls.edit,
+        data={
+            'abstract': submission.abstract,
+            'content_locale': submission.content_locale,
+            'title': submission.title,
+            'submission_type': submission.submission_type.pk,
+            'session_video_urls': urls,
+            'resource-TOTAL_FORMS': 0,
+            'resource-INITIAL_FORMS': 0,
+        },
+        follow=True,
+    )
+    assert response.status_code == 200
+    assert f'You can add at most {SESSION_VIDEO_URL_LIMIT} video links.' in response.text
+    with scope(event=event):
+        assert get_submission_video_url(submission) == ''
 
 
 @pytest.mark.django_db
