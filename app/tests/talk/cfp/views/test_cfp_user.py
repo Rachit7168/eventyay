@@ -36,6 +36,20 @@ def test_can_see_submission(speaker_client, submission):
 
 
 @pytest.mark.django_db
+def test_speaker_can_open_submission_when_talks_are_unpublished(speaker_client, submission):
+    event = submission.event
+    event.talks_published = False
+    event.save(update_fields=['talks_published'])
+
+    response = speaker_client.get(submission.urls.user_base, follow=True)
+    assert response.status_code == 200
+    assert submission.title in response.text
+
+    schedule = speaker_client.get(event.urls.schedule, follow=False)
+    assert schedule.status_code == 404
+
+
+@pytest.mark.django_db
 def test_orga_gets_redirected_from_speaker_view(orga_client, submission):
     response = orga_client.get(submission.urls.user_base, follow=False)
     assert response.status_code == 302

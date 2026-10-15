@@ -7,6 +7,23 @@ def is_event_visible(user, event):
     return event and event.talks_published
 
 
+@rules.predicate
+def is_event_speaker(user, event):
+    """Speakers keep access to their own proposal pages when talk pages are unpublished."""
+    if not user or not getattr(user, 'is_authenticated', False) or not event:
+        return False
+    from django_scopes import scopes_disabled
+
+    from eventyay.base.models import Submission, SubmissionStates
+
+    with scopes_disabled():
+        return (
+            Submission.objects.filter(event=event, speakers=user)
+            .exclude(state=SubmissionStates.DELETED)
+            .exists()
+        )
+
+
 def get_events_for_user(user, queryset=None):
     from eventyay.base.models import Event
 

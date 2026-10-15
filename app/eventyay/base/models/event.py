@@ -80,6 +80,7 @@ from eventyay.talk_rules.event import (
     can_create_events,
     has_any_permission,
     has_talk_permission,
+    is_event_speaker,
     is_event_visible,
 )
 
@@ -854,7 +855,7 @@ class Event(
         rules_permissions = {
             'orga_access': has_any_permission,
             'talk_orga_access': has_talk_permission,
-            'view': is_event_visible | has_any_permission,
+            'view': is_event_visible | has_any_permission | is_event_speaker,
             'update': can_change_event_settings,
             'create': can_create_events,
         }
