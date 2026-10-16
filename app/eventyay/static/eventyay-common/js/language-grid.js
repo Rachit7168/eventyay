@@ -78,7 +78,7 @@ function syncDefaultLocaleInput(widget, order) {
   if (defaultInput && order[0]) defaultInput.value = order[0];
 }
 
-function renderOrderedDefaultBadges(widget, checkboxes, badgesContainer, countLabel, emptyText) {
+function renderOrderedDefaultBadges(widget, checkboxes, badgesContainer, countLabel, emptyText, focusedCode = null) {
   const order = rememberLocaleOrder(widget, checkboxes);
   badgesContainer.replaceChildren();
   syncDefaultLocaleInput(widget, order);
@@ -112,9 +112,16 @@ function renderOrderedDefaultBadges(widget, checkboxes, badgesContainer, countLa
     text.textContent = labelText;
     badge.appendChild(text);
 
-    const applyOrder = (nextOrder) => {
+    const applyOrder = (nextOrder, isKeyboard = false) => {
       localeOrderByWidget.set(widget, nextOrder);
-      renderOrderedDefaultBadges(widget, checkboxes, badgesContainer, countLabel, emptyText);
+      renderOrderedDefaultBadges(
+        widget,
+        checkboxes,
+        badgesContainer,
+        countLabel,
+        emptyText,
+        isKeyboard ? code : null,
+      );
     };
 
     badge.addEventListener('click', (event) => {
@@ -126,13 +133,15 @@ function renderOrderedDefaultBadges(widget, checkboxes, badgesContainer, countLa
       if (event.key === 'Enter' || event.key === ' ') {
         event.preventDefault();
         event.stopPropagation();
-        if (!isDefault) applyOrder(moveLocale(widget, checkboxes, code, 0));
+        if (!isDefault) applyOrder(moveLocale(widget, checkboxes, code, 0), true);
       } else if (event.key === 'ArrowLeft' && index > 0) {
         event.preventDefault();
-        applyOrder(moveLocale(widget, checkboxes, code, index - 1));
+        event.stopPropagation();
+        applyOrder(moveLocale(widget, checkboxes, code, index - 1), true);
       } else if (event.key === 'ArrowRight' && index < order.length - 1) {
         event.preventDefault();
-        applyOrder(moveLocale(widget, checkboxes, code, index + 1));
+        event.stopPropagation();
+        applyOrder(moveLocale(widget, checkboxes, code, index + 1), true);
       }
     });
     badge.addEventListener('dragstart', (event) => {
@@ -164,6 +173,11 @@ function renderOrderedDefaultBadges(widget, checkboxes, badgesContainer, countLa
   if (countLabel) {
     countLabel.textContent = order.length === 0 ? emptyText : '';
     countLabel.style.display = order.length === 0 ? '' : 'none';
+  }
+
+  if (focusedCode) {
+    const refocus = Array.from(badgesContainer.children).find((el) => el.dataset.code === focusedCode);
+    if (refocus) refocus.focus();
   }
 }
 

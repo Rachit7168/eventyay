@@ -26,10 +26,11 @@ def test_localization_settings_use_first_language_as_default(organizer):
     event.settings.set('locale', 'de')
 
     form = EventCommonSettingsForm(obj=event)
+    locales_attrs = form.fields['locales'].widget.attrs
     assert isinstance(form.fields['locale'].widget, forms.HiddenInput)
     assert 'bold border' in str(form.fields['locales'].help_text)
-    assert form.fields['locales'].widget.attrs['data-ordered-default'] == 'true'
-    assert form.fields['locales'].widget.attrs['data-selected-order'] == 'en,de'
+    assert locales_attrs['data-ordered-default'] == 'true'
+    assert locales_attrs['data-selected-order'] == 'en,de'
 
     data = form.initial.copy()
     data['timezone'] = data.get('timezone') or 'UTC'
@@ -39,3 +40,10 @@ def test_localization_settings_use_first_language_as_default(organizer):
     assert bound.is_valid(), bound.errors
     assert bound.cleaned_data['locales'] == ['de', 'en']
     assert bound.cleaned_data['locale'] == 'de'
+    bound.save()
+    assert event.settings.get('locales') == ['de', 'en']
+    assert event.settings.get('locale') == 'de'
+
+    reopened = EventCommonSettingsForm(obj=event)
+    reopened_attrs = reopened.fields['locales'].widget.attrs
+    assert reopened_attrs['data-selected-order'] == 'de,en'
