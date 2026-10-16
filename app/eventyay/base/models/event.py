@@ -2277,12 +2277,13 @@ class Event(
                 )
         if kwargs:
             context.update(kwargs)
-        try:
-            formatted_text = str(text).format_map(SafeDict(context))
-        except (ValueError, KeyError, IndexError):
-            formatted_text = str(text)
 
         with override(self.locale):
+            try:
+                formatted_text = str(text).format_map(SafeDict(context))
+            except (ValueError, KeyError, IndexError):
+                formatted_text = str(text)
+
             mail = QueuedMail(
                 event=self,
                 subject=_('News from your content system'),

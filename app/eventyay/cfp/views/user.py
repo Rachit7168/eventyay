@@ -137,11 +137,6 @@ class SubmissionViewMixin:
     def has_permission(self):
         return super().has_permission() or self.request.user.has_perm('base.orga_list_submission', self.request.event)
 
-    def handle_no_permission(self):
-        if self.request.user.is_anonymous:
-            return super().handle_no_permission()
-        raise Http404()
-
     def dispatch(self, request, *args, **kwargs):
         if self.request.user not in self.object.speakers.all():
             # User has permission to see permission, but not to see this particular
@@ -188,7 +183,7 @@ class SubmissionsListView(LoggedInEventPageMixin, ListView):
         return self.request.event.submissions.filter(speakers__in=[self.request.user])
 
 
-class SubmissionsWithdrawView(SubmissionViewMixin, LoggedInEventPageMixin, DetailView):
+class SubmissionsWithdrawView(LoggedInEventPageMixin, SubmissionViewMixin, DetailView):
     template_name = 'cfp/event/user_submission_withdraw.html'
     model = Submission
     context_object_name = 'submission'
@@ -233,7 +228,7 @@ class SubmissionsWithdrawView(SubmissionViewMixin, LoggedInEventPageMixin, Detai
         )
 
 
-class SubmissionConfirmView(SubmissionViewMixin, LoggedInEventPageMixin, FormView):
+class SubmissionConfirmView(LoggedInEventPageMixin, SubmissionViewMixin, FormView):
     template_name = 'cfp/event/user_submission_confirm.html'
     form_class = AvailabilitiesFormMixin
 
@@ -282,7 +277,7 @@ class SubmissionConfirmView(SubmissionViewMixin, LoggedInEventPageMixin, FormVie
         )
 
 
-class SubmissionDraftDiscardView(SubmissionViewMixin, LoggedInEventPageMixin, TemplateView):
+class SubmissionDraftDiscardView(LoggedInEventPageMixin, SubmissionViewMixin, TemplateView):
     template_name = 'cfp/event/user_submission_discard.html'
     form_class = AvailabilitiesFormMixin
 
@@ -300,7 +295,7 @@ class SubmissionDraftDiscardView(SubmissionViewMixin, LoggedInEventPageMixin, Te
         )
 
 
-class SubmissionsEditView(SubmissionViewMixin, LoggedInEventPageMixin, UpdateView):
+class SubmissionsEditView(LoggedInEventPageMixin, SubmissionViewMixin, UpdateView):
     template_name = 'cfp/event/user_submission_edit.html'
     model = Submission
     form_class = InfoForm
@@ -457,7 +452,7 @@ class SubmissionsEditView(SubmissionViewMixin, LoggedInEventPageMixin, UpdateVie
         return redirect(self.object.urls.user_base)
 
 
-class SubmissionInviteView(SubmissionViewMixin, LoggedInEventPageMixin, FormView):
+class SubmissionInviteView(LoggedInEventPageMixin, SubmissionViewMixin, FormView):
     form_class = SubmissionInvitationForm
     template_name = 'cfp/event/user_submission_invitation.html'
     permission_required = 'base.add_speaker_submission'
@@ -512,7 +507,7 @@ class SubmissionInviteView(SubmissionViewMixin, LoggedInEventPageMixin, FormView
         return self.submission.urls.user_base
 
 
-class SubmissionInviteResendView(SubmissionViewMixin, LoggedInEventPageMixin, View):
+class SubmissionInviteResendView(LoggedInEventPageMixin, SubmissionViewMixin, View):
     permission_required = 'base.add_speaker_submission'
 
     def get_permission_object(self):
@@ -549,7 +544,7 @@ class SubmissionInviteResendView(SubmissionViewMixin, LoggedInEventPageMixin, Vi
         return redirect(self.submission.urls.user_base)
 
 
-class SubmissionInviteRevokeView(SubmissionViewMixin, LoggedInEventPageMixin, View):
+class SubmissionInviteRevokeView(LoggedInEventPageMixin, SubmissionViewMixin, View):
     permission_required = 'base.add_speaker_submission'
 
     def get_permission_object(self):
