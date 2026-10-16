@@ -892,6 +892,7 @@ def test_orga_can_toggle_submission_featured(orga_client, event, submission):
 
 @pytest.mark.django_db
 def test_orga_can_save_session_videos_from_submission_edit(orga_client, event, submission):
+    """Verify saving a single session video URL from the proposal edit form."""
     with scope(event=event):
         ensure_session_video_question(event)
     url = 'https://youtu.be/dQw4w9WgXcQ?t=90'
@@ -915,6 +916,7 @@ def test_orga_can_save_session_videos_from_submission_edit(orga_client, event, s
 
 @pytest.mark.django_db
 def test_orga_session_videos_render_as_labeled_links(orga_client, event, submission):
+    """Verify session video links render with provider labels/icons and edit formset rows."""
     urls = [
         'https://youtu.be/dQw4w9WgXcQ',
         'https://vimeo.com/123456789',
@@ -937,8 +939,10 @@ def test_orga_session_videos_render_as_labeled_links(orga_client, event, submiss
     assert edit.status_code == 200
     assert 'data-session-video-formset' in edit.text
     assert 'data-session-video-add' in edit.text
+    assert 'data-session-video-clear' in edit.text
     live_rows = edit.text.split('<template data-session-video-empty-row>', 1)[0]
     assert live_rows.count('name="session_video_urls"') == 3
+    assert 'fa-trash' in live_rows
     formset_html = edit.text[
         edit.text.index('data-session-video-formset'):edit.text.index('data-session-video-add')
     ]
@@ -947,6 +951,7 @@ def test_orga_session_videos_render_as_labeled_links(orga_client, event, submiss
 
 @pytest.mark.django_db
 def test_orga_can_save_multiple_session_video_rows(orga_client, event, submission):
+    """Verify saving multiple session video URL rows from the proposal edit form."""
     with scope(event=event):
         ensure_session_video_question(event)
     urls = [
@@ -973,6 +978,7 @@ def test_orga_can_save_multiple_session_video_rows(orga_client, event, submissio
 
 @pytest.mark.django_db
 def test_orga_session_video_rows_ignore_blanks_and_duplicates_under_limit(orga_client, event, submission):
+    """Verify empty lines and duplicate video URLs are stripped during form save."""
     with scope(event=event):
         ensure_session_video_question(event)
     urls = [
@@ -1000,6 +1006,7 @@ def test_orga_session_video_rows_ignore_blanks_and_duplicates_under_limit(orga_c
 
 @pytest.mark.django_db
 def test_orga_session_video_rows_exceeding_limit_shows_error(orga_client, event, submission):
+    """Verify submitting more video URLs than the allowed limit displays an error message."""
     with scope(event=event):
         ensure_session_video_question(event)
     urls = [f'https://youtu.be/video{index:05d}' for index in range(SESSION_VIDEO_URL_LIMIT + 1)]
@@ -1020,6 +1027,45 @@ def test_orga_session_video_rows_exceeding_limit_shows_error(orga_client, event,
     assert f'You can add at most {SESSION_VIDEO_URL_LIMIT} video links.' in response.text
     with scope(event=event):
         assert get_submission_video_url(submission) == ''
+
+
+@pytest.mark.django_db
+def test_orga_session_video_invalid_url_preserves_input_and_rolls_back(orga_client, event, submission):
+    """Submitting an invalid session video URL shows validation error, preserves inputs, and rolls back DB changes."""
+    initial_url = 'https://youtu.be/dQw4w9WgXcQ'
+    with scope(event=event):
+        ensure_session_video_question(event)
+        set_submission_video_urls(submission, [initial_url])
+        assert get_submission_video_url(submission) == initial_url
+
+    submitted_urls = [
+        'https://vimeo.com/123456789',
+        'https://invalid-video-url.example.com/test',
+    ]
+    response = orga_client.post(
+        submission.orga_urls.edit,
+        data={
+            'abstract': submission.abstract,
+            'content_locale': submission.content_locale,
+            'title': submission.title,
+            'submission_type': submission.submission_type.pk,
+            'session_video_urls': submitted_urls,
+            'resource-TOTAL_FORMS': 0,
+            'resource-INITIAL_FORMS': 0,
+        },
+        follow=True,
+    )
+    assert response.status_code == 200
+    assert 'Please enter a valid YouTube, Vimeo, or Wikimedia Commons URL.' in response.text
+
+    # Verify both submitted values are re-rendered in inputs for the organizer to correct
+    live_rows = response.text.split('<template data-session-video-empty-row>', 1)[0]
+    for url in submitted_urls:
+        assert f'value="{url}"' in live_rows
+
+    # Verify atomic rollback: database stored URL must remain untouched with zero partial persistence
+    with scope(event=event):
+        assert get_submission_video_url(submission) == initial_url
 
 
 @pytest.mark.django_db
@@ -1525,7 +1571,9 @@ def test_submission_list_hides_track_name_for_anonymised(orga_client, submission
     """
     with scope(event=submission.event):
         submission.track = track
-        submission.anonymised_data = '{"_anonymised": true, "title": "", "abstract": "", "description": "", "notes": ""}'
+        submission.anonymised_data = (
+            '{"_anonymised": true, "title": "", "abstract": "", "description": "", "notes": ""}'
+        )
         submission.save()
     assert submission.is_anonymised
 

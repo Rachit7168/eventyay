@@ -18,8 +18,10 @@
         <script defer src="{% static "orga/js/submission_form.js" %}"></script>
         <script defer src="{% static 'cfp/js/talk_dependencies.js' %}"></script>
         <script defer src="{% static "orga/js/etherpad.js" %}"></script>
+        {% if session_videos_enabled %}
+            <script defer src="{% static 'orga/js/submission_video.js' %}"></script>
+        {% endif %}
     {% endcompress %}
-    <script type="module" src="{% static 'orga/js/session_video_links.js' %}"></script>
 {% endblock scripts %}
 
 {% block submission_content %}
@@ -110,8 +112,30 @@
                                             >
                                         </div>
                                         <div class="col-md-1">
-                                            <button type="button" class="btn btn-danger btn-sm" data-session-video-remove title="{% translate 'Remove' %}" aria-label="{% translate 'Remove' %}">
-                                                <i class="fa fa-minus" aria-hidden="true"></i>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" data-session-video-remove title="{% translate 'Remove' %}" aria-label="{% translate 'Remove' %}">
+                                                <i class="fa fa-trash" aria-hidden="true"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                {% empty %}
+                                    <div class="row session-video-link-row align-items-center mb-2" data-session-video-row>
+                                        <div class="col-md-11">
+                                            <input
+                                                type="text"
+                                                class="form-control"
+                                                name="session_video_urls"
+                                                value=""
+                                                inputmode="url"
+                                                placeholder="https://www.youtube.com/watch?v=…"
+                                                autocomplete="off"
+                                                autocapitalize="off"
+                                                spellcheck="false"
+                                                aria-label="{% translate 'YouTube, Vimeo, or Wikimedia Commons URL' %}"
+                                            >
+                                        </div>
+                                        <div class="col-md-1">
+                                            <button type="button" class="btn btn-sm btn-outline-danger" data-session-video-remove title="{% translate 'Remove' %}" aria-label="{% translate 'Remove' %}">
+                                                <i class="fa fa-trash" aria-hidden="true"></i>
                                             </button>
                                         </div>
                                     </div>
@@ -134,8 +158,8 @@
                                         >
                                     </div>
                                     <div class="col-md-1">
-                                        <button type="button" class="btn btn-danger btn-sm" data-session-video-remove title="{% translate 'Remove' %}" aria-label="{% translate 'Remove' %}">
-                                            <i class="fa fa-minus" aria-hidden="true"></i>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" data-session-video-remove title="{% translate 'Remove' %}" aria-label="{% translate 'Remove' %}">
+                                            <i class="fa fa-trash" aria-hidden="true"></i>
                                         </button>
                                     </div>
                                 </div>
@@ -143,6 +167,9 @@
                             <p class="mt-2 mb-0">
                                 <button type="button" class="btn btn-sm btn-info" data-session-video-add>
                                     <i class="fa fa-plus" aria-hidden="true"></i> {% translate "Add video link" %}
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-danger ml-2" data-session-video-clear>
+                                    {% translate "Remove all" %}
                                 </button>
                             </p>
                         </div>
