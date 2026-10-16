@@ -17,6 +17,7 @@ ALLOWED_TYPES = {
     'image/gif': {'.gif'},
     'image/jpeg': {'.jpg', '.jpeg'},
     'image/png': {'.png'},
+    'image/webp': {'.webp'},
     'application/pdf': {'.pdf'},
 }
 
