@@ -188,7 +188,7 @@ class SubmissionsListView(LoggedInEventPageMixin, ListView):
         return self.request.event.submissions.filter(speakers__in=[self.request.user])
 
 
-class SubmissionsWithdrawView(LoggedInEventPageMixin, SubmissionViewMixin, DetailView):
+class SubmissionsWithdrawView(SubmissionViewMixin, LoggedInEventPageMixin, DetailView):
     template_name = 'cfp/event/user_submission_withdraw.html'
     model = Submission
     context_object_name = 'submission'
@@ -202,29 +202,27 @@ class SubmissionsWithdrawView(LoggedInEventPageMixin, SubmissionViewMixin, Detai
         if self.request.user.has_perm('base.withdraw_submission', obj):
             if obj.state == SubmissionStates.ACCEPTED and hasattr(obj.event, 'send_orga_mail'):
                 with override(obj.event.locale):
-                    obj.event.send_orga_mail(
-                        str(
-                            _(
-                                textwrap.dedent(
-                                    """
-                        Hi,
+                    template = _(
+                        textwrap.dedent(
+                            """
+                Hi,
 
-                        this is your content system at {event_dashboard}.
-                        Your accepted talk “{title}” by {speakers} was just withdrawn by {user}.
-                        You can find details at {url}.
+                this is your content system at {event_dashboard}.
+                Your accepted talk “{title}” by {speakers} was just withdrawn by {user}.
+                You can find details at {url}.
 
-                        Best regards,
-                        eventyay
-                        """
-                                )
-                            )
-                        ).format(
-                            title=obj.title,
-                            speakers=obj.display_speaker_names,
-                            user=request.user.get_display_name(),
-                            event_dashboard=request.event.orga_urls.base.full(),
-                            url=obj.orga_urls.edit.full(),
+                Best regards,
+                eventyay
+                """
                         )
+                    )
+                    obj.event.send_orga_mail(
+                        template,
+                        title=obj.title,
+                        speakers=obj.display_speaker_names,
+                        user=request.user.get_display_name(),
+                        event_dashboard=request.event.orga_urls.base.full(),
+                        url=obj.orga_urls.edit.full(),
                     )
             obj.withdraw(person=request.user)
             messages.success(self.request, phrases.cfp.submission_withdrawn)
@@ -235,7 +233,7 @@ class SubmissionsWithdrawView(LoggedInEventPageMixin, SubmissionViewMixin, Detai
         )
 
 
-class SubmissionConfirmView(LoggedInEventPageMixin, SubmissionViewMixin, FormView):
+class SubmissionConfirmView(SubmissionViewMixin, LoggedInEventPageMixin, FormView):
     template_name = 'cfp/event/user_submission_confirm.html'
     form_class = AvailabilitiesFormMixin
 
@@ -284,7 +282,7 @@ class SubmissionConfirmView(LoggedInEventPageMixin, SubmissionViewMixin, FormVie
         )
 
 
-class SubmissionDraftDiscardView(LoggedInEventPageMixin, SubmissionViewMixin, TemplateView):
+class SubmissionDraftDiscardView(SubmissionViewMixin, LoggedInEventPageMixin, TemplateView):
     template_name = 'cfp/event/user_submission_discard.html'
     form_class = AvailabilitiesFormMixin
 
@@ -302,7 +300,7 @@ class SubmissionDraftDiscardView(LoggedInEventPageMixin, SubmissionViewMixin, Te
         )
 
 
-class SubmissionsEditView(LoggedInEventPageMixin, SubmissionViewMixin, UpdateView):
+class SubmissionsEditView(SubmissionViewMixin, LoggedInEventPageMixin, UpdateView):
     template_name = 'cfp/event/user_submission_edit.html'
     model = Submission
     form_class = InfoForm
@@ -459,7 +457,7 @@ class SubmissionsEditView(LoggedInEventPageMixin, SubmissionViewMixin, UpdateVie
         return redirect(self.object.urls.user_base)
 
 
-class SubmissionInviteView(LoggedInEventPageMixin, SubmissionViewMixin, FormView):
+class SubmissionInviteView(SubmissionViewMixin, LoggedInEventPageMixin, FormView):
     form_class = SubmissionInvitationForm
     template_name = 'cfp/event/user_submission_invitation.html'
     permission_required = 'base.add_speaker_submission'
@@ -514,7 +512,7 @@ class SubmissionInviteView(LoggedInEventPageMixin, SubmissionViewMixin, FormView
         return self.submission.urls.user_base
 
 
-class SubmissionInviteResendView(LoggedInEventPageMixin, SubmissionViewMixin, View):
+class SubmissionInviteResendView(SubmissionViewMixin, LoggedInEventPageMixin, View):
     permission_required = 'base.add_speaker_submission'
 
     def get_permission_object(self):
@@ -551,7 +549,7 @@ class SubmissionInviteResendView(LoggedInEventPageMixin, SubmissionViewMixin, Vi
         return redirect(self.submission.urls.user_base)
 
 
-class SubmissionInviteRevokeView(LoggedInEventPageMixin, SubmissionViewMixin, View):
+class SubmissionInviteRevokeView(SubmissionViewMixin, LoggedInEventPageMixin, View):
     permission_required = 'base.add_speaker_submission'
 
     def get_permission_object(self):
@@ -584,13 +582,15 @@ class SubmissionInviteAcceptView(LoggedInEventPageMixin, DetailView):
     def has_permission(self):
         try:
             submission = Submission.objects.get(code__iexact=self.kwargs.get('code'))
-            token = self.kwargs.get('invitation', '')
-            if submission.invitation_token and submission.invitation_token.lower() == token.lower():
+            token = self.kwargs.get('invitation')
+            if token and submission.invitation_token and submission.invitation_token.lower() == token.lower():
                 if self.request.user.is_authenticated:
                     user_invites = submission.speaker_invitations.filter(
                         models.Q(email__iexact=self.request.user.email) | models.Q(user=self.request.user)
                     )
-                    if user_invites.exists() and not user_invites.filter(status=SpeakerInvitationStates.PENDING).exists():
+                    if user_invites.exists() and not user_invites.filter(
+                        status=SpeakerInvitationStates.PENDING
+                    ).exists():
                         return False
                 return True
         except (Submission.DoesNotExist, KeyError):
@@ -609,8 +609,10 @@ class SubmissionInviteAcceptView(LoggedInEventPageMixin, DetailView):
 
         try:
             submission = Submission.objects.get(code__iexact=kwargs['code'])
-            token = kwargs.get('invitation', '')
-            if not submission.invitation_token or submission.invitation_token.lower() != token.lower():
+            token = kwargs.get('invitation') or self.kwargs.get('invitation')
+            if token and (
+                not submission.invitation_token or submission.invitation_token.lower() != token.lower()
+            ):
                 messages.error(request, _('This invitation link is invalid or has expired.'))
                 return redirect(request.event.urls.user)
             user_invites = submission.speaker_invitations.filter(
@@ -660,8 +662,11 @@ class SubmissionInviteAcceptView(LoggedInEventPageMixin, DetailView):
 
         with scope(event=self.request.event), transaction.atomic():
             locked_submission = type(submission).all_objects.select_for_update().get(pk=submission.pk)
-            token = kwargs.get('invitation', '')
-            if not locked_submission.invitation_token or locked_submission.invitation_token.lower() != token.lower():
+            token = kwargs.get('invitation') or self.kwargs.get('invitation')
+            if token and (
+                not locked_submission.invitation_token
+                or locked_submission.invitation_token.lower() != token.lower()
+            ):
                 messages.error(self.request, _('This invitation link is invalid or has expired.'))
                 return redirect(self.request.event.urls.user)
 

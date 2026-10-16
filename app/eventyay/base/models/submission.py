@@ -1318,7 +1318,6 @@ def invalidate_schedule_cache_on_submission_change(sender, instance, **kwargs):
     event_id = instance.event_id
     if not event_id:
         return
-    from django_scopes import scope
 
     with scope(event=instance.event):
         if not TalkSlot.objects.filter(

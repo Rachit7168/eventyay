@@ -36,7 +36,7 @@ from django.utils.formats import date_format
 from django.utils.functional import cached_property
 from django.utils.html import format_html
 from django.utils.timezone import make_aware, now
-from django.utils.translation import gettext
+from django.utils.translation import gettext, override
 from django.utils.translation import gettext_lazy as _
 from django_scopes import ScopedManager, scope, scopes_disabled
 from i18nfield.fields import I18nCharField, I18nTextField
@@ -2238,8 +2238,7 @@ class Event(
     def private_testmode_talks_enabled(self):
         return self.private_testmode and self.settings.get('private_testmode_talks', False, as_type=bool)
 
-    def send_orga_mail(self, text, stats=False):
-        from django.utils.translation import override
+    def send_orga_mail(self, text, stats=False, **kwargs):
         from eventyay.base.models import QueuedMail
 
         class SafeDict(dict):
@@ -2252,34 +2251,42 @@ class Event(
             'event_schedule': self.orga_urls.schedule.full() if hasattr(self, 'orga_urls') else '',
             'event_submissions': self.orga_urls.submissions.full() if hasattr(self, 'orga_urls') else '',
             'event_team': self.orga_urls.team_settings.full() if hasattr(self, 'orga_urls') else '',
-            'submission_count': self.submissions.all().count() if hasattr(self, 'submissions') else 0,
         }
-        if stats:
-            context.update(
-                {
-                    'talk_count': (
-                        self.current_schedule.talks.filter(is_visible=True).count()
-                        if self.current_schedule
-                        else 0
-                    ),
-                    'review_count': self.reviews.count() if hasattr(self, 'reviews') else 0,
-                    'schedule_count': (
-                        max(0, self.schedules.count() - 1)
-                        if hasattr(self, 'schedules')
-                        else 0
-                    ),
-                    'mail_count': (
-                        self.queued_mails.filter(sent__isnull=False).count()
-                        if hasattr(self, 'queued_mails')
-                        else 0
-                    ),
-                }
-            )
+        with scope(event=self):
+            context['submission_count'] = self.submissions.all().count() if hasattr(self, 'submissions') else 0
+            if stats:
+                context.update(
+                    {
+                        'talk_count': (
+                            self.current_schedule.talks.filter(is_visible=True).count()
+                            if self.current_schedule
+                            else 0
+                        ),
+                        'review_count': self.reviews.count() if hasattr(self, 'reviews') else 0,
+                        'schedule_count': (
+                            max(0, self.schedules.count() - 1)
+                            if hasattr(self, 'schedules')
+                            else 0
+                        ),
+                        'mail_count': (
+                            self.queued_mails.filter(sent__isnull=False).count()
+                            if hasattr(self, 'queued_mails')
+                            else 0
+                        ),
+                    }
+                )
+        if kwargs:
+            context.update(kwargs)
+        try:
+            formatted_text = str(text).format_map(SafeDict(context))
+        except (ValueError, KeyError, IndexError):
+            formatted_text = str(text)
+
         with override(self.locale):
             mail = QueuedMail(
                 event=self,
                 subject=_('News from your content system'),
-                text=str(text).format_map(SafeDict(context)),
+                text=formatted_text,
                 to=self.email,
                 locale=self.locale,
             )

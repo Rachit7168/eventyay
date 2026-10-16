@@ -1,5 +1,6 @@
 import rules
 from django.db.models import Q
+from django_scopes import scope
 
 
 @rules.predicate
@@ -12,7 +13,6 @@ def is_event_speaker(user, event):
     """Speakers keep access to their own proposal pages when talk pages are unpublished."""
     if not user or not getattr(user, 'is_authenticated', False) or not event:
         return False
-    from django_scopes import scope
 
     from eventyay.base.models import SpeakerProfile, Submission, SubmissionStates
 
