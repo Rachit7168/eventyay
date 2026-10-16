@@ -2242,14 +2242,44 @@ class Event(
         from django.utils.translation import override
         from eventyay.base.models import QueuedMail
 
+        class SafeDict(dict):
+            def __missing__(self, key):
+                return '{' + key + '}'
+
         context = {
+            'event_dashboard': self.orga_urls.base.full() if hasattr(self, 'orga_urls') else '',
+            'event_review': self.orga_urls.reviews.full() if hasattr(self, 'orga_urls') else '',
+            'event_schedule': self.orga_urls.schedule.full() if hasattr(self, 'orga_urls') else '',
+            'event_submissions': self.orga_urls.submissions.full() if hasattr(self, 'orga_urls') else '',
+            'event_team': self.orga_urls.team_settings.full() if hasattr(self, 'orga_urls') else '',
             'submission_count': self.submissions.all().count() if hasattr(self, 'submissions') else 0,
         }
+        if stats:
+            context.update(
+                {
+                    'talk_count': (
+                        self.current_schedule.talks.filter(is_visible=True).count()
+                        if self.current_schedule
+                        else 0
+                    ),
+                    'review_count': self.reviews.count() if hasattr(self, 'reviews') else 0,
+                    'schedule_count': (
+                        max(0, self.schedules.count() - 1)
+                        if hasattr(self, 'schedules')
+                        else 0
+                    ),
+                    'mail_count': (
+                        self.queued_mails.filter(sent__isnull=False).count()
+                        if hasattr(self, 'queued_mails')
+                        else 0
+                    ),
+                }
+            )
         with override(self.locale):
             mail = QueuedMail(
                 event=self,
                 subject=_('News from your content system'),
-                text=str(text).format(**context),
+                text=str(text).format_map(SafeDict(context)),
                 to=self.email,
                 locale=self.locale,
             )

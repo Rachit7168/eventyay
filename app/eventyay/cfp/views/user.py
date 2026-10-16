@@ -558,16 +558,18 @@ class SubmissionInviteRevokeView(LoggedInEventPageMixin, SubmissionViewMixin, Vi
         return self.get_object()
 
     def post(self, request, *args, **kwargs):
-        invitation = get_object_or_404(
-            SpeakerInvitation,
-            submission=self.submission,
-            pk=self.kwargs['pk'],
-            status=SpeakerInvitationStates.PENDING,
-        )
-        email = invitation.email
-        if not invitation.revoke(person=request.user, orga=False):
-            messages.warning(request, _('This invitation cannot be revoked.'))
-            return redirect(self.submission.urls.user_base)
+        with scope(event=self.request.event), transaction.atomic():
+            locked_submission = type(self.submission).all_objects.select_for_update().get(pk=self.submission.pk)
+            invitation = get_object_or_404(
+                SpeakerInvitation.objects.select_for_update(),
+                submission=locked_submission,
+                pk=self.kwargs['pk'],
+                status=SpeakerInvitationStates.PENDING,
+            )
+            email = invitation.email
+            if not invitation.revoke(person=request.user, orga=False):
+                messages.warning(request, _('This invitation cannot be revoked.'))
+                return redirect(self.submission.urls.user_base)
         messages.success(
             request,
             _('The invitation to {email} was revoked.').format(email=email),
@@ -584,6 +586,12 @@ class SubmissionInviteAcceptView(LoggedInEventPageMixin, DetailView):
             submission = Submission.objects.get(code__iexact=self.kwargs.get('code'))
             token = self.kwargs.get('invitation', '')
             if submission.invitation_token and submission.invitation_token.lower() == token.lower():
+                if self.request.user.is_authenticated:
+                    user_invites = submission.speaker_invitations.filter(
+                        models.Q(email__iexact=self.request.user.email) | models.Q(user=self.request.user)
+                    )
+                    if user_invites.exists() and not user_invites.filter(status=SpeakerInvitationStates.PENDING).exists():
+                        return False
                 return True
         except (Submission.DoesNotExist, KeyError):
             pass
@@ -601,8 +609,15 @@ class SubmissionInviteAcceptView(LoggedInEventPageMixin, DetailView):
 
         try:
             submission = Submission.objects.get(code__iexact=kwargs['code'])
-            if not submission.invitation_token or submission.invitation_token.lower() != kwargs['invitation'].lower():
+            token = kwargs.get('invitation', '')
+            if not submission.invitation_token or submission.invitation_token.lower() != token.lower():
                 messages.error(request, _('This invitation link is invalid or has expired.'))
+                return redirect(request.event.urls.user)
+            user_invites = submission.speaker_invitations.filter(
+                models.Q(email__iexact=request.user.email) | models.Q(user=request.user)
+            )
+            if user_invites.exists() and not user_invites.filter(status=SpeakerInvitationStates.PENDING).exists():
+                messages.error(request, _('This invitation has been revoked.'))
                 return redirect(request.event.urls.user)
         except Submission.DoesNotExist:
             messages.error(request, _('This invitation link is invalid.'))
@@ -645,6 +660,24 @@ class SubmissionInviteAcceptView(LoggedInEventPageMixin, DetailView):
 
         with scope(event=self.request.event), transaction.atomic():
             locked_submission = type(submission).all_objects.select_for_update().get(pk=submission.pk)
+            token = kwargs.get('invitation', '')
+            if not locked_submission.invitation_token or locked_submission.invitation_token.lower() != token.lower():
+                messages.error(self.request, _('This invitation link is invalid or has expired.'))
+                return redirect(self.request.event.urls.user)
+
+            matching_invitations = list(
+                locked_submission.speaker_invitations.select_for_update().filter(
+                    models.Q(email__iexact=self.request.user.email) | models.Q(user=self.request.user)
+                )
+            )
+            if matching_invitations:
+                pending_invitations = [i for i in matching_invitations if i.status == SpeakerInvitationStates.PENDING]
+                if not pending_invitations:
+                    messages.error(self.request, _('This invitation has been revoked.'))
+                    return redirect(self.request.event.urls.user)
+            else:
+                pending_invitations = []
+
             if not self.has_seat(locked_submission):
                 messages.error(
                     self.request,
@@ -657,11 +690,7 @@ class SubmissionInviteAcceptView(LoggedInEventPageMixin, DetailView):
             locked_submission.speakers.add(self.request.user)
             locked_submission.log_action('eventyay.submission.speakers.add', person=self.request.user)
             locked_submission.save()
-            for invitation in locked_submission.speaker_invitations.filter(
-                status=SpeakerInvitationStates.PENDING,
-            ).filter(
-                models.Q(email__iexact=self.request.user.email) | models.Q(user=self.request.user)
-            ):
+            for invitation in pending_invitations:
                 invitation.accept(user=self.request.user)
 
         messages.success(self.request, phrases.cfp.invite_accepted)
