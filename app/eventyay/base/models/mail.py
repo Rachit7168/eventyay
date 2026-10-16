@@ -437,6 +437,13 @@ class QueuedMail(PretalxModel):
             if sig and sig.strip().startswith('-- '):
                 sig = sig.strip()[3:].strip()
         body_md = compile_email_body(self.text)
+        talks_in_testmode = bool(
+            event
+            and (
+                event.private_testmode_talks_enabled
+                or event.settings.get('talks_testmode', False, as_type=bool)
+            )
+        )
         html_context = {
             'body': body_md,
             'event': event,
@@ -445,6 +452,7 @@ class QueuedMail(PretalxModel):
             'rtl': is_rtl(self.locale),
             'subject': self.subject,
             'signature': sig,
+            'talks_in_testmode': talks_in_testmode,
         }
         return get_template('mail/mailwrapper.html').render(html_context)
 
@@ -456,11 +464,20 @@ class QueuedMail(PretalxModel):
                 str(event.settings.get('mail_text_signature') or '')
                 or event.mail_settings.get('signature', '')
             ) or None
+        text = self.text
+        if event and (
+            event.private_testmode_talks_enabled
+            or event.settings.get('talks_testmode', False, as_type=bool)
+        ):
+            banner_text = _(
+                'The talks feature is in test mode, only team member administrators and invited speaker can view this page.'
+            )
+            text = f'[{banner_text}]\n\n{text}'
         if not sig:
-            return self.text
+            return text
         if not sig.strip().startswith('-- '):
             sig = f'-- \n{sig}'
-        return f'{self.text}\n{sig}'
+        return f'{text}\n{sig}'
 
     @cached_property
     def prefixed_subject(self):

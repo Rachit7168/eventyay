@@ -137,6 +137,11 @@ class SubmissionViewMixin:
     def has_permission(self):
         return super().has_permission() or self.request.user.has_perm('base.orga_list_submission', self.request.event)
 
+    def handle_no_permission(self):
+        if self.request.user.is_anonymous:
+            return super().handle_no_permission()
+        raise Http404()
+
     def dispatch(self, request, *args, **kwargs):
         if self.request.user not in self.object.speakers.all():
             # User has permission to see permission, but not to see this particular
@@ -195,7 +200,7 @@ class SubmissionsWithdrawView(LoggedInEventPageMixin, SubmissionViewMixin, Detai
     def post(self, request, *args, **kwargs):
         obj = self.get_object()
         if self.request.user.has_perm('base.withdraw_submission', obj):
-            if obj.state == SubmissionStates.ACCEPTED:
+            if obj.state == SubmissionStates.ACCEPTED and hasattr(obj.event, 'send_orga_mail'):
                 with override(obj.event.locale):
                     obj.event.send_orga_mail(
                         str(
@@ -573,6 +578,16 @@ class SubmissionInviteRevokeView(LoggedInEventPageMixin, SubmissionViewMixin, Vi
 class SubmissionInviteAcceptView(LoggedInEventPageMixin, DetailView):
     template_name = 'cfp/event/invitation.html'
     context_object_name = 'submission'
+
+    def has_permission(self):
+        try:
+            submission = Submission.objects.get(code__iexact=self.kwargs.get('code'))
+            token = self.kwargs.get('invitation', '')
+            if submission.invitation_token and submission.invitation_token.lower() == token.lower():
+                return True
+        except (Submission.DoesNotExist, KeyError):
+            pass
+        return super().has_permission()
 
     def get_object(self, queryset=None):
         try:

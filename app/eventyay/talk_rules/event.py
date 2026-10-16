@@ -12,13 +12,19 @@ def is_event_speaker(user, event):
     """Speakers keep access to their own proposal pages when talk pages are unpublished."""
     if not user or not getattr(user, 'is_authenticated', False) or not event:
         return False
-    from django_scopes import scopes_disabled
+    from django_scopes import scope
 
-    from eventyay.base.models import Submission, SubmissionStates
+    from eventyay.base.models import SpeakerProfile, Submission, SubmissionStates
 
-    with scopes_disabled():
+    with scope(event=event):
         return (
-            Submission.objects.filter(event=event, speakers=user)
+            SpeakerProfile.objects.filter(event=event, user=user).exists()
+            or Submission.objects.filter(
+                Q(speakers=user)
+                | Q(speaker_invitations__user=user)
+                | Q(speaker_invitations__email__iexact=getattr(user, 'email', '')),
+                event=event,
+            )
             .exclude(state=SubmissionStates.DELETED)
             .exists()
         )

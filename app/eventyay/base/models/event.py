@@ -2238,6 +2238,23 @@ class Event(
     def private_testmode_talks_enabled(self):
         return self.private_testmode and self.settings.get('private_testmode_talks', False, as_type=bool)
 
+    def send_orga_mail(self, text, stats=False):
+        from django.utils.translation import override
+        from eventyay.base.models import QueuedMail
+
+        context = {
+            'submission_count': self.submissions.all().count() if hasattr(self, 'submissions') else 0,
+        }
+        with override(self.locale):
+            mail = QueuedMail(
+                event=self,
+                subject=_('News from your content system'),
+                text=str(text).format(**context),
+                to=self.email,
+                locale=self.locale,
+            )
+            mail.send()
+
     def _component_presale_status(self, *, published: bool, private_testmode_enabled: bool, testmode: bool):
         if private_testmode_enabled:
             text = _('live (private test mode)') if self.live else _('in private test mode')
