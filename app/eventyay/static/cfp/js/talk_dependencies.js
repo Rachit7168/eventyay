@@ -6,18 +6,28 @@
  */
 
 function talkDependenciesToggle(ev) {
-    function findParentElement(parentName) {
-        // Look for the parent field by its exact name first, then with any
-        // recognised form prefix so that injected speaker fields (prefix
-        // "speaker-") are found as well.
-        const prefixes = ['', 'speaker-'];
-        for (const prefix of prefixes) {
-            const fullName = prefix + parentName;
-            const sel = document.querySelector('select[name="' + fullName + '"]');
+    function findParentElement(el, parentName) {
+        const formScope = (el && el.closest) ? (el.closest('form') || document) : document;
+
+        // Derive prefix from the dependent element (e.g. "speaker-")
+        let prefix = '';
+        if (el) {
+            const elName = (el.getAttribute && el.getAttribute('name')) ||
+                (el.querySelector && el.querySelector('[name]') ? el.querySelector('[name]').getAttribute('name') : '') || '';
+            const match = elName.match(/^(.*-)question_/);
+            if (match) {
+                prefix = match[1];
+            }
+        }
+
+        const prefixes = prefix ? [prefix, ''] : ['', 'speaker-'];
+        for (const p of prefixes) {
+            const fullName = p + parentName;
+            const sel = formScope.querySelector('select[name="' + fullName + '"]');
             if (sel) return { element: sel, type: 'select' };
-            const radios = document.querySelectorAll('input[type="radio"][name="' + fullName + '"]');
+            const radios = formScope.querySelectorAll('input[type="radio"][name="' + fullName + '"]');
             if (radios.length) return { element: radios, type: 'radio' };
-            const checkboxes = Array.from(document.querySelectorAll('input[type="checkbox"][name="' + fullName + '"]'));
+            const checkboxes = Array.from(formScope.querySelectorAll('input[type="checkbox"][name="' + fullName + '"]'));
             const boolCb = checkboxes.find(function(cb) { return !cb.value || cb.value === 'on'; });
             if (boolCb) return { element: boolCb, type: 'checkbox' };
             const multiCbs = checkboxes.filter(function(cb) { return cb.value && cb.value !== 'on'; });
@@ -32,10 +42,15 @@ function talkDependenciesToggle(ev) {
         }
 
         const dependencyId = el.dataset.questionDependency;
-        const dependencyValues = JSON.parse(el.dataset.questionDependencyValues);
+        let dependencyValues;
+        try {
+            dependencyValues = JSON.parse(el.dataset.questionDependencyValues);
+        } catch (e) {
+            return true;
+        }
         const parentName = 'question_' + dependencyId;
 
-        const found = findParentElement(parentName);
+        const found = findParentElement(el, parentName);
         if (!found) return false;
 
         if (found.type === 'select') {

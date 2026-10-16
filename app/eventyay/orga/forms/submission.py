@@ -85,12 +85,18 @@ class SubmissionForm(ReadOnlyFlag, RequestRequire, forms.ModelForm):
         elif 'track' in self.fields:
             self.fields['track'].queryset = event.tracks.all()
             _cfp = getattr(self.event, 'cfp', None) if hasattr(self.event, 'cfp') else None
-            track_visibility = (_cfp.fields.get('track', default_fields()['track']).get('visibility') if _cfp else 'do_not_ask')
+            track_visibility = (
+                _cfp.fields.get('track', default_fields()['track']).get('visibility')
+                if _cfp else 'do_not_ask'
+            )
             if track_visibility == 'required':
                 self.fields['track'].required = True
         if 'content_locale' in self.fields:
             _cfp = getattr(self.event, 'cfp', None) if hasattr(self.event, 'cfp') else None
-            saved_visibility = (_cfp.fields.get('content_locale', default_fields()['content_locale']).get('visibility') if _cfp else 'do_not_ask')
+            saved_visibility = (
+                _cfp.fields.get('content_locale', default_fields()['content_locale']).get('visibility')
+                if _cfp else 'do_not_ask'
+            )
             if len(self.event.content_locales) <= 1 or saved_visibility == 'do_not_ask':
                 self.fields.pop('content_locale')
             else:
@@ -129,7 +135,9 @@ class SubmissionForm(ReadOnlyFlag, RequestRequire, forms.ModelForm):
 
     def save(self, *args, **kwargs):
         if 'content_locale' not in self.fields:
-            self.instance.content_locale = self.event.content_locales[0] if self.event.content_locales else self.event.locale
+            self.instance.content_locale = (
+                self.event.content_locales[0] if self.event.content_locales else self.event.locale
+            )
         instance = super().save(*args, **kwargs)
         if self.is_creating:
             instance._set_state(self.cleaned_data['state'], force=True)
@@ -382,20 +390,47 @@ class AddSpeakerForm(QuestionFieldsMixin, forms.Form):
             field_order.insert(field_order.index('email') + 1, 'no_email')
             self.fields = {k: self.fields[k] for k in field_order}
 
+        resolved_speaker = None
+        if self.is_bound and self.data.get(email_key) and event is not None:
+            email = self.data[email_key]
+            with scope(event=event):
+                existing_profile = (
+                    SpeakerProfile.objects
+                    .filter(event=event, user__email__iexact=email)
+                    .select_related('user')
+                    .first()
+                )
+            if existing_profile:
+                resolved_speaker = existing_profile.user
+
         if include_speaker_questions and event is not None:
             self.inject_questions_into_fields(
                 target=TalkQuestionTarget.SPEAKER,
                 event=event,
+                speaker=resolved_speaker,
             )
 
     def save_speaker_questions(self, speaker):
+        """Save submitted speaker question responses, reconciling any existing answers."""
+        from eventyay.base.models import Answer
+
         self.speaker = speaker
-        for key, value in self.cleaned_data.items():
-            if key.startswith('question_'):
-                self.save_questions(key, value)
+        with scope(event=self.event):
+            for key, value in self.cleaned_data.items():
+                if key.startswith('question_'):
+                    field = self.fields[key]
+                    if not getattr(field, 'answer', None) and speaker:
+                        existing_answer = Answer.objects.filter(
+                            person=speaker,
+                            question=field.question,
+                        ).first()
+                        if existing_answer:
+                            field.answer = existing_answer
+                    self.save_questions(key, value)
 
     @property
     def speaker_question_fields(self):
+        """Return the form fields that represent custom speaker questions."""
         return [field for field in self if field.name.startswith('question_')]
 
     def clean(self):
