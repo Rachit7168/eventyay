@@ -6,12 +6,46 @@ function gettext(msgid) {
 }
 
 function emptyRecipient() {
-    return { email: '', number: '' };
+    return { email: '', number: '', name: '', tag: '' };
 }
 
 function splitCsvLine(line) {
     const delimiter = line.includes(';') && !line.includes(',') ? ';' : ',';
-    return line.split(delimiter).map((part) => part.trim());
+    const cells = [];
+    let current = '';
+    let quoted = false;
+    for (let index = 0; index < line.length; index += 1) {
+        const char = line[index];
+        if (quoted) {
+            if (char === '"') {
+                if (line[index + 1] === '"') {
+                    current += '"';
+                    index += 1;
+                } else {
+                    quoted = false;
+                }
+            } else {
+                current += char;
+            }
+        } else if (char === '"') {
+            quoted = true;
+        } else if (char === delimiter) {
+            cells.push(current.trim());
+            current = '';
+        } else {
+            current += char;
+        }
+    }
+    cells.push(current.trim());
+    return cells;
+}
+
+function csvCell(value) {
+    const text = String(value ?? '');
+    if (/[",\n;]/.test(text)) {
+        return `"${text.replace(/"/g, '""')}"`;
+    }
+    return text;
 }
 
 export function parseRecipients(raw) {
@@ -24,11 +58,11 @@ export function parseRecipients(raw) {
     }
     const structured = lines.some((line) => line.includes(',') || line.includes(';'));
     if (!structured) {
-        return lines.map((email) => ({ email, number: '' }));
+        return lines.map((email) => ({ email, number: '', name: '', tag: '' }));
     }
     const first = splitCsvLine(lines[0]).map((cell) => cell.toLowerCase());
     const start = first.includes('email') ? 1 : 0;
-    const header = start === 1 ? first : ['email', 'number'];
+    const header = start === 1 ? first : ['email', 'number', 'name', 'tag'];
     return lines.slice(start).map((line) => {
         const cells = splitCsvLine(line);
         const record = emptyRecipient();
@@ -42,16 +76,23 @@ export function parseRecipients(raw) {
 }
 
 export function serializeRecipients(rows) {
-    const filled = rows.filter((row) => row.email.trim() || row.number.trim());
+    const filled = rows.filter((row) => row.email.trim() || row.number.trim() || row.name.trim() || row.tag.trim());
     if (!filled.length) {
         return '';
     }
+    const hasDetails = filled.some((row) => row.name.trim() || row.tag.trim());
     const simple = filled.every((row) => !row.number.trim() || row.number.trim() === '1');
-    if (simple) {
+    if (!hasDetails && simple) {
         return filled.map((row) => row.email.trim()).join('\n');
     }
-    const body = filled.map((row) => [row.email.trim(), row.number.trim() || '1'].join(','));
-    return ['email,number', ...body].join('\n');
+    if (!hasDetails) {
+        const body = filled.map((row) => [row.email.trim(), row.number.trim() || '1'].map(csvCell).join(','));
+        return ['email,number', ...body].join('\n');
+    }
+    const body = filled.map((row) =>
+        [row.email.trim(), row.number.trim() || '1', row.name.trim(), row.tag.trim()].map(csvCell).join(','),
+    );
+    return ['email,number,name,tag', ...body].join('\n');
 }
 
 function createField(label, value, options) {
