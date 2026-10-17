@@ -9,8 +9,38 @@ function emptyRecipient() {
     return { email: '', number: '', name: '', tag: '' };
 }
 
-function splitCsvLine(line) {
-    const delimiter = line.includes(';') && !line.includes(',') ? ';' : ',';
+function delimiterOutsideQuotes(line) {
+    let quoted = false;
+    let sawComma = false;
+    let sawSemicolon = false;
+    for (let index = 0; index < line.length; index += 1) {
+        const char = line[index];
+        if (quoted) {
+            if (char === '"') {
+                if (line[index + 1] === '"') {
+                    index += 1;
+                } else {
+                    quoted = false;
+                }
+            }
+        } else if (char === '"') {
+            quoted = true;
+        } else if (char === ',') {
+            sawComma = true;
+        } else if (char === ';') {
+            sawSemicolon = true;
+        }
+    }
+    if (sawSemicolon && !sawComma) {
+        return ';';
+    }
+    if (sawComma) {
+        return ',';
+    }
+    return '';
+}
+
+function splitCsvLine(line, delimiter) {
     const cells = [];
     let current = '';
     let quoted = false;
@@ -56,15 +86,15 @@ export function parseRecipients(raw) {
     if (!lines.length) {
         return [emptyRecipient()];
     }
-    const structured = lines.some((line) => line.includes(',') || line.includes(';'));
-    if (!structured) {
+    const delimiter = delimiterOutsideQuotes(lines[0]);
+    if (!delimiter) {
         return lines.map((email) => ({ email, number: '', name: '', tag: '' }));
     }
-    const first = splitCsvLine(lines[0]).map((cell) => cell.toLowerCase());
+    const first = splitCsvLine(lines[0], delimiter).map((cell) => cell.toLowerCase());
     const start = first.includes('email') ? 1 : 0;
     const header = start === 1 ? first : ['email', 'number', 'name', 'tag'];
     return lines.slice(start).map((line) => {
-        const cells = splitCsvLine(line);
+        const cells = splitCsvLine(line, delimiter);
         const record = emptyRecipient();
         header.forEach((column, index) => {
             if (column in record) {
