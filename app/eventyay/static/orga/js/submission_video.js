@@ -6,6 +6,18 @@
 
 let submissionVideoController = null
 
+function readCsrfToken() {
+    const prefix = 'eventyay_csrftoken='
+    const cookie = document.cookie
+        .split(';')
+        .map((part) => part.trim())
+        .find((part) => part.startsWith(prefix))
+    if (!cookie) {
+        throw new Error('Missing CSRF cookie eventyay_csrftoken')
+    }
+    return decodeURIComponent(cookie.slice(prefix.length))
+}
+
 /**
  * Creates and binds a unified session video row list manager.
  *
@@ -274,7 +286,7 @@ const getSubmissionVideoDialog = () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': typeof getCookie === 'function' ? getCookie('eventyay_csrftoken') : '',
+                    'X-CSRFToken': readCsrfToken(),
                 },
                 credentials: 'include',
                 body: JSON.stringify({ urls }),

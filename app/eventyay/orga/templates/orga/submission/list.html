@@ -235,7 +235,7 @@
             aria-labelledby="submission-video-dialog-title"
             data-url-label="{% translate 'YouTube, Vimeo, or Wikimedia Commons URL' %}"
             data-remove-label="{% translate 'Remove' %}"
-            data-max-rows="20"
+            data-max-rows="{{ session_video_url_limit }}"
         >
             <form method="dialog" id="submission-video-form">
                 <h3 id="submission-video-dialog-title">{% translate "Session videos" %}</h3>

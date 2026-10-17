@@ -941,6 +941,7 @@ class SubmissionList(EventPermissionRequired, BaseSubmissionList):
                 track.pk: track.color
                 for track in self.request.event.tracks.all()
             }
+        ctx['session_video_url_limit'] = SESSION_VIDEO_URL_LIMIT
         return ctx
 
 

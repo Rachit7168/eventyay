@@ -96,73 +96,11 @@
                         >
                             <div data-session-video-rows>
                                 {% for url in session_video_url_rows %}
-                                    <div class="row session-video-link-row align-items-center mb-2" data-session-video-row>
-                                        <div class="col-md-11">
-                                            <input
-                                                type="text"
-                                                class="form-control"
-                                                name="session_video_urls"
-                                                value="{{ url }}"
-                                                inputmode="url"
-                                                placeholder="https://www.youtube.com/watch?v=…"
-                                                autocomplete="off"
-                                                autocapitalize="off"
-                                                spellcheck="false"
-                                                aria-label="{% translate 'YouTube, Vimeo, or Wikimedia Commons URL' %}"
-                                            >
-                                        </div>
-                                        <div class="col-md-1">
-                                            <button type="button" class="btn btn-sm btn-outline-danger" data-session-video-remove title="{% translate 'Remove' %}" aria-label="{% translate 'Remove' %}">
-                                                <i class="fa fa-trash" aria-hidden="true"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                {% empty %}
-                                    <div class="row session-video-link-row align-items-center mb-2" data-session-video-row>
-                                        <div class="col-md-11">
-                                            <input
-                                                type="text"
-                                                class="form-control"
-                                                name="session_video_urls"
-                                                value=""
-                                                inputmode="url"
-                                                placeholder="https://www.youtube.com/watch?v=…"
-                                                autocomplete="off"
-                                                autocapitalize="off"
-                                                spellcheck="false"
-                                                aria-label="{% translate 'YouTube, Vimeo, or Wikimedia Commons URL' %}"
-                                            >
-                                        </div>
-                                        <div class="col-md-1">
-                                            <button type="button" class="btn btn-sm btn-outline-danger" data-session-video-remove title="{% translate 'Remove' %}" aria-label="{% translate 'Remove' %}">
-                                                <i class="fa fa-trash" aria-hidden="true"></i>
-                                            </button>
-                                        </div>
-                                    </div>
+                                    {% include "orga/submission/session_video_url_row.html" with value=url %}
                                 {% endfor %}
                             </div>
                             <template data-session-video-empty-row>
-                                <div class="row session-video-link-row align-items-center mb-2" data-session-video-row>
-                                    <div class="col-md-11">
-                                        <input
-                                            type="text"
-                                            class="form-control"
-                                            name="session_video_urls"
-                                            value=""
-                                            inputmode="url"
-                                            placeholder="https://www.youtube.com/watch?v=…"
-                                            autocomplete="off"
-                                            autocapitalize="off"
-                                            spellcheck="false"
-                                            aria-label="{% translate 'YouTube, Vimeo, or Wikimedia Commons URL' %}"
-                                        >
-                                    </div>
-                                    <div class="col-md-1">
-                                        <button type="button" class="btn btn-sm btn-outline-danger" data-session-video-remove title="{% translate 'Remove' %}" aria-label="{% translate 'Remove' %}">
-                                            <i class="fa fa-trash" aria-hidden="true"></i>
-                                        </button>
-                                    </div>
-                                </div>
+                                {% include "orga/submission/session_video_url_row.html" %}
                             </template>
                             <p class="mt-2 mb-0">
                                 <button type="button" class="btn btn-sm btn-info" data-session-video-add>
