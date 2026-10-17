@@ -520,16 +520,21 @@ class VoucherBulkForm(VoucherForm):
                         _('{value} is not a valid email address.').format(value=row['email'])
                     ) from err
                 try:
-                    res.append(
-                        self.Recipient(
-                            name=row.get('name', ''),
-                            email=row['email'].strip(),
-                            number=int(row.get('number', 1)),
-                            tag=row.get('tag', None),
-                        )
-                    )
+                    number = int(row.get('number') or 1)
                 except ValueError as err:
                     raise ValidationError(_('Invalid value in row {number}.').format(number=i + 1)) from err
+                if number < 1:
+                    raise ValidationError(
+                        _('The number of vouchers in row {number} must be at least 1.').format(number=i + 1)
+                    )
+                res.append(
+                    self.Recipient(
+                        name=row.get('name', ''),
+                        email=row['email'].strip(),
+                        number=number,
+                        tag=row.get('tag', None),
+                    )
+                )
         else:
             for e in r:
                 try:

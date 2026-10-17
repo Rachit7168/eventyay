@@ -2,6 +2,9 @@
 
 from types import SimpleNamespace
 
+import pytest
+from django.core.exceptions import ValidationError
+
 from eventyay.base.email import voucher_redemption_urls
 from eventyay.common.forms.widgets import EmailEditorWidget
 from eventyay.control.forms.vouchers import VoucherBulkForm
@@ -23,6 +26,35 @@ def test_voucher_redemption_urls_link_each_code(monkeypatch):
         '<a href="https://shop.example/ccc/30c3/redeem/?voucher=A%20B%26C">'
         'https://shop.example/ccc/30c3/redeem/?voucher=A%20B%26C</a>'
     )
+
+
+def _recipients_form(raw):
+    form = VoucherBulkForm.__new__(VoucherBulkForm)
+    form.cleaned_data = {'send_recipients': raw}
+    return form
+
+
+def test_negative_recipient_count_is_rejected():
+    form = _recipients_form('email,number\nfoo@example.com,-1\nbar@example.com,3')
+
+    with pytest.raises(ValidationError, match='at least 1'):
+        VoucherBulkForm.clean_send_recipients(form)
+
+
+def test_zero_recipient_count_is_rejected():
+    form = _recipients_form('email,number\nfoo@example.com,0')
+
+    with pytest.raises(ValidationError, match='at least 1'):
+        VoucherBulkForm.clean_send_recipients(form)
+
+
+def test_positive_recipient_count_is_kept():
+    form = _recipients_form('email,number\nfoo@example.com,2')
+
+    recipients = VoucherBulkForm.clean_send_recipients(form)
+
+    assert recipients[0].number == 2
+    assert recipients[0].email == 'foo@example.com'
 
 
 def test_bulk_voucher_email_uses_tiptap_editor():
