@@ -568,7 +568,7 @@ class VoucherFormTest(SoupTestMixin, TransactionTestCase):
                 'itemvar': '%d' % self.shirt.pk,
                 'send': 'on',
                 'send_subject': 'Your voucher',
-                'send_message': 'Redeem here: {voucher_url_list}',
+                'send_message': 'Redeem here: {Voucher URL}',
                 'send_recipients': 'foo@example.com\nfoo@example.net',
             }
         )

@@ -923,7 +923,7 @@ def base_placeholders(sender: Event, **kwargs):
             '    68CYU2H6ZTP3WLK5\n    7MB94KKPVEPSMVF2',
         ),
         SimpleFunctionalMailTextPlaceholder(
-            'voucher_url_list',
+            'Voucher URL',
             ['event', 'voucher_list'],
             voucher_redemption_urls,
             lambda event: voucher_redemption_urls(event, ['68CYU2H6ZTP3WLK5', '7MB94KKPVEPSMVF2']),

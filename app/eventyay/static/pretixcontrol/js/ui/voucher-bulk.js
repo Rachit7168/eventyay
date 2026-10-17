@@ -1,5 +1,3 @@
-import { initVoucherRecipients } from './voucher-recipients.js';
-
 const formSelector = '[data-voucher-bulk-form]';
 const tagSelector = '[name="tag"]';
 const tagPrefixSelector = '[name="use_tag_as_prefix"]';
@@ -176,7 +174,6 @@ const observer = new MutationObserver((mutations) => {
     if (formOrWrapperMutated) {
         isSubmitting = false;
         document.querySelectorAll(formSelector).forEach((form) => syncPrefix(form, true));
-        initVoucherRecipients(document);
         if (!hasScrolledToError) {
             scrollToError();
         }
@@ -194,10 +191,8 @@ if (document.body) {
 window.addEventListener('pageshow', () => {
     isSubmitting = false;
     document.querySelectorAll(formSelector).forEach((form) => syncPrefix(form, true));
-    initVoucherRecipients(document);
     scrollToError();
 });
 
 document.querySelectorAll(formSelector).forEach((form) => syncPrefix(form, true));
-initVoucherRecipients(document);
 scrollToError();

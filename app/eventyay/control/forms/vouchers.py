@@ -408,7 +408,7 @@ class VoucherBulkForm(VoucherForm):
             "<p>with this email, we're sending you one or more vouchers for {event}:</p>"
             '<p>{voucher_list}</p>'
             '<p>You can redeem them directly here:</p>'
-            '<p>{voucher_url_list}</p>'
+            '<p>{Voucher URL}</p>'
             '<p>Best regards,</p>'
             '<p>Your {event} team</p>'
         ),
@@ -418,13 +418,16 @@ class VoucherBulkForm(VoucherForm):
         widget=forms.Textarea(
             attrs={
                 'data-display-dependency': '#id_send',
-                'data-voucher-recipients': 'true',
-                'rows': '3',
-                'placeholder': _('one email address per line'),
+                'placeholder': 'email,number,name,tag\njohn@example.org,3,John,example\n\n-- {} --\n\njohn@example.org\njane@example.net'.format(
+                    _('or')
+                ),
             }
         ),
         required=False,
-        help_text=_('Add one recipient per row. Count is how many vouchers that person receives.'),
+        help_text=_(
+            'You can either supply a list of email addresses with one email address per line, or a CSV file with a title column '
+            'and one or more of the columns "email", "number", "name", or "tag".'
+        ),
     )
     Recipient = namedtuple('Recipient', 'email number name tag')
 
