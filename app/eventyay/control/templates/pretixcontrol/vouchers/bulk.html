@@ -4,6 +4,10 @@
 {% load bootstrap3 %}
 {% load static %}
 {% block title %}{% trans "Voucher" %}{% endblock %}
+{% block custom_header %}
+    {{ block.super }}
+    <link rel="stylesheet" type="text/css" href="{% static 'pretixcontrol/css/voucher-recipients.css' %}">
+{% endblock %}
 {% block inside %}
     {% trans "Create multiple vouchers" as header_title %}
     {% include "common/includes/header_nav.html" with header_title=header_title header_component_link="pretixcontrol/event/component_link.html" %}
