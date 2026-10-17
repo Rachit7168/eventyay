@@ -78,11 +78,38 @@ function csvCell(value) {
     return text;
 }
 
+function splitCsvRecords(raw) {
+    const text = String(raw || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    const records = [];
+    let current = '';
+    let quoted = false;
+    for (let index = 0; index < text.length; index += 1) {
+        const char = text[index];
+        if (char === '"') {
+            current += char;
+            if (quoted && text[index + 1] === '"') {
+                current += text[index + 1];
+                index += 1;
+            } else {
+                quoted = !quoted;
+            }
+        } else if (char === '\n' && !quoted) {
+            if (current.trim()) {
+                records.push(current.trim());
+            }
+            current = '';
+        } else {
+            current += char;
+        }
+    }
+    if (current.trim()) {
+        records.push(current.trim());
+    }
+    return records;
+}
+
 export function parseRecipients(raw) {
-    const lines = String(raw || '')
-        .split(/\r?\n/)
-        .map((line) => line.trim())
-        .filter(Boolean);
+    const lines = splitCsvRecords(raw);
     if (!lines.length) {
         return [emptyRecipient()];
     }
