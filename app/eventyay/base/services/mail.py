@@ -708,7 +708,7 @@ def _stringify_mail_context(context: dict[str, Any] | None) -> dict[str, str]:
 # ``format_map`` only replaces the ``{order_qr}`` text node. When chip text is
 # missing braces (or was left unresolved), replace the whole span from context.
 _DATA_VARIABLE_CHIP_RE = re.compile(
-    r'<span\b([^>]*\bdata-variable=["\']([a-zA-Z][a-zA-Z0-9_]*(?: [a-zA-Z0-9_]+)*)["\'][^>]*)>(.*?)</span>',
+    r'<span\b([^>]*\bdata-variable=["\']([a-zA-Z][a-zA-Z0-9_]*)["\'][^>]*)>(.*?)</span>',
     re.IGNORECASE | re.DOTALL,
 )
 

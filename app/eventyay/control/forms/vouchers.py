@@ -408,7 +408,7 @@ class VoucherBulkForm(VoucherForm):
             "<p>with this email, we're sending you one or more vouchers for {event}:</p>"
             '<p>{voucher_list}</p>'
             '<p>You can redeem them directly here:</p>'
-            '<p>{Voucher URL}</p>'
+            '<p>{voucher_url}</p>'
             '<p>Best regards,</p>'
             '<p>Your {event} team</p>'
         ),

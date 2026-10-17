@@ -200,7 +200,7 @@ def _preview_placeholder_context(html_body: str) -> list[str]:
     """
     parameters = list(_PREVIEW_PLACEHOLDER_CONTEXT)
     if re.search(
-        r'\{(?:voucher_list|Voucher URL)\}|data-variable=["\'](?:voucher_list|Voucher URL)["\']',
+        r'\{voucher_(?:list|url)\}|data-variable=["\']voucher_(?:list|url)["\']',
         html_body or '',
     ):
         parameters.extend(['voucher_list', 'name'])

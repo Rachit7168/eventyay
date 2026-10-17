@@ -61,16 +61,16 @@ def test_bulk_voucher_email_uses_tiptap_editor():
     field = VoucherBulkForm.base_fields['send_message']
     assert isinstance(field.widget, EmailEditorWidget)
     assert field.widget.attrs['data-tiptap-profile'] == 'email'
-    assert '{Voucher URL}' in field.initial
+    assert '{voucher_url}' in field.initial
 
 
 def test_voucher_url_chip_expands():
     from eventyay.base.services.mail import expand_email_variable_chips
 
-    body = '<span class="tiptap-placeholder-chip" data-variable="Voucher URL">{Voucher URL}</span>'
+    body = '<span class="tiptap-placeholder-chip" data-variable="voucher_url">{voucher_url}</span>'
     expanded = expand_email_variable_chips(
         body,
-        {'Voucher URL': '<a href="https://shop.example/redeem/?voucher=ABC">link</a>'},
+        {'voucher_url': '<a href="https://shop.example/redeem/?voucher=ABC">link</a>'},
     )
 
     assert expanded == '<a href="https://shop.example/redeem/?voucher=ABC">link</a>'
