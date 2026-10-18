@@ -338,10 +338,7 @@ def get_stages(event):
                     check_cache = _build_stage_check_cache(event)
                 link['is_configured'] = bool(check_cache.get(link['check_key'], False))
             elif 'check' in link:
-                try:
-                    link['is_configured'] = bool(link['check'](event))
-                except Exception:
-                    link['is_configured'] = False
+                link['is_configured'] = bool(link['check'](event))
             else:
                 link['is_configured'] = None
             if 'url' in link and link['url']:

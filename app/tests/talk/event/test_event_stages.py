@@ -89,3 +89,9 @@ def test_newly_created_event_stage(event):
         wrapup_titles = [link['title'] for link in stages['WRAPUP']['links']]
         assert 'Release next event date?' not in wrapup_titles
 
+        # Private event with published talks should still have CFP_OPEN as todo
+        event.is_public = False
+        event.talks_published = True
+        event.save()
+        assert get_stages(event)['CFP_OPEN']['phase'] == 'todo'
+

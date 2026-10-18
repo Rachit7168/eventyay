@@ -209,7 +209,7 @@ class EventDashboardView(EventPermissionRequired, SubmissionStatsMixin, Template
             filtered_links = []
             for link in stage.get('links', []):
                 perm = link.get('permission')
-                if not perm or is_admin or can_change_settings or user_perms.get(perm, False):
+                if not perm or is_admin or user_perms.get(perm, False):
                     filtered_links.append(link)
             stage['links'] = filtered_links
 

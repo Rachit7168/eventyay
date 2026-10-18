@@ -18,6 +18,13 @@ if (timelineSteps.length) {
         const menu = step.querySelector('.timeline-step-links');
         if (!menu) return;
 
+        // Synchronize hover state with aria-expanded attribute
+        step.addEventListener('mouseenter', function () {
+            if (!step.classList.contains('is-closed') && content && content.hasAttribute('aria-expanded')) {
+                content.setAttribute('aria-expanded', 'true');
+            }
+        });
+
         // Reset closed state when pointer leaves step so future hovers work
         step.addEventListener('mouseleave', function () {
             step.classList.remove('is-closed');
@@ -42,7 +49,8 @@ if (timelineSteps.length) {
             content.addEventListener('click', function (e) {
                 if (menu) {
                     e.preventDefault();
-                    if (step.classList.contains('is-open')) {
+                    const isVisible = step.classList.contains('is-open') || (!step.classList.contains('is-closed') && step.matches(':hover'));
+                    if (isVisible) {
                         step.classList.remove('is-open');
                         step.classList.add('is-closed');
                         content.setAttribute('aria-expanded', 'false');
