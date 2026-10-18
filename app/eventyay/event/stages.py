@@ -114,30 +114,68 @@ def _is_cfp_configured(event):
 
 def _build_stage_check_cache(event):
     cache = {}
-    has_submissions = event.submissions.exists()
+    try:
+        has_submissions = event.submissions.exists()
+    except Exception:
+        has_submissions = False
     cache['has_submissions'] = has_submissions
+
     if has_submissions:
-        cache['has_accepted_or_rejected'] = event.submissions.filter(
-            state__in=[SubmissionStates.ACCEPTED, SubmissionStates.REJECTED]
-        ).exists()
-        cache['has_feedback'] = event.submissions.filter(feedback__isnull=False).exists()
-        cache['has_recordings'] = event.submissions.filter(recording_url__isnull=False).exists()
+        try:
+            cache['has_accepted_or_rejected'] = event.submissions.filter(
+                state__in=[SubmissionStates.ACCEPTED, SubmissionStates.REJECTED]
+            ).exists()
+        except Exception:
+            cache['has_accepted_or_rejected'] = False
+
+        try:
+            cache['has_feedback'] = event.submissions.filter(feedback__isnull=False).exists()
+        except Exception:
+            cache['has_feedback'] = False
+
+        try:
+            cache['has_recordings'] = (
+                event.submissions.filter(answers__question__variant='video').exclude(answers__answer='').exists()
+                or event.submissions.filter(resources__link__isnull=False).exists()
+            )
+        except Exception:
+            cache['has_recordings'] = False
     else:
         cache['has_accepted_or_rejected'] = False
         cache['has_feedback'] = False
         cache['has_recordings'] = False
 
-    cache['has_speakers'] = event.speakers.exists()
-    cache['has_reviewers'] = event.reviewers.exists()
-    cache['has_reviews'] = event.reviews.exists()
+    try:
+        cache['has_speakers'] = event.speakers.exists()
+    except Exception:
+        cache['has_speakers'] = False
 
-    current_schedule = getattr(event, 'current_schedule', None)
-    wip_schedule = getattr(event, 'wip_schedule', None)
-    cache['has_schedule'] = current_schedule is not None
-    cache['has_first_schedule'] = current_schedule is not None or bool(
-        wip_schedule and wip_schedule.talks.filter(start__isnull=False).exists()
-    )
-    cache['has_sent_mails'] = event.queued_mails.filter(sent__isnull=False).exists()
+    try:
+        cache['has_reviewers'] = event.reviewers.exists()
+    except Exception:
+        cache['has_reviewers'] = False
+
+    try:
+        cache['has_reviews'] = event.reviews.exists()
+    except Exception:
+        cache['has_reviews'] = False
+
+    try:
+        current_schedule = getattr(event, 'current_schedule', None)
+        wip_schedule = getattr(event, 'wip_schedule', None)
+        cache['has_schedule'] = current_schedule is not None
+        cache['has_first_schedule'] = current_schedule is not None or bool(
+            wip_schedule and wip_schedule.talks.filter(start__isnull=False).exists()
+        )
+    except Exception:
+        cache['has_schedule'] = False
+        cache['has_first_schedule'] = False
+
+    try:
+        cache['has_sent_mails'] = event.queued_mails.filter(sent__isnull=False).exists()
+    except Exception:
+        cache['has_sent_mails'] = False
+
     return cache
 
 
