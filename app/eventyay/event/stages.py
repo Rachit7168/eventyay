@@ -1,7 +1,7 @@
 import copy
 import datetime as dt
 
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
@@ -23,7 +23,7 @@ def _get_tz(event):
     tz = getattr(event, 'timezone', None) or 'UTC'
     try:
         return ZoneInfo(tz) if isinstance(tz, str) else tz
-    except Exception:
+    except (ZoneInfoNotFoundError, ValueError):
         return dt.timezone.utc
 
 
@@ -112,6 +112,35 @@ def _is_cfp_configured(event):
     )
 
 
+def _build_stage_check_cache(event):
+    cache = {}
+    has_submissions = event.submissions.exists()
+    cache['has_submissions'] = has_submissions
+    if has_submissions:
+        cache['has_accepted_or_rejected'] = event.submissions.filter(
+            state__in=[SubmissionStates.ACCEPTED, SubmissionStates.REJECTED]
+        ).exists()
+        cache['has_feedback'] = event.submissions.filter(feedback__isnull=False).exists()
+        cache['has_recordings'] = event.submissions.filter(recording_url__isnull=False).exists()
+    else:
+        cache['has_accepted_or_rejected'] = False
+        cache['has_feedback'] = False
+        cache['has_recordings'] = False
+
+    cache['has_speakers'] = event.speakers.exists()
+    cache['has_reviewers'] = event.reviewers.exists()
+    cache['has_reviews'] = event.reviews.exists()
+
+    current_schedule = getattr(event, 'current_schedule', None)
+    wip_schedule = getattr(event, 'wip_schedule', None)
+    cache['has_schedule'] = current_schedule is not None
+    cache['has_first_schedule'] = current_schedule is not None or bool(
+        wip_schedule and wip_schedule.talks.filter(start__isnull=False).exists()
+    )
+    cache['has_sent_mails'] = event.queued_mails.filter(sent__isnull=False).exists()
+    return cache
+
+
 STAGES = {
     'PREPARATION': {
         'name': _('Preparation'),
@@ -122,11 +151,13 @@ STAGES = {
                 'title': _('Configure the event'),
                 'url': ['orga_urls', 'settings'],
                 'check': _is_event_configured,
+                'permission': 'can_change_settings',
             },
             {
                 'title': _('Write a CfP'),
                 'url': ['cfp', 'urls', 'edit_text'],
                 'check': _is_cfp_configured,
+                'permission': 'can_change_settings',
             },
         ],
     },
@@ -138,22 +169,26 @@ STAGES = {
             {
                 'title': _('Monitor proposals'),
                 'url': ['orga_urls', 'submissions'],
-                'check': lambda event: event.submissions.exists(),
+                'check_key': 'has_submissions',
+                'permission': 'can_view_submission_stats',
             },
             {
                 'title': _('Submit sessions for your speakers'),
                 'url': ['orga_urls', 'new_submission'],
-                'check': lambda event: event.submissions.exists(),
+                'check_key': 'has_submissions',
+                'permission': 'can_update_submission',
             },
             {
                 'title': _('Add new speaker'),
                 'url': ['orga_urls', 'new_speaker'],
-                'check': lambda event: event.speakers.exists(),
+                'check_key': 'has_speakers',
+                'permission': 'can_list_speaker',
             },
             {
                 'title': _('Invite reviewers'),
                 'url': ['organizer', 'orga_urls', 'teams'],
-                'check': lambda event: event.reviewers.exists(),
+                'check_key': 'has_reviewers',
+                'permission': 'can_view_teams',
             },
         ],
     },
@@ -165,20 +200,20 @@ STAGES = {
             {
                 'title': _('Let reviewers do their work'),
                 'url': ['orga_urls', 'reviews'],
-                'check': lambda event: event.reviews.exists(),
+                'check_key': 'has_reviews',
+                'permission': 'can_review',
             },
             {
                 'title': _('Accept or reject proposals'),
                 'url': ['orga_urls', 'submissions'],
-                'check': lambda event: event.submissions.filter(
-                    state__in=[SubmissionStates.ACCEPTED, SubmissionStates.REJECTED]
-                ).exists(),
+                'check_key': 'has_accepted_or_rejected',
+                'permission': 'can_update_submission',
             },
             {
                 'title': _('Build your first schedule'),
                 'url': ['orga_urls', 'schedule'],
-                'check': lambda event: getattr(event, 'current_schedule', None) is not None
-                or (getattr(event, 'wip_schedule', None) and event.wip_schedule.talks.filter(start__isnull=False).exists()),
+                'check_key': 'has_first_schedule',
+                'permission': 'can_edit_schedule',
             },
         ],
     },
@@ -190,12 +225,14 @@ STAGES = {
             {
                 'title': _('Release schedules as needed'),
                 'url': ['orga_urls', 'schedule'],
-                'check': lambda event: getattr(event, 'current_schedule', None) is not None,
+                'check_key': 'has_schedule',
+                'permission': 'can_edit_schedule',
             },
             {
                 'title': _('Inform your speakers about the infrastructure'),
                 'url': ['orga_urls', 'compose_mails_sessions'],
-                'check': lambda event: event.queued_mails.filter(sent__isnull=False).exists(),
+                'check_key': 'has_sent_mails',
+                'permission': 'can_send_mail',
             },
         ],
     },
@@ -208,6 +245,7 @@ STAGES = {
                 'title': _('Provide a point of contact for the speakers'),
                 'url': ['orga_urls', 'settings'],
                 'check': lambda event: bool(getattr(event, 'email', None)),
+                'permission': 'can_change_settings',
             },
             {'title': _('Enjoy the event!')},
         ],
@@ -220,12 +258,14 @@ STAGES = {
             {
                 'title': _('Monitor incoming feedback'),
                 'url': ['orga_urls', 'feedback'],
-                'check': lambda event: event.submissions.filter(feedback__isnull=False).exists(),
+                'check_key': 'has_feedback',
+                'permission': 'can_view_submission_stats',
             },
             {
                 'title': _('Embed session recordings if available'),
                 'url': ['orga_urls', 'submissions'],
-                'check': lambda event: event.submissions.filter(recording_url__isnull=False).exists(),
+                'check_key': 'has_recordings',
+                'permission': 'can_update_submission',
             },
         ],
     },
@@ -247,6 +287,7 @@ def build_event_url(event, url):
 def get_stages(event):
     inactive_state = 'done'
     stages = copy.deepcopy(STAGES)
+    check_cache = None
 
     for stage in STAGES:
         is_stage_active = inactive_state == 'done' and in_stage(event, stage)
@@ -254,7 +295,11 @@ def get_stages(event):
             inactive_state = 'todo'
         stages[stage]['phase'] = 'current' if is_stage_active else inactive_state
         for link in stages[stage].get('links', []):
-            if 'check' in link:
+            if 'check_key' in link:
+                if check_cache is None:
+                    check_cache = _build_stage_check_cache(event)
+                link['is_configured'] = bool(check_cache.get(link['check_key'], False))
+            elif 'check' in link:
                 try:
                     link['is_configured'] = bool(link['check'](event))
                 except Exception:

@@ -145,9 +145,8 @@
   height: 16px;
   background: transparent;
 }
-.timeline-step:hover .timeline-step-links,
-.timeline-step.is-open .timeline-step-links,
-.timeline-step:focus-within .timeline-step-links {
+.timeline-step:hover:not(.is-closed) .timeline-step-links,
+.timeline-step.is-open .timeline-step-links {
   display: block;
 }
 .timeline-step-links ul {

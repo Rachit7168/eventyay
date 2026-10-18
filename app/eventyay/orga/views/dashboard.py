@@ -188,9 +188,30 @@ class EventDashboardView(EventPermissionRequired, SubmissionStatsMixin, Template
             'todo': _('Pending'),
         }
 
+        can_change_settings = self.request.user.has_perm('base.change_settings.event', event)
+        is_admin = getattr(self.request.user, 'is_administrator', False)
+        user_perms = {
+            'can_change_settings': can_change_settings,
+            'can_update_submission': self.request.user.has_perm('base.orga_update_submission', event),
+            'can_view_submission_stats': self.request.user.has_perm('base.orga_list_submission', event),
+            'can_edit_schedule': self.request.user.has_perm('base.orga_edit_schedule', event),
+            'can_view_schedule': self.request.user.has_perm('base.orga_view_schedule', event),
+            'can_list_speaker': self.request.user.has_perm('base.orga_list_speakerprofile', event),
+            'can_send_mail': self.request.user.has_perm('base.list_queuedmail', event),
+            'can_view_teams': can_change_settings,
+            'can_review': is_admin or event.teams.filter(members__in=[self.request.user], is_reviewer=True).exists(),
+        }
+
         for key, stage in stages.items():
             stage['status_text'] = status_map.get(stage.get('phase'), '')
             stage['summary'] = ''
+
+            filtered_links = []
+            for link in stage.get('links', []):
+                perm = link.get('permission')
+                if not perm or is_admin or can_change_settings or user_perms.get(perm, False):
+                    filtered_links.append(link)
+            stage['links'] = filtered_links
 
             if key == 'CFP_OPEN' and hasattr(event, 'cfp') and getattr(event.cfp, 'max_deadline', None):
                 if stage['phase'] == 'current':

@@ -1,72 +1,83 @@
-document.addEventListener('DOMContentLoaded', function () {
-    var timelineSteps = document.querySelectorAll('.dashboard-timeline .timeline-step');
-    if (!timelineSteps.length) return;
-
-    var closeTimers = {};
-
+const timelineSteps = document.querySelectorAll('.dashboard-timeline .timeline-step');
+if (timelineSteps.length) {
     function closeAllExcept(currentStep) {
         timelineSteps.forEach(function (step) {
             if (step !== currentStep) {
                 step.classList.remove('is-open');
-                var content = step.querySelector('.timeline-step-content');
-                if (content) content.setAttribute('aria-expanded', 'false');
+                step.classList.remove('is-closed');
+                const content = step.querySelector('.timeline-step-content');
+                if (content && content.hasAttribute('aria-expanded')) {
+                    content.setAttribute('aria-expanded', 'false');
+                }
             }
         });
     }
 
-    timelineSteps.forEach(function (step, index) {
-        var content = step.querySelector('.timeline-step-content');
-        var menu = step.querySelector('.timeline-step-links');
+    timelineSteps.forEach(function (step) {
+        const content = step.querySelector('.timeline-step-content');
+        const menu = step.querySelector('.timeline-step-links');
         if (!menu) return;
 
-        // Hover interaction with graceful close delay
-        step.addEventListener('mouseenter', function () {
-            if (closeTimers[index]) {
-                clearTimeout(closeTimers[index]);
-                delete closeTimers[index];
+        // Reset closed state when pointer leaves step so future hovers work
+        step.addEventListener('mouseleave', function () {
+            step.classList.remove('is-closed');
+            if (!step.classList.contains('is-open') && content && content.hasAttribute('aria-expanded')) {
+                content.setAttribute('aria-expanded', 'false');
             }
         });
 
-        step.addEventListener('mouseleave', function () {
-            if (step.classList.contains('is-open')) return;
-            closeTimers[index] = setTimeout(function () {
+        // Close when focus leaves the step
+        step.addEventListener('focusout', function (e) {
+            if (!step.contains(e.relatedTarget)) {
                 step.classList.remove('is-open');
-                if (content) content.setAttribute('aria-expanded', 'false');
-            }, 300);
+                step.classList.remove('is-closed');
+                if (content && content.hasAttribute('aria-expanded')) {
+                    content.setAttribute('aria-expanded', 'false');
+                }
+            }
         });
 
-        // Click interaction: clicking a phase toggles its menu and keeps it open
+        // Click interaction: clicking the step trigger toggles open/closed
         if (content) {
             content.addEventListener('click', function (e) {
                 if (menu) {
                     e.preventDefault();
-                    var isOpen = step.classList.toggle('is-open');
-                    content.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-                    if (isOpen) {
+                    if (step.classList.contains('is-open')) {
+                        step.classList.remove('is-open');
+                        step.classList.add('is-closed');
+                        content.setAttribute('aria-expanded', 'false');
+                    } else {
+                        step.classList.add('is-open');
+                        step.classList.remove('is-closed');
+                        content.setAttribute('aria-expanded', 'true');
                         closeAllExcept(step);
                     }
                 }
             });
 
-            // Keyboard navigation
+            // Keyboard navigation on trigger
             content.addEventListener('keydown', function (e) {
                 if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown') {
                     e.preventDefault();
                     step.classList.add('is-open');
+                    step.classList.remove('is-closed');
                     content.setAttribute('aria-expanded', 'true');
                     closeAllExcept(step);
-                    var firstLink = menu.querySelector('a');
+                    const firstLink = menu.querySelector('a');
                     if (firstLink) firstLink.focus();
                 } else if (e.key === 'Escape') {
                     step.classList.remove('is-open');
+                    step.classList.add('is-closed');
                     content.setAttribute('aria-expanded', 'false');
                 }
             });
         }
 
+        // Keyboard navigation inside the menu
         menu.addEventListener('keydown', function (e) {
             if (e.key === 'Escape') {
                 step.classList.remove('is-open');
+                step.classList.add('is-closed');
                 if (content) {
                     content.setAttribute('aria-expanded', 'false');
                     content.focus();
@@ -81,4 +92,4 @@ document.addEventListener('DOMContentLoaded', function () {
             closeAllExcept(null);
         }
     });
-});
+}

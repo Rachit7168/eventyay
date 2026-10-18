@@ -84,7 +84,7 @@ def test_newly_created_event_stage(event):
         assert 'Add new speaker' in cfp_link_titles
         # Reviewers link points to teams page
         reviewers_link = next(link for link in stages['CFP_OPEN']['links'] if link['title'] == 'Invite reviewers')
-        assert 'teams' in reviewers_link['url']
+        assert reviewers_link['url'] == event.organizer.orga_urls.teams
         # WRAPUP links
         wrapup_titles = [link['title'] for link in stages['WRAPUP']['links']]
         assert 'Release next event date?' not in wrapup_titles
