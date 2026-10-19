@@ -198,7 +198,7 @@ class EventDashboardView(EventPermissionRequired, SubmissionStatsMixin, Template
             'can_view_schedule': self.request.user.has_perm('base.orga_view_schedule', event),
             'can_list_speaker': self.request.user.has_perm('base.orga_list_speakerprofile', event),
             'can_send_mail': self.request.user.has_perm('base.list_queuedmail', event),
-            'can_view_teams': can_change_settings,
+            'can_view_teams': self.user_can_view_organizer_teams(event),
             'can_review': is_admin or event.teams.filter(members__in=[self.request.user], is_reviewer=True).exists(),
         }
 
@@ -289,7 +289,15 @@ class EventDashboardView(EventPermissionRequired, SubmissionStatsMixin, Template
                 )
         return result
 
-    def get_review_tiles(self, can_change_settings):
+    def user_can_view_organizer_teams(self, event):
+        return self.request.user.has_organizer_permission(
+            event.organizer,
+            'can_change_organizer_settings',
+            request=self.request,
+        )
+
+    def get_review_tiles(self):
+        can_view_teams = self.user_can_view_organizer_teams(self.request.event)
         result = []
         review_count = self.request.event.reviews.count()
         if review_count:
@@ -301,7 +309,7 @@ class EventDashboardView(EventPermissionRequired, SubmissionStatsMixin, Template
                 {
                     'large': active_reviewers,
                     'small': _('Active reviewers'),
-                    'url': (self.request.event.organizer.orga_urls.teams if can_change_settings else None),
+                    'url': (self.request.event.organizer.orga_urls.teams if can_view_teams else None),
                     'priority': 60,
                 }
             )
@@ -370,7 +378,7 @@ class EventDashboardView(EventPermissionRequired, SubmissionStatsMixin, Template
         can_view_speakers = can_list_speaker
         can_send_mail = self.request.user.has_perm('base.list_queuedmail', event)
         can_view_mails = can_send_mail
-        can_view_teams = can_change_settings
+        can_view_teams = self.user_can_view_organizer_teams(event)
         
         result.update({
             'can_update_event': can_update_event,
