@@ -2,6 +2,7 @@ from datetime import timedelta
 
 import pytest
 from django import forms
+from django.http import QueryDict
 from django.utils import timezone
 from django_scopes import scopes_disabled
 
@@ -37,6 +38,7 @@ def test_localization_settings_use_first_language_as_default(organizer):
     data['locales'] = ['de', 'en']
     data['locale'] = 'en'
     bound = EventCommonSettingsForm(data=data, obj=event)
+    assert bound.fields['locales'].widget.attrs['data-selected-order'] == 'de,en'
     assert bound.is_valid(), bound.errors
     assert bound.cleaned_data['locales'] == ['de', 'en']
     assert bound.cleaned_data['locale'] == 'de'
@@ -47,3 +49,9 @@ def test_localization_settings_use_first_language_as_default(organizer):
     reopened = EventCommonSettingsForm(obj=event)
     reopened_attrs = reopened.fields['locales'].widget.attrs
     assert reopened_attrs['data-selected-order'] == 'de,en'
+
+    # A failed submit still redisplays the order from the request, not the saved one.
+    posted = QueryDict(mutable=True)
+    posted.setlist('locales', ['fr', 'en'])
+    redisplayed = EventCommonSettingsForm(data=posted, obj=event)
+    assert redisplayed.fields['locales'].widget.attrs['data-selected-order'] == 'fr,en'

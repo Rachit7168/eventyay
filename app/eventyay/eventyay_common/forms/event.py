@@ -315,9 +315,7 @@ class EventCommonSettingsForm(SettingsForm):
                     choices=self.fields[fname].choices, attrs=getattr(old_widget, 'attrs', None)
                 )
         if 'locales' in self.fields:
-            ordered_locales = self.initial.get('locales') or []
-            if isinstance(ordered_locales, str):
-                ordered_locales = [code for code in ordered_locales.split(',') if code]
+            ordered_locales = self._selected_locale_order()
             self.fields['locales'].widget.attrs['data-ordered-default'] = 'true'
             self.fields['locales'].widget.attrs['data-default-locale-input'] = f'id_{self.add_prefix("locale")}'
             self.fields['locales'].widget.attrs['data-selected-order'] = ','.join(ordered_locales)
@@ -348,6 +346,31 @@ class EventCommonSettingsForm(SettingsForm):
                     self.fields['contact_mail'].initial = self.event.email
 
 
+
+
+    def _selected_locale_order(self):
+        """Locale badge order for the widget.
+
+        A bound form must keep the submitted order so a validation error does
+        not snap the selector back to the previously saved languages.
+        """
+        if self.is_bound:
+            key = self.add_prefix('locales')
+            if hasattr(self.data, 'getlist'):
+                submitted = [code for code in self.data.getlist(key) if code]
+                if submitted:
+                    return submitted
+            raw = self.data.get(key) if self.data is not None else None
+            if isinstance(raw, (list, tuple)):
+                return [code for code in raw if code]
+            if isinstance(raw, str):
+                return [code for code in raw.split(',') if code]
+            return []
+
+        ordered_locales = self.initial.get('locales') or []
+        if isinstance(ordered_locales, str):
+            return [code for code in ordered_locales.split(',') if code]
+        return list(ordered_locales)
 
 
 class EventUpdateForm(I18nModelForm):
