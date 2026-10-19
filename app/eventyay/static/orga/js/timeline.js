@@ -1,5 +1,25 @@
 const timelineSteps = document.querySelectorAll('.dashboard-timeline .timeline-step');
 if (timelineSteps.length) {
+    const timelineContainer = document.querySelector('.dashboard-timeline-container');
+
+    function reserveOpenMenuSpace() {
+        if (!timelineContainer) return;
+        const openStep = Array.from(timelineSteps).find(function (step) {
+            return step.classList.contains('is-open')
+                || (step.matches(':hover') && !step.classList.contains('is-closed'));
+        });
+        if (!openStep) {
+            timelineContainer.style.paddingBottom = '';
+            return;
+        }
+        const menu = openStep.querySelector('.timeline-step-links');
+        if (!menu) {
+            timelineContainer.style.paddingBottom = '';
+            return;
+        }
+        timelineContainer.style.paddingBottom = (menu.offsetHeight + 18) + 'px';
+    }
+
     function closeAllExcept(currentStep) {
         timelineSteps.forEach(function (step) {
             if (step !== currentStep) {
@@ -23,6 +43,7 @@ if (timelineSteps.length) {
             if (!step.classList.contains('is-closed') && content && content.hasAttribute('aria-expanded')) {
                 content.setAttribute('aria-expanded', 'true');
             }
+            window.requestAnimationFrame(reserveOpenMenuSpace);
         });
 
         // Reset closed state when pointer leaves step so future hovers work
@@ -31,6 +52,7 @@ if (timelineSteps.length) {
             if (!step.classList.contains('is-open') && content && content.hasAttribute('aria-expanded')) {
                 content.setAttribute('aria-expanded', 'false');
             }
+            window.requestAnimationFrame(reserveOpenMenuSpace);
         });
 
         // Close when focus leaves the step
@@ -42,6 +64,7 @@ if (timelineSteps.length) {
                     content.setAttribute('aria-expanded', 'false');
                 }
             }
+            window.requestAnimationFrame(reserveOpenMenuSpace);
         });
 
         // Click interaction: clicking the step trigger toggles open/closed
@@ -60,6 +83,7 @@ if (timelineSteps.length) {
                         content.setAttribute('aria-expanded', 'true');
                         closeAllExcept(step);
                     }
+                    window.requestAnimationFrame(reserveOpenMenuSpace);
                 }
             });
 
@@ -71,12 +95,14 @@ if (timelineSteps.length) {
                     step.classList.remove('is-closed');
                     content.setAttribute('aria-expanded', 'true');
                     closeAllExcept(step);
+                    window.requestAnimationFrame(reserveOpenMenuSpace);
                     const firstLink = menu.querySelector('a');
                     if (firstLink) firstLink.focus();
                 } else if (e.key === 'Escape') {
                     step.classList.remove('is-open');
                     step.classList.add('is-closed');
                     content.setAttribute('aria-expanded', 'false');
+                    window.requestAnimationFrame(reserveOpenMenuSpace);
                 }
             });
         }
@@ -90,6 +116,7 @@ if (timelineSteps.length) {
                     content.setAttribute('aria-expanded', 'false');
                     content.focus();
                 }
+                window.requestAnimationFrame(reserveOpenMenuSpace);
             }
         });
     });
@@ -98,6 +125,7 @@ if (timelineSteps.length) {
     document.addEventListener('click', function (e) {
         if (!e.target.closest('.dashboard-timeline')) {
             closeAllExcept(null);
+            window.requestAnimationFrame(reserveOpenMenuSpace);
         }
     });
 }
