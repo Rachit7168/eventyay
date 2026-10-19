@@ -2589,6 +2589,35 @@ class EventTest(TestCase):
         assert tr.event == event1
         assert i1.event == event1
 
+    def test_copy_data_from_sanitizes_negative_free_price_bounds(self):
+        event1 = Event.objects.create(
+            organizer=self.organizer,
+            name='Source Event Bad Bounds',
+            slug='copy-src-bounds',
+            date_from=datetime.datetime(2013, 12, 26, 9, 0, 0, tzinfo=datetime.UTC),
+        )
+        with scopes_disabled():
+            Item.objects.create(
+                event=event1,
+                name='Legacy Bad Product',
+                default_price=Decimal('10.00'),
+                free_price=True,
+                free_price_min=Decimal('-5.00'),
+                free_price_max=Decimal('-2.00'),
+            )
+        event2 = Event.objects.create(
+            organizer=self.organizer,
+            name='Destination Event',
+            slug='copy-dst-bounds',
+            date_from=datetime.datetime(2013, 12, 27, 9, 0, 0, tzinfo=datetime.UTC),
+        )
+        event2.copy_data_from(event1)
+        with scopes_disabled():
+            cloned_item = event2.products.first()
+            assert cloned_item.free_price is True
+            assert cloned_item.free_price_min is None
+            assert cloned_item.free_price_max is None
+
     @classscope(attr='organizer')
     def test_presale_has_ended(self):
         event = Event.objects.create(organizer=self.organizer, name='Download', slug='download', date_from=now())
@@ -3209,6 +3238,9 @@ class SeatingTestCase(TestCase):
         assert self.seat_a1.is_available()
 
 
+DATETIME_ANSWER = datetime.datetime(2018, 1, 16, 15, 20, 0, tzinfo=ZoneInfo('Europe/Berlin'))
+
+
 @pytest.mark.django_db
 @pytest.mark.parametrize(
     'qtype,answer,expected',
@@ -3256,6 +3288,7 @@ class SeatingTestCase(TestCase):
             '2018-01-16T15:20:00',
             datetime.datetime(2018, 1, 16, 15, 20, 0, tzinfo=ZoneInfo('Europe/Berlin')),
         ),
+        (Question.TYPE_DATETIME, DATETIME_ANSWER, lambda value: value is DATETIME_ANSWER),
         (Question.TYPE_DATETIME, '2018-01-16T15:AB:CD', ValidationError),
         (Question.TYPE_DATETIME, '2018-01-16T13:20:00+01:00', ValidationError),
         (Question.TYPE_DATETIME, '2018-01-16T16:20:00+01:00', ValidationError),

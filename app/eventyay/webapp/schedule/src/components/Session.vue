@@ -39,7 +39,7 @@ a.c-linear-schedule-session(:class="{faved, 'has-date': showDate, 'short-session
 						aria-hidden="true",
 						loading="lazy",
 						decoding="async")
-					span.speaker-label {{ speaker.name }}
+					span.speaker-label {{ speakerLabel(speaker) }}
 					span.speaker-separator(v-if="i + 1 < namedSpeakers.length", aria-hidden="true") ,
 			span.speakers-overflow-hint(
 				v-if="speakersHiddenCount > 0",
@@ -66,7 +66,7 @@ a.c-linear-schedule-session(:class="{faved, 'has-date': showDate, 'short-session
 	.stream-indicator(v-if="canOpenStream", :class="{live: isLive}", :title="streamTooltip", @click.prevent.stop="openStream")
 		svg(viewBox="0 0 24 24", width="20", height="20", fill="currentColor", xmlns="http://www.w3.org/2000/svg")
 			path(d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z")
-	.session-icons(v-if="!favsReadOnly")
+	.session-icons(v-if="!favsReadOnly", @click.prevent.stop)
 		fav-button(@toggleFav="toggleFav")
 
 </template>
@@ -285,7 +285,7 @@ export default {
 			return (this.session.speakers || []).filter(s => (s.name || '').trim())
 		},
 		speakersAriaLabel () {
-			return this.namedSpeakers.map(speaker => speaker.name).join(', ')
+			return this.namedSpeakers.map(speaker => this.speakerLabel(speaker)).join(', ')
 		},
 		speakersOverflowHint () {
 			if (!this.speakersHiddenCount) return ''
@@ -319,6 +319,11 @@ export default {
 	methods: {
 		onSessionClick (event) {
 			this.onSessionLinkClick(event, this.session)
+		},
+		speakerLabel (speaker) {
+			// The public job title and organization follow the name in brackets.
+			const role = (speaker.speaker_role || '').trim()
+			return role ? `${speaker.name} (${role})` : speaker.name
 		},
 		gridMetaTitle (text) {
 			if (!this.isGridVeryShort || !text) return null
@@ -675,6 +680,25 @@ expandClampedSessionText()
 				.speaker-separator
 					flex: 0 0 auto
 					white-space: nowrap
+			// Outside the one-line clamp of short sessions, the speakers flow like a sentence
+			// and only wrap where the line is full. The avatar stays with the name and the
+			// comma with the role, so a long role does not start a new line for each speaker.
+			&:not(.names-clamped)
+				display: block
+				white-space: normal
+				.speaker
+					display: inline
+					img
+						display: inline-block
+						vertical-align: middle
+					.speaker-label
+						white-space: normal
+						overflow-wrap: break-word
+					// A real space after the comma, so the line can break between speakers.
+					.speaker-separator
+						white-space: normal
+						&::after
+							content: ' '
 			&.names-clamped
 				max-height: var(--session-speaker-line-height)
 				overflow: hidden

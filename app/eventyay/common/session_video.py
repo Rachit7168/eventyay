@@ -85,7 +85,7 @@ def get_session_video_question(event, *, create: bool = False):
             question=LazyI18nString.from_gettext(_('Video')),
             help_text=LazyI18nString.from_gettext(
                 _(
-                    'YouTube or Vimeo URLs (one per line). '
+                    'YouTube, Vimeo, or Wikimedia Commons URLs (one per line). '
                     'Publish this field to embed the videos on the public session page.'
                 )
             ),
@@ -144,7 +144,7 @@ def set_submission_video_urls(
     """Create/update/clear session video answers.
 
     Empty ``urls`` clears the answer. Each non-empty value must be an embeddable
-    YouTube/Vimeo URL. Returns the stored URL list (empty when cleared).
+    YouTube, Vimeo, or Wikimedia Commons URL. Returns the stored URL list (empty when cleared).
     When ``publish`` is True, storing URLs also marks the canonical field public.
     """
     cleaned: list[str] = []
@@ -154,7 +154,7 @@ def set_submission_video_urls(
         if not raw or raw in seen:
             continue
         if get_video_embed_info(raw) is None:
-            raise ValueError(gettext('Please enter a valid YouTube or Vimeo URL.'))
+            raise ValueError(gettext('Please enter a valid YouTube, Vimeo, or Wikimedia Commons URL.'))
         seen.add(raw)
         cleaned.append(raw)
 

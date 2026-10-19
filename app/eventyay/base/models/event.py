@@ -758,7 +758,8 @@ class Event(
         delete = '{base}delete'
         cfp = '{base}cfp/'
         history = '{base}history/'
-        users = '{base}api/users'
+        speaker_autocomplete = '{base}speaker-autocomplete/'
+        users = '{speaker_autocomplete}'
         mail = '{base}mails/'
         compose_mails = '{mail}compose'
         compose_mails_sessions = '{compose_mails}/sessions/'
@@ -775,12 +776,12 @@ class Event(
         submissions = '{base}submissions/'
         tags = '{submissions}tags/'
         new_tag = '{tags}new/'
-        submission_cards = '{base}submissions/cards/'
         submission_feed = '{base}submissions/feed/'
         new_submission = '{submissions}new'
         feedback = '{submissions}feedback/'
         apply_pending = '{submissions}apply-pending/'
         speakers = '{base}speakers/'
+        new_speaker = '{speakers}new/'
         settings = edit_settings = '{base}settings/'
         review_settings = '{settings}review/'
         feedback_settings = '{settings}feedback/'
@@ -1228,6 +1229,14 @@ class Event(
                             i.category = category_map.get(i.category_id)
                         if i.tax_rule_id:
                             i.tax_rule = tax_map.get(i.tax_rule_id)
+                        if i.free_price:
+                            if i.free_price_min is not None and i.free_price_min < 0:
+                                i.free_price_min = None
+                            if i.free_price_max is not None and i.free_price_max < 0:
+                                i.free_price_max = None
+                        else:
+                            i.free_price_min = None
+                            i.free_price_max = None
                         i.save()
                         i.log_action('eventyay.object.cloned')
                         for v in vars:

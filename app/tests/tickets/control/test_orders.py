@@ -1,14 +1,17 @@
+import datetime
 from datetime import timedelta
 from decimal import Decimal
 from unittest import mock
+from zoneinfo import ZoneInfo
 
 import pytest
 from bs4 import BeautifulSoup
 from django.core import mail
 from django.test import override_settings
+from django.urls import reverse
 from django.utils.timezone import now
 from django_countries.fields import Country
-from django_scopes import scopes_disabled
+from django_scopes import scope, scopes_disabled
 
 from eventyay.base.models import (
     Event,
@@ -213,6 +216,43 @@ def test_order_list(client, env):
 
 
 @pytest.mark.django_db
+@override_settings(DEBUG=True)
+def test_order_overview_links_filter_order_list_by_product(client, env):
+    with scope(organizer=env[0].organizer, event=env[0]):
+        workshop = Item.objects.create(
+            event=env[0],
+            name='Workshop',
+            category=None,
+            default_price=10,
+            admission=False,
+        )
+        shirt = Item.objects.create(
+            event=env[0],
+            name='Shirt',
+            category=None,
+            default_price=15,
+            admission=False,
+        )
+        size = shirt.variations.create(value='M')
+    client.login(email='dummy@dummy.dummy', password='dummy')
+
+    response = client.get('/control/event/dummy/dummy/orders/overview/')
+    assert response.status_code == 200
+    hrefs = {a['href'] for a in BeautifulSoup(response.content.decode(), 'lxml').find_all('a', href=True)}
+    listurl = '/control/event/dummy/dummy/orders/'
+    ticket_link = f'{listurl}?product={env[3].pk}&status=np&provider='
+    workshop_link = f'{listurl}?product={workshop.pk}&status=np&provider='
+    assert ticket_link in hrefs
+    assert workshop_link in hrefs
+    assert f'{listurl}?product={shirt.pk}-{size.pk}&status=np&provider=' in hrefs
+    assert not any('?item=' in href for href in hrefs)
+
+    # Following a product's count opens the order list filtered to that product
+    assert 'FOO' in client.get(ticket_link).content.decode()
+    assert 'FOO' not in client.get(workshop_link).content.decode()
+
+
+@pytest.mark.django_db
 def test_orders_advanced_filter_helpers():
     from django.http import QueryDict
 
@@ -366,6 +406,32 @@ def test_order_export_positions_include_name_company_and_job_title(env):
     assert data[headers.index('Attendee name: Family name')] == 'Lovelace'
     assert data[headers.index('Company')] == 'Analytical Engines Ltd'
     assert data[headers.index('Job Title')] == 'Programmer'
+
+
+@pytest.mark.django_db
+def test_order_export_positions_renders_subevent_dates_in_event_timezone(env):
+    event, user, order, ticket = env
+    event.has_subevents = True
+    event.timezone = 'Europe/Berlin'
+    event.settings.timezone = 'Europe/Berlin'
+    event.save()
+    subevent = event.subevents.create(
+        name='Day one',
+        date_from=datetime.datetime(2026, 5, 1, 9, 0, tzinfo=datetime.timezone.utc),
+        date_to=datetime.datetime(2026, 5, 1, 18, 0, tzinfo=datetime.timezone.utc),
+    )
+    position = order.positions.first()
+    position.subevent = subevent
+    position.save()
+
+    exporter = OrderListExporter(event)
+    rows = [row for row in exporter.iterate_positions({}) if not isinstance(row, exporter.ProgressSetTotal)]
+    headers = rows[0]
+    data = rows[1]
+
+    assert data[headers.index('Date')] == 'Day one'
+    assert data[headers.index('Start date')] == '2026-05-01 11:00:00 CEST'
+    assert data[headers.index('End date')] == '2026-05-01 20:00:00 CEST'
 
 
 @pytest.mark.django_db
@@ -536,22 +602,35 @@ def test_order_transition_to_expired_success(client, env):
 
 
 @pytest.mark.django_db
-def test_order_transition_to_paid_in_time_success(client, env):
+@pytest.mark.parametrize('timezone', ['America/Los_Angeles', 'Asia/Tokyo'])
+@override_settings(DEBUG=True, SITE_NETLOC='example.com', ALLOWED_HOSTS=['example.com'])
+def test_order_transition_to_paid_in_time_success(client, env, timezone):
+    env[0].settings.timezone = timezone
+    assert env[0].timezone == 'UTC'
+    payment_date = (now() - timedelta(days=1)).date()
     with scopes_disabled():
         q = Quota.objects.create(event=env[0], size=0)
-    q.items.add(env[3])
-    client.login(email='dummy@dummy.dummy', password='dummy')
-    client.post(
-        '/control/event/dummy/dummy/orders/FOO/transition',
+    q.products.add(env[3])
+    client.force_login(env[1])
+    response = client.post(
+        reverse('control:event.order.transition', kwargs={
+            'organizer': env[0].organizer.slug, 'event': env[0].slug, 'code': env[2].code,
+        }),
         {
             'amount': str(env[2].pending_sum),
-            'payment_date': now().date().isoformat(),
+            'payment_date': payment_date.isoformat(),
             'status': 'p',
         },
+        HTTP_HOST='example.com',
     )
     with scopes_disabled():
         o = Order.objects.get(id=env[2].id)
+    assert response.status_code == 302
     assert o.status == Order.STATUS_PAID
+    with scope(event=env[0], organizer=env[0].organizer):
+        assert o.payments.get(state=OrderPayment.PAYMENT_STATE_CONFIRMED).payment_date == datetime.datetime.combine(
+            payment_date, datetime.time(), tzinfo=ZoneInfo(timezone)
+        )
 
 
 @pytest.mark.django_db
@@ -1543,6 +1622,8 @@ def test_order_extend_expired_voucher_budget_fail(client, env):
 def test_order_mark_paid_overdue_quota_blocked_by_waiting_list(client, env):
     with scopes_disabled():
         o = Order.objects.get(id=env[2].id)
+        env[0].timezone = 'Europe/Berlin'
+        env[0].save()
         o.status = Order.STATUS_EXPIRED
         o.expires = now() - timedelta(days=5)
         o.save()
@@ -1555,7 +1636,7 @@ def test_order_mark_paid_overdue_quota_blocked_by_waiting_list(client, env):
         '/control/event/dummy/dummy/orders/FOO/transition',
         {
             'status': 'p',
-            'payment_date': now().date().isoformat(),
+            'payment_date': '2016-01-26',
             'amount': str(o.pending_sum),
         },
         follow=True,

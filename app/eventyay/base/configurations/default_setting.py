@@ -29,6 +29,7 @@ from eventyay.base.configurations.lazy_i18n_string_list_base import (
     LazyI18nStringList,
 )
 from eventyay.base.forms import I18nAutoExpandingTextarea, I18nURLFormField
+from eventyay.base.models.privacy import ConsentProvider
 from eventyay.base.models.tax import TaxRule
 from eventyay.base.reldate import (
     RelativeDateField,
@@ -1571,7 +1572,10 @@ DEFAULT_SETTINGS = {
         'form_class': forms.BooleanField,
         'serializer_class': serializers.BooleanField,
         'form_kwargs': dict(
-            label=_('Contact form'),
+            label=_('Enable attendees to contact organizers'),
+            help_text=_(
+                'This option enables a contact form that attendees can use to contact an organizer.'
+            ),
             required=False,
         ),
     },
@@ -2280,7 +2284,7 @@ Your {event} team"""
         'form_class': ExtFileField,
         'form_kwargs': dict(
             label=_('Social media image'),
-            ext_whitelist=('.png', '.jpg', '.gif', '.jpeg'),
+            ext_whitelist=('.png', '.jpg', '.gif', '.jpeg', '.webp'),
             max_size=settings.MAX_SIZE_CONFIG[SizeKey.UPLOAD_SIZE_IMAGE],
             help_text=_(
                 'This image is used as a preview when sharing your event link on social media. '
@@ -2291,7 +2295,7 @@ Your {event} team"""
         ),
         'serializer_class': UploadedFileField,
         'serializer_kwargs': dict(
-            allowed_types=['image/png', 'image/jpeg', 'image/gif'],
+            allowed_types=['image/png', 'image/jpeg', 'image/gif', 'image/webp'],
             max_size=settings.MAX_SIZE_CONFIG[SizeKey.UPLOAD_SIZE_IMAGE],
         ),
     },
@@ -2301,14 +2305,14 @@ Your {event} team"""
         'form_class': ExtFileField,
         'form_kwargs': dict(
             label=_('Logo image'),
-            ext_whitelist=('.png', '.jpg', '.gif', '.jpeg'),
+            ext_whitelist=('.png', '.jpg', '.gif', '.jpeg', '.webp'),
             required=False,
             max_size=settings.MAX_SIZE_CONFIG[SizeKey.UPLOAD_SIZE_IMAGE],
             help_text=_('We will show your logo with a maximal height and width of 2.5 cm.'),
         ),
         'serializer_class': UploadedFileField,
         'serializer_kwargs': dict(
-            allowed_types=['image/png', 'image/jpeg', 'image/gif'],
+            allowed_types=['image/png', 'image/jpeg', 'image/gif', 'image/webp'],
             max_size=settings.MAX_SIZE_CONFIG[SizeKey.UPLOAD_SIZE_IMAGE],
         ),
     },
@@ -2329,7 +2333,7 @@ Your {event} team"""
             widget=I18nTextarea,
             widget_kwargs={'attrs': {'rows': '2'}},
             help_text=_(
-                'Not displayed anywhere by default, but if you want to, you can use this e.g. in ticket templates.'
+                'This text will appear on your ticket layout / PDF, not in your shop.'
             ),
         ),
     },
@@ -2402,8 +2406,7 @@ Your {event} team"""
             label=_('Additional success message'),
             help_text=_(
                 'This message will be shown after an order has been created successfully. It will be shown in '
-                'additional'
-                'to the default text.'
+                'addition to the default text.'
             ),
             widget_kwargs={'attrs': {'rows': '2'}},
             widget=I18nTextarea,
@@ -2448,7 +2451,7 @@ Your {event} team"""
             label=_('Info text'),
             widget=I18nTextarea,
             help_text=_(
-                'Not displayed anywhere by default, but if you want to, you can use this e.g. in ticket templates.'
+                'This text will appear on your ticket layout / PDF, not in your shop.'
             ),
         ),
     },
@@ -2619,13 +2622,13 @@ Your {event} team"""
         'form_class': ExtFileField,
         'form_kwargs': dict(
             label=_('Start page header background image'),
-            ext_whitelist=('.png', '.jpg', '.gif', '.jpeg'),
+            ext_whitelist=('.png', '.jpg', '.gif', '.jpeg', '.webp'),
             max_size=settings.MAX_SIZE_CONFIG[SizeKey.UPLOAD_SIZE_IMAGE],
             help_text=_('Displayed as the background image on the public start page.'),
         ),
         'serializer_class': UploadedFileField,
         'serializer_kwargs': dict(
-            allowed_types=['image/png', 'image/jpeg', 'image/gif'],
+            allowed_types=['image/png', 'image/jpeg', 'image/gif', 'image/webp'],
             max_size=settings.MAX_SIZE_CONFIG[SizeKey.UPLOAD_SIZE_IMAGE],
         ),
     },
@@ -3189,3 +3192,68 @@ COUNTRIES_WITH_STATE = {
     'MX': (['State', 'Federal District'], 'short'),
     'US': (['State', 'Outlying area', 'District'], 'short'),
 }
+
+
+# --- Privacy & Compliance -------------------------------------------------
+# Consent is opt-in: every optional category defaults to False, so Klaro
+# reports no consent for optional services until the visitor accepts them.
+DEFAULT_SETTINGS.update(
+    {
+        'privacy_consent_provider': {
+            'default': 'disabled',
+            'type': str,
+            'form_class': forms.ChoiceField,
+            'serializer_class': serializers.ChoiceField,
+            'form_kwargs': dict(
+                choices=ConsentProvider.choices,
+                label=_('Consent provider'),
+                help_text=_('Existing deployments stay disabled until an administrator opts in.'),
+            ),
+            'serializer_kwargs': dict(choices=ConsentProvider.choices),
+        },
+        'privacy_cmp_provider_name': {
+            'default': '',
+            'type': str,
+            'form_class': forms.CharField,
+            'serializer_class': serializers.CharField,
+            'form_kwargs': dict(required=False, label=_('External CMP provider name')),
+        },
+        'privacy_cmp_script_url': {
+            'default': '',
+            'type': str,
+            'form_class': forms.URLField,
+            'serializer_class': serializers.URLField,
+            'form_kwargs': dict(required=False, label=_('External CMP script URL')),
+        },
+        'privacy_policy_url': {
+            'default': '',
+            'type': str,
+            # Both policy URLs are rendered as links on every public page, so
+            # reject non-URL values such as ``javascript:`` at input time.
+            'form_class': forms.URLField,
+            'serializer_class': serializers.URLField,
+            'form_kwargs': dict(required=False, label=_('Privacy Policy URL')),
+        },
+        'privacy_cookie_policy_url': {
+            'default': '',
+            'type': str,
+            'form_class': forms.URLField,
+            'serializer_class': serializers.URLField,
+            'form_kwargs': dict(required=False, label=_('Cookie Policy URL')),
+        },
+    }
+)
+
+for _category, _label in (
+    ('functional', _('Functional')),
+    ('analytics', _('Analytics')),
+    ('marketing', _('Marketing')),
+    ('embed', _('Embedded content')),
+):
+    DEFAULT_SETTINGS[f'privacy_category_{_category}_enabled'] = {
+        'default': 'False',
+        'type': bool,
+        'form_class': forms.BooleanField,
+        'serializer_class': serializers.BooleanField,
+        'form_kwargs': dict(required=False, label=_label),
+    }

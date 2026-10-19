@@ -1,8 +1,11 @@
 import logging
+from datetime import timedelta
 
 from django import forms
 from django.contrib import messages
+from django.db import transaction
 from django.http import HttpResponseRedirect
+from django.utils.timezone import now
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import ListView, DetailView
@@ -85,7 +88,13 @@ class OAuthApplicationRegistrationView(AccountMenuMixIn, ApplicationRegistration
         form.instance.client_type = 'confidential'
         form.instance.authorization_grant_type = 'authorization-code'
         oauth_application_registered.send(sender=self.request, user=self.request.user, application=form.instance)
-        return super().form_valid(form)
+        response = super().form_valid(form)
+        messages.success(self.request, _('The application has been registered.'))
+        return response
+
+    def form_invalid(self, form):
+        messages.error(self.request, _('The application could not be registered. See below for details.'))
+        return super().form_invalid(form)
 
 
 class ApplicationUpdateForm(forms.ModelForm):
@@ -114,6 +123,15 @@ class OAuthApplicationUpdateView(AccountMenuMixIn, ApplicationUpdate):
     def get_queryset(self):
         return super().get_queryset().filter(active=True)
 
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, _('Your changes have been saved.'))
+        return response
+
+    def form_invalid(self, form):
+        messages.error(self.request, _('Your changes could not be saved. See below for details.'))
+        return super().form_invalid(form)
+
 
 class OAuthApplicationRollView(ApplicationDetail):
     template_name = 'eventyay_common/account/oauth-app-rollkeys.html'
@@ -127,9 +145,9 @@ class OAuthApplicationRollView(ApplicationDetail):
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
-        messages.success(request, _('A new client secret has been generated and is now effective.'))
         self.object.client_secret = generate_client_secret()
         self.object.save()
+        messages.success(request, _('A new client secret has been generated and is now effective.'))
         return HttpResponseRedirect(self.object.get_absolute_url())
 
     def get_queryset(self):
@@ -146,12 +164,31 @@ class OAuthApplicationDeleteView(ApplicationDelete):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         obj = self.get_object()
-        confirm_message = _('Are you sure you want to disable the application {code} permanently?')
+        confirm_message = _('Are you sure you want to delete the application {code} permanently?')
         ctx['confirm_message'] = confirm_message.format(code=f'<strong>{obj}</strong>')
         return ctx
 
+    def form_valid(self, form):
+        # DeleteView.post() calls form_valid(), not delete(), since Django 4.0.
+        # Without this Django hard-deletes the app, which fails with ProtectedError
+        # once a LogEntry references it.
+        return self.delete(self.request, *self.args, **self.kwargs)
+
     def delete(self, request, *args, **kwargs):
+        # The application row is kept, so its LogEntry references stay intact.
         self.object = self.get_object()
-        self.object.active = False
-        self.object.save()
+        revoked_at = now()
+        with transaction.atomic():
+            # Bearer validation only checks expiry and scopes, never the application's
+            # active flag, so already-issued tokens would keep working for their full
+            # lifetime. Both querysets mirror what revoke() does per token.
+            OAuthAccessToken.objects.filter(application=self.object, expires__gt=revoked_at).update(
+                expires=revoked_at - timedelta(hours=1)
+            )
+            OAuthRefreshToken.objects.filter(application=self.object, revoked__isnull=True).update(
+                revoked=revoked_at, access_token=None
+            )
+            self.object.active = False
+            self.object.save(update_fields=['active'])
+        messages.success(request, _('The application has been deleted.'))
         return HttpResponseRedirect(self.success_url)

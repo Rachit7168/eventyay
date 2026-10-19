@@ -12,7 +12,6 @@ from django.conf import settings as django_settings
 from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
 from django.core.validators import validate_email
-from django.utils.dateparse import parse_datetime
 from django.db import DataError, IntegrityError, OperationalError, models, transaction
 from django.utils.crypto import get_random_string
 from django.utils.dateparse import parse_datetime
@@ -22,7 +21,6 @@ from django_scopes import scope
 
 from eventyay.base.i18n import language
 from eventyay.base.import_utils import normalize_header_value
-from eventyay.base.operational_logging import OUTCOME_FAILURE, log_event
 from eventyay.base.models import (
     Answer,
     AnswerOption,
@@ -48,9 +46,11 @@ from eventyay.base.models.question import (
 from eventyay.base.models.resource import create_slide_resource, delete_slide_resources
 from eventyay.base.models.submission import SpeakerRole, SubmissionStates
 from eventyay.base.models.type import SubmissionType
+from eventyay.base.operational_logging import OUTCOME_FAILURE, log_event
 from eventyay.base.services.orderimport import parse_csv
 from eventyay.base.services.tasks import ProfiledEventTask
 from eventyay.celery_app import app
+from eventyay.common.text.rich_text import is_empty_rich_text
 from eventyay.consts import SizeKey
 
 class AmbiguousTimeError(ValueError):
@@ -835,7 +835,13 @@ def import_speakers(self, event: Event, fileid: str, settings: dict, locale: str
     try:
         cf = CachedFile.objects.get(id=fileid)
     except CachedFile.DoesNotExist:
-        log_event('talk', 'import.error', OUTCOME_FAILURE, error_code='file_missing', event_id=getattr(event, 'pk', None))
+        log_event(
+            'talk',
+            'import.error',
+            OUTCOME_FAILURE,
+            error_code='file_missing',
+            event_id=getattr(event, 'pk', None),
+        )
         raise ImportExecutionError(
             _('The uploaded speaker file could not be found. Please upload it again and restart the import.')
         )
@@ -847,7 +853,7 @@ def import_speakers(self, event: Event, fileid: str, settings: dict, locale: str
                 if parsed is None:
                     raise ImportExecutionError(_('Could not parse the CSV file.'))
                 parsed = list(parsed)
-                
+
                 total = len(parsed)
 
                 question_mappings, question_cache = _load_mapped_questions(
@@ -1199,6 +1205,16 @@ def _import_speaker_row(event, settings, record, acting_user, caches=None):
         if len(profiles) == 1:
             user = profiles[0].user
 
+    existing_profile = None
+    if user:
+        existing_profile = SpeakerProfile.objects.filter(user=user, event=event).first()
+
+    clean_biography = biography if not (biography and is_empty_rich_text(biography)) else None
+    existing_biography = existing_profile.biography if existing_profile else None
+    final_biography = clean_biography if clean_biography else existing_biography
+    if event.cfp.require_biography and is_empty_rich_text(final_biography):
+        raise ImportExecutionError(_('Biography is required.'))
+
     created_choice_options: list[tuple[dict, str]] = []
     finalized = False
     try:
@@ -1237,8 +1253,8 @@ def _import_speaker_row(event, settings, record, acting_user, caches=None):
                 event=event,
             )
             profile_update_fields = []
-            if biography:
-                profile.biography = biography
+            if clean_biography:
+                profile.biography = clean_biography
                 profile_update_fields.append('biography')
             if job_title:
                 profile.job_title = job_title[:255]
@@ -1307,7 +1323,13 @@ def import_submissions(self, event: Event, fileid: str, settings: dict, locale: 
     try:
         cf = CachedFile.objects.get(id=fileid)
     except CachedFile.DoesNotExist:
-        log_event('talk', 'import.error', OUTCOME_FAILURE, error_code='file_missing', event_id=getattr(event, 'pk', None))
+        log_event(
+            'talk',
+            'import.error',
+            OUTCOME_FAILURE,
+            error_code='file_missing',
+            event_id=getattr(event, 'pk', None),
+        )
         raise ImportExecutionError(
             _('The uploaded session file could not be found. Please upload it again and restart the import.')
         )
@@ -1319,7 +1341,7 @@ def import_submissions(self, event: Event, fileid: str, settings: dict, locale: 
                 if parsed is None:
                     raise ImportExecutionError(_('Could not parse the CSV file.'))
                 parsed = list(parsed)
-                
+
                 total = len(parsed)
 
                 # Pre-fetch per-event lookups once to avoid N+1 queries inside the row loop

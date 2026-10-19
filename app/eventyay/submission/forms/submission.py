@@ -1,4 +1,8 @@
+import logging
+import os
+
 from django import forms
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db.models import Count, Exists, OuterRef, Q
 from django.utils.functional import cached_property
 from django.utils.timezone import now
@@ -23,10 +27,12 @@ from eventyay.common.forms.mixins import ConfiguredFieldOrderMixin, PublicConten
 from eventyay.common.forms.renderers import InlineFormRenderer
 from eventyay.common.forms.widgets import (
     EnhancedSelect,
+    EnhancedSelectMultiple,
     RichTextWidget,
     SearchInput,
     SelectMultipleWithCount,
 )
+from eventyay.helpers.image_optimize import optimize_uploaded_image
 from eventyay.common.text.phrases import phrases
 from eventyay.common.utils.language import localize_event_text
 from eventyay.common.views.mixins import Filterable
@@ -115,7 +121,7 @@ class InfoForm(
     def _set_track(self, instance=None):
         if 'track' in self.fields:
             if (
-                not self.event.get_feature_flag('use_tracks')
+                not self.event.tracks.exists()
                 or instance
                 and instance.state != SubmissionStates.SUBMITTED
             ):
@@ -225,8 +231,27 @@ class InfoForm(
                 self.save_questions(key, value)
         return result
 
+    def clean_image(self):
+        image = self.cleaned_data.get('image')
+        if image and 'image' in self.files:
+            try:
+                result = optimize_uploaded_image(image, 'image', None)
+                base_name, _ = os.path.splitext(image.name)
+                image = SimpleUploadedFile(
+                    f"{base_name}.{result.optimized_ext}",
+                    result.optimized.read(),
+                    content_type='image/svg+xml' if result.optimized_ext == 'svg' else f"image/{result.optimized_ext}",
+                )
+            except OSError:
+                logging.getLogger(__name__).exception("Failed to process submission image")
+                raise forms.ValidationError(_('Failed to process image.'))
+        return image
+
     def clean(self):
         cleaned_data = super().clean()
+
+        if 'submission_type' in self.fields and not cleaned_data.get('submission_type') and not self.has_error('submission_type'):
+            self.add_error('submission_type', forms.ValidationError(_('This field is required.'), code='required_step_field'))
 
         if self.not_strict and not self.draft_save:
             self._validate_required_step_fields(cleaned_data)
@@ -467,11 +492,23 @@ class SubmissionFilterForm(forms.Form):
         required=False,
         label=_('Room status'),
         choices=(
-            ('', _('All room statuses')),
-            ('published', _('Room published')),
-            ('not_published', _('Room not published')),
-            ('not_assigned', _('Room not assigned')),
+            ('', _('Room status')),
+            ('published', _('Published')),
+            ('not_published', _('Not published')),
+            ('not_assigned', _('Not assigned')),
         ),
+        widget=EnhancedSelect,
+    )
+    readiness = forms.ChoiceField(
+        required=False,
+        label=_('Readiness'),
+        choices=(
+            ('', _('All states')),
+            ('scheduled', _('Scheduled')),
+            ('unscheduled', _('Unscheduled')),
+            ('with_conflicts', _('With conflicts')),
+        ),
+        widget=EnhancedSelect,
     )
     content_locale = forms.MultipleChoiceField(
         required=False,
@@ -661,6 +698,57 @@ class SubmissionFilterForm(forms.Form):
 
         return qs
 
+    def _filter_readiness(self, qs, readiness):
+        if not readiness:
+            return qs
+
+        wip_schedule = getattr(self.event, 'wip_schedule', None)
+        if wip_schedule is None:
+            return qs.none() if readiness != 'unscheduled' else qs
+
+        if readiness == 'scheduled':
+            assigned_slots = TalkSlot.objects.filter(
+                submission_id=OuterRef('pk'),
+                schedule=wip_schedule,
+                room__isnull=False,
+                start__isnull=False,
+                is_visible=True,
+            )
+            return qs.filter(state=SubmissionStates.CONFIRMED).annotate(is_scheduled=Exists(assigned_slots)).filter(is_scheduled=True)
+
+        if readiness == 'unscheduled':
+            visible_slots = TalkSlot.objects.filter(
+                submission_id=OuterRef('pk'),
+                schedule=wip_schedule,
+                is_visible=True,
+            )
+            unscheduled_slots = TalkSlot.objects.filter(
+                submission_id=OuterRef('pk'),
+                schedule=wip_schedule,
+                room__isnull=True,
+                start__isnull=True,
+                is_visible=True,
+            )
+            return qs.filter(state=SubmissionStates.CONFIRMED).annotate(
+                has_visible=Exists(visible_slots),
+                has_unscheduled=Exists(unscheduled_slots)
+            ).filter(Q(has_unscheduled=True) | Q(has_visible=False))
+
+
+        if readiness == 'with_conflicts':
+            warnings = wip_schedule.get_all_talk_warnings()
+            talks_with_conflicts = [
+                talk.submission_id
+                for talk, warns in warnings.items()
+                if warns
+                and talk.submission_id
+                and talk.submission.state == SubmissionStates.CONFIRMED
+                and talk.is_visible
+            ]
+            return qs.filter(id__in=talks_with_conflicts)
+
+        return qs
+
     def filter_queryset(self, qs):
         for field in ('submission_type', 'content_locale', 'track', 'tags'):
             value = self.cleaned_data.get(field)
@@ -682,6 +770,8 @@ class SubmissionFilterForm(forms.Form):
             qs = qs.filter(pending_state__isnull=True)
 
         qs = self._filter_room_status(qs, self.cleaned_data.get('room_status'))
+
+        qs = self._filter_readiness(qs, self.cleaned_data.get('readiness'))
 
         search = self.cleaned_data.get('q')
         if search:

@@ -1,5 +1,7 @@
+from django_scopes import scope
 import json
 from collections import Counter
+from dataclasses import replace
 
 from dateutil import rrule
 from django.conf import settings
@@ -7,11 +9,12 @@ from django.contrib import messages
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.syndication.views import Feed
 from django.db import transaction
-from django.db.models import Count as DbCount, Prefetch, Q
-from django.db.models.functions import TruncDate
+from django.db.models import Count as DbCount, F, OuterRef, Prefetch, Q, Subquery
+from django.db.models.functions import Lower, TruncDate
 from django.forms.models import BaseModelFormSet, inlineformset_factory
 from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
+from django.template.loader import render_to_string
 from django.utils import feedgenerator
 from django.utils.functional import cached_property
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -21,21 +24,24 @@ from django_context_decorator import context
 from urllib.parse import urlencode
 
 from eventyay.base.models import (
-    Answer,
     Feedback,
     LogEntry,
     Resource,
     ResourceKind,
+    SpeakerInvitation,
+    SpeakerInvitationMailStates,
+    SpeakerInvitationStates,
     Submission,
     SubmissionComment,
     SubmissionStates,
     Tag,
-    TalkQuestionTarget,
     User,
 )
+from eventyay.base.models.auth import display_name_sort_key
 from eventyay.base.models.base import CachedFile
+from eventyay.base.models.submission import SpeakerRole
+from eventyay.common.views.helpers import is_ajax_request
 from eventyay.base.models.mail import MailTemplateRoles
-from eventyay.base.models.profile import SpeakerProfile
 from eventyay.base.services.etherpad import (
     EtherpadConfigurationError,
     EtherpadError,
@@ -73,6 +79,12 @@ from eventyay.orga.forms.submission import (
     AnonymiseForm,
     SubmissionForm,
     SubmissionStateChangeForm,
+)
+from eventyay.orga.templatetags.staff_session import has_event_perm
+from eventyay.orga.utils.speakers import (
+    get_submission_answers,
+    get_submission_speakers,
+    viewer_is_reviewer_only,
 )
 from eventyay.submission.forms import (
     ResourceForm,
@@ -138,7 +150,7 @@ class ReviewerSubmissionFilter:
         queryset = (
             self.request.event.submissions.all()
             .select_related('submission_type', 'event', 'track')
-            .prefetch_related('speakers')
+            .prefetch_related(Prefetch('speakers', queryset=User.objects.order_by(display_name_sort_key(), 'pk')))
         )
         if self.is_only_reviewer:
             queryset = limit_for_reviewers(queryset, self.request.event, self.request.user, self.limit_tracks)
@@ -300,67 +312,173 @@ class SubmissionSpeakers(ReviewerSubmissionFilter, SubmissionViewMixin, FormView
     @context
     @cached_property
     def speakers(self):
-        submission = self.object
-        speakers_qs = submission.speakers.all().prefetch_related(
-            Prefetch(
-                'profiles',
-                queryset=SpeakerProfile.objects.filter(event=submission.event).prefetch_related('availabilities'),
-                to_attr='_event_profiles',
-            ),
-            Prefetch(
-                'answers',
-                queryset=Answer.objects.filter(
-                    question__event=submission.event,
-                    question__is_visible_to_reviewers=True,
-                    question__target=TalkQuestionTarget.SPEAKER,
-                )
-                .select_related('question')
-                .order_by('question__position'),
-                to_attr='_reviewer_answers',
-            ),
-            Prefetch(
-                'submissions',
-                queryset=Submission.objects.filter(event=submission.event),
-                to_attr='_event_submissions',
-            ),
+        speakers = get_submission_speakers(
+            self.object,
+            for_reviewers=viewer_is_reviewer_only(self.request.user, self.request.event),
+            user=self.request.user,
         )
-        return [
-            {
-                'user': speaker,
-                'profile': speaker.event_profile(submission.event),
-                'other_submissions': [s for s in speaker._event_submissions if s.code != submission.code],
-                'email': speaker.email,
-                'avatar': speaker.avatar,
-                'avatar_url': speaker.get_avatar_url(event=submission.event),
-                'avatar_source': speaker.avatar_source,
-                'avatar_license': speaker.avatar_license,
-                'reviewer_answers': speaker._reviewer_answers,
-            }
-            for speaker in speakers_qs
-        ]
+        invitations = {
+            invitation.user_id: invitation
+            for invitation in self.object.speaker_invitations.filter(user__isnull=False)
+        }
+        return [replace(speaker, invitation=invitations.get(speaker.user.pk)) for speaker in speakers]
+
+    @context
+    @cached_property
+    def pending_invitations(self):
+        speaker_ids = self.object.speakers.values_list('pk', flat=True)
+        return (
+            self.object.speaker_invitations.filter(status=SpeakerInvitationStates.PENDING)
+            .exclude(user_id__in=speaker_ids)
+            .select_related('user')
+        )
+
+    def invitation_message(self, invitation, delivered):
+        if delivered is None:
+            return _('Invitation email added to Outbox.')
+        if delivered:
+            return _('Speaker information email sent to {email}.').format(email=invitation.email)
+        return _('The invitation email could not be sent. Please try again.')
+
+    def render_speakers_section(self):
+        form_kwargs = self.get_form_kwargs()
+        form_kwargs.pop('data', None)
+        form_kwargs.pop('files', None)
+        return render_to_string(
+            'orga/submission/fragment_speakers.html',
+            self.get_context_data(form=self.get_form_class()(**form_kwargs)),
+            request=self.request,
+        )
 
     def form_valid(self, form):
-        if email := form.cleaned_data.get('email'):
-            speaker = self.object.add_speaker(
-                email=email,
-                name=form.cleaned_data.get('name'),
-                locale=form.cleaned_data.get('locale'),
-                biography=form.cleaned_data.get('biography'),
-                user=self.request.user,
+        email = form.cleaned_data.get('email')
+        if not email:
+            return super().form_valid(form)
+
+        speaker, invitation = self.object.add_speaker(
+            email=email,
+            name=form.cleaned_data.get('name'),
+            locale=form.cleaned_data.get('locale'),
+            biography=form.cleaned_data.get('biography'),
+            user=self.request.user,
+            send_immediately=form.cleaned_data.get('send_immediately', True),
+        )
+        delivered = invitation.mail_state == SpeakerInvitationMailStates.SENT
+        if invitation.mail_state == SpeakerInvitationMailStates.QUEUED:
+            delivered = None
+        message = self.invitation_message(invitation, delivered)
+
+        if is_ajax_request(self.request):
+            self.__dict__.pop('speakers', None)
+            self.__dict__.pop('pending_invitations', None)
+            return JsonResponse(
+                {
+                    'message': str(message),
+                    'success': delivered is not False,
+                    'html': self.render_speakers_section(),
+                }
             )
-            messages.success(self.request, _('The speaker has been added to the proposal.'))
-            return redirect(speaker.event_profile(self.request.event).orga_urls.base)
-        return super().form_valid(form)
+
+        if delivered is False:
+            messages.warning(self.request, message)
+        else:
+            messages.success(self.request, message)
+        return redirect(self.get_success_url())
+
+    def form_invalid(self, form):
+        if is_ajax_request(self.request):
+            return JsonResponse({'errors': form.errors.get_json_data()}, status=400)
+        return super().form_invalid(form)
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs['event'] = self.request.event
         kwargs['require_name'] = True
-        kwargs['include_biography'] = True
+        kwargs['submission'] = self.object
         return kwargs
 
     def get_success_url(self):
         return self.object.orga_urls.speakers
+
+
+class SubmissionSpeakerResendInvitation(SubmissionSpeakers):
+    permission_required = 'base.update_submission'
+
+    def get(self, request, *args, **kwargs):
+        return redirect(self.object.orga_urls.speakers)
+
+    def post(self, request, *args, **kwargs):
+        invitation = get_object_or_404(
+            SpeakerInvitation,
+            submission=self.object,
+            pk=self.kwargs['pk'],
+        )
+        if not invitation.can_resend_orga:
+            message = _('This invitation cannot be resent.')
+            if is_ajax_request(request):
+                return JsonResponse({'message': str(message), 'success': False}, status=409)
+            messages.warning(request, message)
+            return redirect(self.object.orga_urls.speakers)
+
+        delivered = invitation.resend(requestor=request.user, orga=True)
+        if delivered:
+            message = _('Invitation sent to {email}.').format(email=invitation.email)
+        else:
+            message = _('The invitation email could not be sent. Please try again.')
+
+        if is_ajax_request(request):
+            self.__dict__.pop('speakers', None)
+            self.__dict__.pop('pending_invitations', None)
+            return JsonResponse(
+                {
+                    'message': str(message),
+                    'success': bool(delivered),
+                    'html': self.render_speakers_section(),
+                }
+            )
+
+        if delivered:
+            messages.success(request, message)
+        else:
+            messages.warning(request, message)
+        return redirect(self.object.orga_urls.speakers)
+
+
+class SubmissionSpeakerRevokeInvitation(SubmissionSpeakers):
+    permission_required = 'base.update_submission'
+
+    def get(self, request, *args, **kwargs):
+        return redirect(self.object.orga_urls.speakers)
+
+    def post(self, request, *args, **kwargs):
+        invitation = get_object_or_404(
+            SpeakerInvitation,
+            submission=self.object,
+            pk=self.kwargs['pk'],
+            status=SpeakerInvitationStates.PENDING,
+        )
+        email = invitation.email
+        if not invitation.revoke(person=request.user):
+            message = _('This invitation cannot be revoked.')
+            if is_ajax_request(request):
+                return JsonResponse({'message': str(message), 'success': False}, status=409)
+            messages.warning(request, message)
+            return redirect(self.object.orga_urls.speakers)
+        message = _('The invitation to {email} was revoked.').format(email=email)
+
+        if is_ajax_request(request):
+            self.__dict__.pop('speakers', None)
+            self.__dict__.pop('pending_invitations', None)
+            return JsonResponse(
+                {
+                    'message': str(message),
+                    'success': True,
+                    'html': self.render_speakers_section(),
+                }
+            )
+
+        messages.success(request, message)
+        return redirect(self.object.orga_urls.speakers)
 
 
 class SubmissionContent(ActionFromUrl, ReviewerSubmissionFilter, SubmissionViewMixin, CreateOrUpdateView):
@@ -467,7 +585,14 @@ class SubmissionContent(ActionFromUrl, ReviewerSubmissionFilter, SubmissionViewM
     @context
     @cached_property
     def session_video_urls_text(self):
+        if self.request.method == 'POST' and 'session_video_urls' in self.request.POST:
+            return self.request.POST['session_video_urls']
         return '\n'.join(self.session_video_urls)
+
+    @context
+    @property
+    def session_video_urls_error(self):
+        return getattr(self, '_session_video_urls_error', None)
 
     def _save_session_video_urls(self, submission):
         if not event_session_videos_enabled(self.request.event):
@@ -479,7 +604,7 @@ class SubmissionContent(ActionFromUrl, ReviewerSubmissionFilter, SubmissionViewM
         try:
             set_submission_video_urls(submission, urls)
         except ValueError as exc:
-            messages.error(self.request, str(exc))
+            self._session_video_urls_error = str(exc)
             return False
         return True
 
@@ -549,31 +674,42 @@ class SubmissionContent(ActionFromUrl, ReviewerSubmissionFilter, SubmissionViewM
         self._questions_form.submission = form.instance
         if not self._questions_form.is_valid():
             messages.error(self.request, phrases.base.error_saving_changes)
-            return self.get(self.request, *self.args, **self.kwargs)
+            return self.form_invalid(form)
         if created and not self.new_speaker_form.is_valid():
             messages.error(self.request, phrases.base.error_saving_changes)
             return self.form_invalid(form)
 
         self.object = form.instance
         form.instance.event = self.request.event
-        form.save()
-        self._questions_form.save()
-        if not self._save_session_video_urls(form.instance):
-            return self.get(self.request, *self.args, **self.kwargs)
 
-        if created:
-            if email := self.new_speaker_form.cleaned_data['email']:
-                form.instance.add_speaker(
-                    email=email,
-                    name=self.new_speaker_form.cleaned_data['name'],
-                    locale=self.new_speaker_form.cleaned_data.get('locale'),
-                    user=self.request.user,
-                    biography=self.new_speaker_form.cleaned_data.get('biography'),
-                )
-        else:
-            formset_result = self.save_formset(form.instance)
-            if not formset_result:
-                return self.get(self.request, *self.args, **self.kwargs)
+        class RollbackTransaction(Exception):
+            pass
+
+        try:
+            with transaction.atomic():
+                form.save()
+                self._questions_form.save()
+                if not self._save_session_video_urls(form.instance):
+                    raise RollbackTransaction()
+
+                if created:
+                    if email := self.new_speaker_form.cleaned_data['email']:
+                        form.instance.add_speaker(
+                            email=email,
+                            name=self.new_speaker_form.cleaned_data['name'],
+                            locale=self.new_speaker_form.cleaned_data.get('locale'),
+                            user=self.request.user,
+                            biography=self.new_speaker_form.cleaned_data.get('biography'),
+                        )
+                else:
+                    formset_result = self.save_formset(form.instance)
+                    if not formset_result:
+                        raise RollbackTransaction()
+        except RollbackTransaction:
+            messages.error(self.request, phrases.base.error_saving_changes)
+            return self.form_invalid(form)
+
+        if not created:
             messages.success(self.request, _('The proposal has been updated!'))
         if form.has_changed():
             action = 'eventyay.submission.' + ('create' if created else 'update')
@@ -604,6 +740,17 @@ class SubmissionContentView(SubmissionContent):
     template_name = 'orga/submission/content.html'
     http_method_names = ['get', 'head', 'options']
 
+    @context
+    @cached_property
+    def submission_answers(self):
+        submission = self.get_object()
+        if not submission:
+            return []
+        return get_submission_answers(
+            submission,
+            for_reviewers=viewer_is_reviewer_only(self.request.user, self.request.event),
+        )
+
     def get_permission_required(self):
         if 'code' in self.kwargs:
             return ['base.orga_list_submission']  # View permission for reviewers
@@ -626,6 +773,22 @@ class SubmissionContentView(SubmissionContent):
                 }
             )
         return tags
+
+    @context
+    @cached_property
+    def scheduled_slot(self):
+        submission = self.get_object()
+        if not isinstance(submission, Submission) or not submission.pk:
+            return None
+        return (
+            submission.slots.filter(
+                schedule__version__isnull=True,
+                start__isnull=False,
+            )
+            .select_related('room')
+            .order_by('start')
+            .first()
+        )
 
 
 class BaseSubmissionList(Sortable, ReviewerSubmissionFilter, PaginationMixin, ListView):
@@ -685,21 +848,92 @@ class SubmissionList(EventPermissionRequired, BaseSubmissionList):
     def show_submission_types(self):
         return self.request.event.submission_types.all().count() > 1
 
+    @cached_property
+    def can_view_speakers(self) -> bool:
+        # Same check the template uses to show the Speakers column, so admin mode counts.
+        return has_event_perm(
+            'base.orga_list_speakerprofile',
+            self.request.user,
+            self.request,
+            self.request.event,
+        )
+
+    @context
+    def current_sort(self) -> str:
+        sort_key = self.request.GET.get('sort')
+        if not sort_key or sort_key == 'default':
+            return self.default_sort_field
+        if sort_key.lstrip('-') == 'speakers' and not self.can_view_speakers:
+            return self.default_sort_field
+        return sort_key
+
+    def sort_queryset(self, qs):
+        sort_key = self.request.GET.get('sort') or ''
+        if sort_key.lstrip('-') != 'speakers' or not self.can_view_speakers:
+            return super().sort_queryset(qs)
+        # Sort by the first speaker shown in the Speakers column, so a session with
+        # several speakers has exactly one, predictable position. Sessions without
+        # speakers go last in both directions.
+        first_speaker = (
+            SpeakerRole.objects.filter(submission=OuterRef('pk'))
+            .annotate(name=display_name_sort_key('user__'))
+            .order_by('name', 'user__pk')
+            .values('name')[:1]
+        )
+        qs = qs.annotate(speaker_sort=Subquery(first_speaker))
+        if sort_key.startswith('-'):
+            order = F('speaker_sort').desc(nulls_last=True)
+        else:
+            order = F('speaker_sort').asc(nulls_last=True)
+        return qs.order_by(order, Lower('title'), 'pk')
+
     @context
     @cached_property
     def pending_changes(self):
         return self.get_queryset().filter(pending_state__isnull=False).count()
 
     @context
+    @cached_property
     def show_tracks(self):
-        if self.request.event.get_feature_flag('use_tracks'):
+        with scope(event=self.request.event):
             if self.limit_tracks:
                 return len(self.limit_tracks) > 1
-            return self.request.event.tracks.all().count() > 1
+            return self.request.event.tracks.count() > 1
 
     @context
     def session_videos_enabled(self):
         return event_session_videos_enabled(self.request.event)
+
+    @context
+    def submission_colspan(self):
+        can_change_submission = has_event_perm(
+            'base.state_change_submission',
+            self.request.user,
+            self.request,
+            self.request.event,
+        )
+        can_view_speakers = has_event_perm(
+            'base.orga_list_speakerprofile',
+            self.request.user,
+            self.request,
+            self.request.event,
+        )
+        show_submission_types = bool(self.show_submission_types())
+        use_tracks = bool(self.request.event.get_feature_flag('use_tracks'))
+        session_videos_enabled = bool(self.session_videos_enabled())
+
+        colspan = 2  # Title and State columns are always present
+        if can_view_speakers:
+            colspan += 1
+        if show_submission_types:
+            colspan += 1
+        if use_tracks:
+            colspan += 1
+        if can_change_submission:
+            colspan += 2  # Featured and Actions columns
+            if session_videos_enabled:
+                colspan += 1
+        return colspan
 
     def get_queryset(self):
         qs = super().get_queryset()
@@ -718,6 +952,11 @@ class SubmissionList(EventPermissionRequired, BaseSubmissionList):
                 urls = []
             submission.session_video_urls = urls
             submission.session_video_urls_json = json.dumps(urls)
+        if self.request.event.tracks.exists():
+            ctx['track_colors'] = {
+                track.pk: track.color
+                for track in self.request.event.tracks.all()
+            }
         return ctx
 
 
@@ -928,7 +1167,8 @@ class SubmissionStatsMixin:
     def show_tracks(self):
         if not self.can_view_submission_stats:
             return False
-        return bool(self.request.event.get_feature_flag('use_tracks'))
+        with scope(event=self.request.event):
+            return bool(self.request.event.tracks.exists())
 
     @context
     @cached_property

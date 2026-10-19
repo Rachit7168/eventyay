@@ -1,4 +1,5 @@
 import functools
+import logging
 import warnings
 from collections.abc import Callable
 from typing import Any
@@ -12,6 +13,7 @@ from .models import Event, GlobalPluginConfig
 
 
 app_cache = {}
+logger = logging.getLogger(__name__)
 
 
 def _populate_app_cache():
@@ -833,12 +835,55 @@ entitlement_usage_recorded = django.dispatch.Signal()
 """
 Sent to record usage of a specific capability.
 Sender is an ``Organizer`` instance.
-Kwargs: ``capability`` (str), ``amount`` (int)
+Kwargs: ``capability`` (str), ``quantity`` (number), ``unit`` (str),
+``source_type`` (str), ``source_id`` (str), ``idempotency_key`` (str),
+``event`` (Event or None), ``metadata`` (dict or None).
+Receivers must accept **kwargs.
 """
 
 register_entitlements = django.dispatch.Signal()
 """
-Sent to collect all available capabilities. 
+Sent to collect all available capabilities.
 Receivers should return a dictionary of capabilities they define or enforce.
 Sender is None.
 """
+
+platform_fee_policy = django.dispatch.Signal()
+"""
+Sent to resolve an optional platform fee policy for a payment.
+Sender is the ``Event`` instance. Kwargs are ``order`` and ``payment``.
+Receivers should return a ``PlatformFeePolicy`` or ``None`` when they do not
+provide a fee. Only one receiver may provide a policy.
+"""
+
+legacy_billing_collection_disabled = django.dispatch.Signal()
+"""
+Sent to determine whether Core's legacy organizer billing collector is disabled.
+Receivers return ``True`` when another installed component owns organizer billing.
+Sender and the ``organizer`` keyword argument are the Organizer instance.
+"""
+
+organizer_billing_payment_method_saved = django.dispatch.Signal()
+"""
+Sent after an organizer saves a payment method for future off-session billing.
+Sender and the ``organizer`` keyword argument are the Organizer instance. Additional
+kwargs are ``user``, ``stripe_customer_id`` and ``setup_intent_id``.
+"""
+
+
+def is_legacy_billing_collection_disabled(organizer) -> bool:
+    """Return whether an installed component has taken over organizer billing."""
+    for receiver, response in legacy_billing_collection_disabled.send_robust(
+        sender=organizer,
+        organizer=organizer,
+    ):
+        if isinstance(response, Exception):
+            logger.error(
+                "Legacy billing ownership provider %s failed",
+                getattr(receiver, "__qualname__", repr(receiver)),
+                exc_info=response,
+            )
+            return True
+        if response is True:
+            return True
+    return False

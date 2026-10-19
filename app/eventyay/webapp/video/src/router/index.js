@@ -5,11 +5,7 @@ import RoomHeader from 'views/rooms/RoomHeader'
 import Room from 'views/rooms/item'
 import RoomManager from 'views/rooms/manage'
 import Channel from 'views/channels/item'
-import Schedule from '@schedule/components/ScheduleView'
-import Talk from '@schedule/components/TalkDetail'
 import Speakers from '@schedule/components/SpeakersList'
-import Speaker from '@schedule/components/SpeakerDetail'
-import PublicStars from '@schedule/components/PublicStars'
 import Preferences from 'views/preferences'
 import config from 'config'
 
@@ -96,12 +92,15 @@ const routes = [
 			{
 				path: 'schedule',
 				name: 'schedule',
-				component: Schedule
+				component: () => {
+					store.dispatch('schedule/loadExporterQrcodes')
+					return import('@schedule/components/ScheduleView')
+				}
 			},
 			{
 				path: 'schedule/talks/:talkId',
 				name: 'schedule:talk',
-				component: Talk,
+				component: () => import('@schedule/components/TalkDetail'),
 				props: route => ({
 					talkId: route.params.talkId,
 					baseUrl: window.eventyay?.eventUrl || ''
@@ -115,13 +114,13 @@ const routes = [
 			{
 				path: 'schedule/speakers/:speakerId',
 				name: 'schedule:speaker',
-				component: Speaker,
+				component: () => import('@schedule/components/SpeakerDetail'),
 				props: true
 			},
 			{
 				path: 'schedule/people/:userCode/stars',
 				name: 'schedule:public-stars',
-				component: PublicStars,
+				component: () => import('@schedule/components/PublicStars'),
 				props: route => ({
 					userCode: route.params.userCode,
 					baseUrl: window.eventyay?.eventUrl || ''
@@ -191,6 +190,11 @@ const routes = [
 					component: () => import('views/admin/announcements/item'),
 					props: true
 				}]
+			},
+			{
+				path: 'event/interpretation',
+				name: 'admin:interpretation',
+				component: () => import('views/admin/interpretation')
 			},
 			{
 				path: 'event/kiosks',
@@ -274,6 +278,11 @@ export function checkRoutePermission(to) {
 				room.modules?.some(module => ['channel.janus', 'channel.zoom', 'channel.jitsi'].includes(module.type))
 			if (isChatRoom) return false
 		}
+	}
+	if (name === 'admin:interpretation') {
+		if (!store.getters.isInterpretationEnabled) return false
+		const isOrganizer = Boolean(window.eventyay?.isOrganizerArea && window.eventyay?.hasOrganiserPermissions)
+		return isOrganizer || isAdmin || hasPerm('world:update')
 	}
 	if (isAdmin) return true
 	if (name === 'admin:config') {

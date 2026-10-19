@@ -65,6 +65,12 @@ aside.c-organiser-sidebar(
 								span.mdi.mdi-plus(aria-hidden="true")
 								span {{ $t('New Room') }}
 
+				//- Interpretation (shown only when plugin is enabled)
+				li(v-if="(hasPermission('world:update') || isAdminMode) && isInterpretationEnabled")
+					router-link.nav-link(:to="{name: 'admin:interpretation'}", @click="onNavClick")
+						span.fa.mdi.mdi-translate(aria-hidden="true")
+						span.sidebar-text {{ $t('Interpretation') }}
+
 				//- 3. Chat rooms (collapsible, hidden if chat_rooms is disabled)
 				li.nav-fold(v-if="(hasPermission('room:update') || hasPermission('world:rooms.create.chat') || isAdminMode) && liveFeatures.chat_rooms")
 					.has-children
@@ -228,6 +234,12 @@ export default {
 		commonAccountUrl() {
 			return window.eventyay?.commonAccountUrl || window.eventyay?.homeUrl || '/'
 		},
+		interpretationUrl() {
+			return window.eventyay?.interpretationUrl || '#'
+		},
+		isInterpretationEnabled() {
+			return this.$store.getters.isInterpretationEnabled
+		},
 		liveFeatures() {
 			return Object.assign({
 				chat_rooms: false,
@@ -357,6 +369,7 @@ export default {
 			return `${count} ${count === 1 ? this.$t('active viewer') : this.$t('active viewers')}`
 		},
 		async fetchKiosks() {
+			if (!this.liveFeatures.kiosks) return
 			if (!this.hasPermission('world:kiosks.manage') && !this.isAdminMode) return
 			try {
 				const res = await api.call('user.list', {type: 'kiosk'})

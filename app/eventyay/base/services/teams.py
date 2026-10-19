@@ -1,6 +1,7 @@
 import logging
 
 from django.db.models.functions import Lower
+from django.urls import NoReverseMatch
 from django.utils.translation import gettext_lazy as _
 
 from eventyay.base.entitlements import EntitlementDecision, check_entitlement
@@ -8,9 +9,12 @@ from eventyay.base.models import Organizer
 from eventyay.base.models.auth import User
 from eventyay.base.models.organizer import TeamInvite
 from eventyay.base.services.mail import SendMailException, mail
+from eventyay.helpers.urls import build_absolute_uri
 
 
 logger = logging.getLogger(__name__)
+
+TEAMSHIFTS_PLUGIN_REGEX = r'(^|,)teamshifts(,|$)'
 
 
 def check_full_admin_limit(team, email=None, user=None):
@@ -83,6 +87,40 @@ def check_full_admin_limit(team, email=None, user=None):
     return decision
 
 
+def _get_teamshifts_events(team):
+    return list(team.events.filter(plugins__regex=TEAMSHIFTS_PLUGIN_REGEX).order_by('pk')[:2])
+
+
+def _get_teamshifts_member_url(team):
+    if team.pk:
+        events = _get_teamshifts_events(team)
+        if len(events) == 1:
+            try:
+                return build_absolute_uri(
+                    'plugins:teamshifts:dashboard',
+                    kwargs={'organizer': team.organizer.slug, 'event': events[0].slug},
+                )
+            except NoReverseMatch:
+                pass
+    return build_absolute_uri('eventyay_common:dashboard')
+
+
+def get_team_invitation_url(team):
+    if team.teamshifts_role:
+        return _get_teamshifts_member_url(team)
+
+    if team.pk:
+        return build_absolute_uri(
+            'eventyay_common:organizer.team',
+            kwargs={'organizer': team.organizer.slug, 'team': team.pk},
+        )
+
+    return build_absolute_uri(
+        'eventyay_common:organizer.teams',
+        kwargs={'organizer': team.organizer.slug},
+    )
+
+
 def send_team_invitation_email(
     *,
     user,
@@ -104,6 +142,7 @@ def send_team_invitation_email(
     Returns:
         bool: True if email was sent successfully, False otherwise
     """
+
     try:
         mail(
             user.email,

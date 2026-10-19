@@ -5,10 +5,9 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils.translation import gettext_lazy as _
 from django_scopes.forms import SafeModelChoiceField, SafeModelMultipleChoiceField
 
-from eventyay.base.models import Submission, SubmissionStates, TalkSlot, User
+from eventyay.base.models import Submission, SubmissionStates, User
 from eventyay.base.models.cfp import default_fields
 from eventyay.base.models.resource import get_slide_resources
-from eventyay.base.models.room import rooms_for_talk_assignment
 from eventyay.base.services.etherpad import validate_etherpad_url
 from eventyay.base.settings import GlobalSettingsObject
 from eventyay.common.forms.fields import ImageField
@@ -17,7 +16,6 @@ from eventyay.common.forms.renderers import InlineFormLabelRenderer, InlineFormR
 from eventyay.common.forms.widgets import (
     EnhancedSelect,
     EnhancedSelectMultiple,
-    HtmlDateTimeInput,
     RichTextWidget,
     TextInputWithAddon,
 )
@@ -35,22 +33,7 @@ class SubmissionForm(ReadOnlyFlag, RequestRequire, forms.ModelForm):
 
     def __init__(self, event, anonymise=False, **kwargs):
         self.event = event
-        initial_slot = {}
         instance = kwargs.get('instance')
-        if instance and instance.pk:
-            slot = (
-                instance.slots.filter(schedule__version__isnull=True)
-                .select_related('room')
-                .filter(start__isnull=False)
-                .order_by('start')
-                .first()
-            )
-            if slot:
-                initial_slot = {
-                    'room': slot.room,
-                    'start': (slot.local_start.strftime('%Y-%m-%dT%H:%M') if slot.local_start else ''),
-                    'end': (slot.local_end.strftime('%Y-%m-%dT%H:%M') if slot.real_end else ''),
-                }
         if anonymise:
             kwargs.pop('initial', None)
             initial = {}
@@ -62,7 +45,6 @@ class SubmissionForm(ReadOnlyFlag, RequestRequire, forms.ModelForm):
                     initial[key] = initial[key].all()
             kwargs['initial'] = initial
         kwargs['initial'] = kwargs.get('initial') or {}
-        kwargs['initial'].update(initial_slot)
         super().__init__(**kwargs)
         if 'submission_type' in self.fields:
             self.fields['submission_type'].queryset = self.event.submission_types.all()
@@ -87,26 +69,7 @@ class SubmissionForm(ReadOnlyFlag, RequestRequire, forms.ModelForm):
                     required=True,
                     widget=EnhancedSelect(color_field=SubmissionStates.get_color),
                 )
-        if not self.instance.pk or self.instance.state in SubmissionStates.accepted_states:
-            self.fields['room'] = forms.ModelChoiceField(
-                required=False,
-                queryset=rooms_for_talk_assignment(event, has_submission=True),
-                label=TalkSlot._meta.get_field('room').verbose_name,
-                initial=initial_slot.get('room'),
-                widget=EnhancedSelect,
-            )
-            self.fields['start'] = forms.DateTimeField(
-                required=False,
-                label=TalkSlot._meta.get_field('start').verbose_name,
-                widget=HtmlDateTimeInput,
-                initial=initial_slot.get('start'),
-            )
-            self.fields['end'] = forms.DateTimeField(
-                required=False,
-                label=TalkSlot._meta.get_field('end').verbose_name,
-                widget=HtmlDateTimeInput,
-                initial=initial_slot.get('end'),
-            )
+
         if 'abstract' in self.fields:
             self.fields['abstract'].widget.attrs['rows'] = 2
         if 'slides' in self.fields:
@@ -116,10 +79,14 @@ class SubmissionForm(ReadOnlyFlag, RequestRequire, forms.ModelForm):
             self.fields['slides'].set_max_items(get_slides_max_count(self.event))
         if not event.get_feature_flag('present_multiple_times'):
             self.fields.pop('slot_count', None)
-        if not event.get_feature_flag('use_tracks'):
+        if not event.tracks.exists():
             self.fields.pop('track', None)
         elif 'track' in self.fields:
             self.fields['track'].queryset = event.tracks.all()
+            _cfp = getattr(self.event, 'cfp', None) if hasattr(self.event, 'cfp') else None
+            track_visibility = (_cfp.fields.get('track', default_fields()['track']).get('visibility') if _cfp else 'do_not_ask')
+            if track_visibility == 'required':
+                self.fields['track'].required = True
         if 'content_locale' in self.fields:
             _cfp = getattr(self.event, 'cfp', None) if hasattr(self.event, 'cfp') else None
             saved_visibility = (_cfp.fields.get('content_locale', default_fields()['content_locale']).get('visibility') if _cfp else 'do_not_ask')
@@ -159,19 +126,6 @@ class SubmissionForm(ReadOnlyFlag, RequestRequire, forms.ModelForm):
                 raise forms.ValidationError(_('Please enter a valid Etherpad URL.')) from exc
         return url
 
-    def clean(self):
-        data = super().clean()
-        start = data.get('start')
-        end = data.get('end')
-        if start and end and start > end:
-            self.add_error(
-                'end',
-                forms.ValidationError(
-                    _('The end time has to be after the start time.'),
-                ),
-            )
-        return data
-
     def save(self, *args, **kwargs):
         if 'content_locale' not in self.fields:
             self.instance.content_locale = self.event.content_locales[0] if self.event.content_locales else self.event.locale
@@ -185,17 +139,6 @@ class SubmissionForm(ReadOnlyFlag, RequestRequire, forms.ModelForm):
                 instance.update_review_scores()
             if 'slot_count' in self.changed_data and 'slot_count' in self.initial:
                 instance.update_talk_slots()
-        if (
-            instance.state in SubmissionStates.accepted_states
-            and self.cleaned_data.get('room')
-            and self.cleaned_data.get('start')
-            and any(field in self.changed_data for field in ('room', 'start', 'end'))
-        ):
-            slot = instance.slots.filter(schedule=instance.event.wip_schedule).order_by('start').first()
-            slot.room = self.cleaned_data.get('room')
-            slot.start = self.cleaned_data.get('start')
-            slot.end = self.cleaned_data.get('end')
-            slot.save()
         if 'slides' in self.cleaned_data:
             save_slides_resource(instance, self.cleaned_data['slides'])
         return instance
@@ -329,6 +272,15 @@ class AddSpeakerForm(forms.Form):
         help_text=_('The language in which the speaker will receive their invitation email.'),
         widget=EnhancedSelect,
     )
+    send_immediately = forms.BooleanField(
+        label=_('Send immediately'),
+        help_text=_(
+            'Send the speaker information email right away. When unchecked, the email is placed '
+            'in the Outbox for you to review and send later.'
+        ),
+        required=False,
+        initial=True,
+    )
 
     def __init__(
         self,
@@ -338,12 +290,14 @@ class AddSpeakerForm(forms.Form):
         require_name=False,
         include_biography=False,
         draft_save=False,
+        submission=None,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self.event = event
         self.require_name = require_name
         self.draft_save = draft_save
+        self.submission = submission
 
         self.biography_required = False
         if not include_biography:
@@ -381,6 +335,13 @@ class AddSpeakerForm(forms.Form):
         data = super().clean()
         if data.get('name') and not data.get('email'):
             self.add_error('email', _('Please provide an email address.'))
+
+        if self.submission and (email := data.get('email')):
+            if self.submission.has_speaker_email(email):
+                self.add_error(
+                    'email',
+                    _('This speaker has already been added or invited to the proposal.'),
+                )
 
         existing_biography = False
         email = data.get('email')
