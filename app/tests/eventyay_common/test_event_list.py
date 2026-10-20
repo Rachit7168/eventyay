@@ -117,5 +117,10 @@ def test_events_empty_state_when_no_events_exist(client):
     content = response.content.decode()
     assert 'No events yet' in content
 
+    response_page = client.get(url, {'page_size': '50'})
+    assert 'No events yet' in response_page.content.decode()
+
     response_tab = client.get(url, {'tab': 'past', 'status': 'past', 'page_size': '50'})
-    assert 'No events yet' in response_tab.content.decode()
+    tab_content = response_tab.content.decode()
+    assert 'No events yet' not in tab_content
+    assert 'No events found.' in tab_content

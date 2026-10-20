@@ -95,7 +95,7 @@ EVENT_OVERVIEW_TABS = frozenset({'live', 'draft', 'past', 'all'})
 EVENT_OVERVIEW_STATUSES = frozenset({'live', 'draft', 'past'})
 
 
-EVENT_OVERVIEW_IGNORED_FILTERS = frozenset({'page', 'tab', 'ordering', 'status', 'page_size'})
+EVENT_OVERVIEW_IGNORED_FILTERS = frozenset({'page', 'ordering', 'page_size'})
 
 
 def event_overview_tab(request: HttpRequest) -> str:
