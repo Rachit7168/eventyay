@@ -10,6 +10,7 @@ from urllib.parse import urlparse
 from python_http_client.exceptions import HTTPError
 
 import jwt
+from django import forms
 from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
@@ -114,6 +115,24 @@ def events_list_has_explicit_filters(request: HttpRequest) -> bool:
         if any(values):
             return True
     return False
+
+
+def use_searchable_organizer_select(form):
+    """Render the organizer filter as a full list the searchable dropdown can filter."""
+    field = form.fields.get('organizer')
+    if field is None:
+        return
+    widget = forms.Select(
+        attrs={
+            'class': 'form-control',
+            'data-searchable-select': '',
+            'data-search-placeholder': _('Search organizers'),
+            'data-empty-text': _('No matching organizers'),
+        }
+    )
+    # Replacing the widget drops the choices that were bound to the previous one.
+    field.widget = widget
+    widget.choices = field.choices
 
 
 class EventList(PaginationMixin, ListView):
@@ -227,7 +246,9 @@ class EventList(PaginationMixin, ListView):
         tab = event_overview_tab(self.request)
         if tab in EVENT_OVERVIEW_STATUSES and 'status' not in self.request.GET:
             data.setlist('status', [tab])
-        return EventFilterForm(data=data, request=self.request)
+        form = EventFilterForm(data=data, request=self.request)
+        use_searchable_organizer_select(form)
+        return form
 
 
 class EventCreateView(TemplateView):
