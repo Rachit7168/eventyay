@@ -48,7 +48,7 @@
         </ul>
         <div class="advanced-filter-search" data-advanced-filter-search>
             <form class="filter-form advanced-filter-search-form" action="" method="get">
-                <input type="hidden" name="tab" value="{{ active_event_tab }}">
+                <input type="hidden" name="tab" value="{{ active_event_tab }}" data-events-overview-tab>
                 <div class="advanced-filter-search-bar">
                     <div class="input-group advanced-filter-search-query-group">
                         <input id="id_query" type="text" name="query" class="form-control" placeholder="{% trans 'Search events…' %}" aria-label="{% trans 'Search events…' %}" value="{{ filter_form.query.value|default_if_none:'' }}">
@@ -69,7 +69,7 @@
                             <span class="fa fa-filter" aria-hidden="true"></span>
                             {% trans "Filter" %}
                         </button>
-                        <a href="{{ request.path }}" class="btn btn-default btn-clear-filter" aria-label="{% trans 'Clear filters' %}" title="{% trans 'Clear filters' %}">
+                        <a href="{{ request.path }}?tab={{ active_event_tab }}" class="btn btn-default btn-clear-filter" data-events-overview-clear aria-label="{% trans 'Clear filters' %}" title="{% trans 'Clear filters' %}">
                             <span class="fa fa-eraser" aria-hidden="true"></span>
                             <span class="sr-only">{% trans "Clear filters" %}</span>
                         </a>

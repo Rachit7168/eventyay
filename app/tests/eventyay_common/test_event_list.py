@@ -1,4 +1,5 @@
 from datetime import timedelta
+import re
 
 import pytest
 from django.urls import reverse
@@ -67,7 +68,12 @@ def test_events_empty_state_when_search_has_no_match(client):
     assert 'No events found.' not in content_all
     assert 'Open Tech Summit' in content_all
     assert 'Draft Meetup' not in content_all
-    assert 'class="active"' in content_all
+    assert re.search(r'<li role="presentation" class="active">\s*<a [^>]*>Live</a>', content_all)
+    for label in ('Draft', 'Past', 'All'):
+        assert not re.search(
+            r'<li role="presentation" class="active">\s*<a [^>]*>' + label + r'</a>',
+            content_all,
+        )
     assert response_all.context['active_event_tab'] == 'live'
     assert 'stats-arrow-collapsed' in content_all
     assert 'stats-arrow-expanded' in content_all
@@ -85,6 +91,18 @@ def test_events_empty_state_when_search_has_no_match(client):
     assert 'Open Tech Summit' in content_every
     assert 'Draft Meetup' in content_every
 
+    response_conflict = client.get(url, {'tab': 'draft', 'status': 'live'})
+    content_conflict = response_conflict.content.decode()
+    assert response_conflict.context['active_event_tab'] == 'draft'
+    assert 'Draft Meetup' in content_conflict
+    assert 'Open Tech Summit' not in content_conflict
+
+    response_blank_status = client.get(url, {'tab': 'live', 'status': ''})
+    content_blank_status = response_blank_status.content.decode()
+    assert response_blank_status.context['active_event_tab'] == 'live'
+    assert 'Open Tech Summit' in content_blank_status
+    assert 'Draft Meetup' not in content_blank_status
+
 
 @pytest.mark.django_db
 def test_events_empty_state_when_no_events_exist(client):
@@ -98,3 +116,6 @@ def test_events_empty_state_when_no_events_exist(client):
     assert response.status_code == 200
     content = response.content.decode()
     assert 'No events yet' in content
+
+    response_tab = client.get(url, {'tab': 'past', 'status': 'past', 'page_size': '50'})
+    assert 'No events yet' in response_tab.content.decode()

@@ -59,7 +59,7 @@
 .events-table-wrapper table.events-table > tbody > tr > td.event-name-col {
     min-width: 0;
     word-break: normal;
-    overflow-wrap: normal;
+    overflow-wrap: anywhere;
     hyphens: manual;
 }
 

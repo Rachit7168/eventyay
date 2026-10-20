@@ -95,22 +95,42 @@ EVENT_OVERVIEW_TABS = frozenset({'live', 'draft', 'past', 'all'})
 EVENT_OVERVIEW_STATUSES = frozenset({'live', 'draft', 'past'})
 
 
+EVENT_OVERVIEW_IGNORED_FILTERS = frozenset({'page', 'tab', 'ordering', 'status', 'page_size'})
+
+
 def event_overview_tab(request: HttpRequest) -> str:
     """Return the events-overview tab. A visit with no tab or status opens Live."""
     tab = request.GET.get('tab')
     if tab in EVENT_OVERVIEW_TABS:
         return tab
-    statuses = request.GET.getlist('status')
-    if len(statuses) == 1 and statuses[0] in EVENT_OVERVIEW_STATUSES:
+    statuses = [status for status in request.GET.getlist('status') if status in EVENT_OVERVIEW_STATUSES]
+    if len(statuses) == 1:
         return statuses[0]
     if not statuses:
         return 'live'
     return 'all'
 
 
+def event_overview_filter_data(request: HttpRequest):
+    """Apply the selected tab to the status filter. The tab wins over a conflicting status."""
+    data = request.GET.copy()
+    tab = request.GET.get('tab')
+    if tab == 'all':
+        if 'status' in data:
+            del data['status']
+        return data
+    if tab in EVENT_OVERVIEW_STATUSES:
+        data.setlist('status', [tab])
+        return data
+    statuses = [status for status in request.GET.getlist('status') if status]
+    if not statuses:
+        data.setlist('status', ['live'])
+    return data
+
+
 def events_list_has_explicit_filters(request: HttpRequest) -> bool:
     for key, values in request.GET.lists():
-        if key in ('page', 'tab', 'ordering'):
+        if key in EVENT_OVERVIEW_IGNORED_FILTERS:
             continue
         if any(values):
             return True
@@ -152,7 +172,9 @@ class EventList(PaginationMixin, ListView):
     ]
 
     def get_queryset(self):
-        query_set = self.request.user.get_events_with_any_permission(self.request).prefetch_related(
+        query_set = self.request.user.get_events_with_any_permission(self.request)
+        self.user_has_accessible_events = query_set.exists()
+        query_set = query_set.prefetch_related(
             'organizer',
             '_settings_objects',
             'organizer___settings_objects',
@@ -235,18 +257,13 @@ class EventList(PaginationMixin, ListView):
         ctx['meetup_creation_enabled'] = is_meetup_creation_enabled(self.request)
         ctx['active_event_tab'] = event_overview_tab(self.request)
         ctx['show_personal_empty_state'] = (
-            not self.request.user.get_events_with_any_permission(self.request).exists()
-            and not events_list_has_explicit_filters(self.request)
+            not self.user_has_accessible_events and not events_list_has_explicit_filters(self.request)
         )
         return ctx
 
     @cached_property
     def filter_form(self):
-        data = self.request.GET.copy()
-        tab = event_overview_tab(self.request)
-        if tab in EVENT_OVERVIEW_STATUSES and 'status' not in self.request.GET:
-            data.setlist('status', [tab])
-        form = EventFilterForm(data=data, request=self.request)
+        form = EventFilterForm(data=event_overview_filter_data(self.request), request=self.request)
         use_searchable_organizer_select(form)
         return form
 
