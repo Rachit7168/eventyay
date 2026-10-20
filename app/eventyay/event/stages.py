@@ -255,7 +255,6 @@ STAGES = {
                 'check': lambda event: bool(getattr(event, 'email', None)),
                 'permission': 'can_change_settings',
             },
-            {'title': _('Enjoy the event!')},
         ],
     },
     'WRAPUP': {
