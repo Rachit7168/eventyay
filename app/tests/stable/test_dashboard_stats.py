@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 import pytest
 from django.utils.timezone import now
 from django_scopes import scopes_disabled
@@ -47,8 +49,9 @@ def orga(test_user):
 @pytest.fixture
 def events_with_stats(orga, test_user):
     with scopes_disabled():
-        e1 = Event.objects.create(organizer=orga, name='Event 1', slug='e1', date_from=now())
-        e2 = Event.objects.create(organizer=orga, name='Event 2', slug='e2', date_from=now())
+        starts = now() + timedelta(days=30)
+        e1 = Event.objects.create(organizer=orga, name='Event 1', slug='e1', date_from=starts, live=True)
+        e2 = Event.objects.create(organizer=orga, name='Event 2', slug='e2', date_from=starts, live=True)
 
         sub_type = SubmissionType.objects.create(event=e1, name='Talk')
 

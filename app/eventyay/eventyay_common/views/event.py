@@ -90,6 +90,31 @@ from ..forms.event import EventCloneForm, EventUpdateForm
 
 logger = logging.getLogger(__name__)
 
+EVENT_OVERVIEW_TABS = frozenset({'live', 'draft', 'past', 'all'})
+EVENT_OVERVIEW_STATUSES = frozenset({'live', 'draft', 'past'})
+
+
+def event_overview_tab(request: HttpRequest) -> str:
+    """Return the events-overview tab. A visit with no tab or status opens Live."""
+    tab = request.GET.get('tab')
+    if tab in EVENT_OVERVIEW_TABS:
+        return tab
+    statuses = request.GET.getlist('status')
+    if len(statuses) == 1 and statuses[0] in EVENT_OVERVIEW_STATUSES:
+        return statuses[0]
+    if not statuses:
+        return 'live'
+    return 'all'
+
+
+def events_list_has_explicit_filters(request: HttpRequest) -> bool:
+    for key, values in request.GET.lists():
+        if key in ('page', 'tab', 'ordering'):
+            continue
+        if any(values):
+            return True
+    return False
+
 
 class EventList(PaginationMixin, ListView):
     model = Event
@@ -189,11 +214,20 @@ class EventList(PaginationMixin, ListView):
 
         ctx['event_series_creation_enabled'] = is_event_series_creation_enabled(self.request)
         ctx['meetup_creation_enabled'] = is_meetup_creation_enabled(self.request)
+        ctx['active_event_tab'] = event_overview_tab(self.request)
+        ctx['show_personal_empty_state'] = (
+            not self.request.user.get_events_with_any_permission(self.request).exists()
+            and not events_list_has_explicit_filters(self.request)
+        )
         return ctx
 
     @cached_property
     def filter_form(self):
-        return EventFilterForm(data=self.request.GET, request=self.request)
+        data = self.request.GET.copy()
+        tab = event_overview_tab(self.request)
+        if tab in EVENT_OVERVIEW_STATUSES and 'status' not in self.request.GET:
+            data.setlist('status', [tab])
+        return EventFilterForm(data=data, request=self.request)
 
 
 class EventCreateView(TemplateView):

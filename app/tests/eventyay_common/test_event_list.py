@@ -30,6 +30,17 @@ def test_events_empty_state_when_search_has_no_match(client):
             date_to=now + timedelta(days=32),
             currency='USD',
             locale='en',
+            live=True,
+        )
+        Event.objects.create(
+            organizer=orga,
+            name='Draft Meetup',
+            slug='draft-meetup',
+            date_from=now + timedelta(days=40),
+            date_to=now + timedelta(days=41),
+            currency='USD',
+            locale='en',
+            live=False,
         )
 
     client.login(email='testuser@eventyay.com', password='testpassword')
@@ -49,12 +60,30 @@ def test_events_empty_state_when_search_has_no_match(client):
     assert 'No events found.' not in content_match
     assert 'Open Tech Summit' in content_match
 
-    # 3. Normal list without query
+    # 3. The events page opens on the Live tab
     response_all = client.get(url)
     assert response_all.status_code == 200
     content_all = response_all.content.decode()
     assert 'No events found.' not in content_all
     assert 'Open Tech Summit' in content_all
+    assert 'Draft Meetup' not in content_all
+    assert 'class="active"' in content_all
+    assert response_all.context['active_event_tab'] == 'live'
+    assert 'stats-arrow-collapsed' in content_all
+    assert 'stats-arrow-expanded' in content_all
+    assert '&#x2304;' in content_all
+
+    response_draft = client.get(url, {'tab': 'draft'})
+    content_draft = response_draft.content.decode()
+    assert response_draft.context['active_event_tab'] == 'draft'
+    assert 'Draft Meetup' in content_draft
+    assert 'Open Tech Summit' not in content_draft
+
+    response_every = client.get(url, {'tab': 'all'})
+    content_every = response_every.content.decode()
+    assert response_every.context['active_event_tab'] == 'all'
+    assert 'Open Tech Summit' in content_every
+    assert 'Draft Meetup' in content_every
 
 
 @pytest.mark.django_db
