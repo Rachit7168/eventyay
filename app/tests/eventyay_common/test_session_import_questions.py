@@ -452,3 +452,40 @@ def test_session_export_omits_videos_when_session_videos_disabled(event):
         data = form.get_data(form.get_queryset(), ['title', 'session_videos'], [])
 
         assert data[0]['Session videos'] == ''
+
+
+@pytest.mark.django_db
+def test_session_export_checks_session_videos_enabled_once(event, monkeypatch):
+    calls = []
+
+    def counting_enabled(export_event):
+        calls.append(export_event.pk)
+        return True
+
+    monkeypatch.setattr('eventyay.orga.forms.schedule.session_videos_enabled', counting_enabled)
+    with scope(event=event):
+        ensure_session_video_question(event)
+        sub_type = SubmissionType.objects.create(event=event, name='Talk')
+        for index in range(3):
+            submission = Submission.objects.create(
+                event=event,
+                title=f'Talk {index}',
+                submission_type=sub_type,
+                state=SubmissionStates.SUBMITTED,
+            )
+            set_submission_video_urls(submission, [f'https://www.youtube.com/watch?v=abcdefghij{index}'])
+
+        form = ScheduleExportForm(
+            event=event,
+            data={
+                'export_format': 'csv',
+                'target': ['all'],
+                'title': True,
+                'session_videos': True,
+            },
+        )
+        assert form.is_valid(), form.errors
+        data = form.get_data(form.get_queryset(), ['title', 'session_videos'], [])
+
+        assert len(data) == 3
+        assert calls == [event.pk]

@@ -24,15 +24,24 @@ from eventyay.orga.forms.importers import SpeakerImportProcessForm, infer_csv_qu
 
 def test_infer_csv_question_variant_from_samples():
     assert infer_csv_question_variant('Years studying trauma or folklore', ['12', '8']) == QuestionVariant.NUMBER
-    assert infer_csv_question_variant('Comfortable with jump-scare demonstrations', ['Yes', 'No']) == QuestionVariant.BOOLEAN
-    assert infer_csv_question_variant('Date you first documented the phenomenon', ['2019-03-14']) == QuestionVariant.DATE
+    assert (
+        infer_csv_question_variant('Comfortable with jump-scare demonstrations', ['Yes', 'No'])
+        == QuestionVariant.BOOLEAN
+    )
+    assert (
+        infer_csv_question_variant('Date you first documented the phenomenon', ['2019-03-14'])
+        == QuestionVariant.DATE
+    )
     assert infer_csv_question_variant('Country of practice', ['United States of America']) == QuestionVariant.COUNTRY
     assert infer_csv_question_variant('On-call contact', ["'+1-212-555-0148"]) == QuestionVariant.PHONE_NUMBER
-    assert infer_csv_question_variant('Sixty-second introduction video', ['https://youtu.be/abc']) == QuestionVariant.VIDEO
+    assert (
+        infer_csv_question_variant('Sixty-second introduction video', ['https://youtu.be/abc'])
+        == QuestionVariant.VIDEO
+    )
 
 
 def test_import_helpers_normalize_country_phone_and_boolean():
-    assert _sanitize_import_text("'+1-212-555-0148") == '+1-212-555-0148'
+    assert _sanitize_import_text('  +1-212-555-0148  ') == '+1-212-555-0148'
     assert _resolve_country_code('United States of America') == 'US'
     assert _resolve_country_code('us') == 'US'
     assert _serialize_answer_value('No', QuestionVariant.BOOLEAN) == 'False'
@@ -69,6 +78,7 @@ def _speaker_settings(**overrides):
     settings = {
         'email': 'csv:email',
         'full_name': 'csv:name',
+        'biography': 'csv:biography',
     }
     settings.update(overrides)
     return settings
@@ -78,6 +88,7 @@ def _speaker_row(**overrides):
     row = {
         'email': 'imported.speaker@example.org',
         'name': 'Ada Lovelace',
+        'biography': 'Mathematician and writer.',
     }
     row.update(overrides)
     return row
@@ -494,7 +505,7 @@ def test_apply_new_question_mappings_reuses_existing_question(event):
                 {
                     'header': 'color',
                     'label': 'Favourite color',
-                    'variant': QuestionVariant.TEXT,
+                    'variant': QuestionVariant.STRING,
                     'mapping': 'csv:color',
                 }
             ]
@@ -592,7 +603,7 @@ def test_import_speaker_row_normalizes_country_phone_date_and_featured(event, us
             _speaker_settings(is_featured='csv:featured'),
             _speaker_row(
                 country='United States of America',
-                phone="'+1-212-555-0148",
+                phone='+1-212-555-0148',
                 documented='2019-03-14',
                 featured='True',
             ),

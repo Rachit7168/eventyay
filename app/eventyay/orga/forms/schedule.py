@@ -292,8 +292,12 @@ class ScheduleExportForm(ExportForm):
     def _get_resources_value(self, obj):
         return [resource.url for resource in obj.active_resources if resource.url]
 
+    @cached_property
+    def _session_videos_enabled(self):
+        return session_videos_enabled(self.event)
+
     def _get_session_videos_value(self, obj):
-        if not session_videos_enabled(obj.event):
+        if not self._session_videos_enabled:
             return ''
         answers = getattr(obj, '_session_video_answers', None)
         if answers is not None:
