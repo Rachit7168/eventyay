@@ -1,7 +1,7 @@
 import datetime as dt
+import hashlib
 import json
 import logging
-import re
 from collections.abc import Mapping
 from pathlib import Path
 from typing import TypedDict
@@ -15,6 +15,7 @@ from django.core.validators import validate_email
 from django.db import DataError, IntegrityError, OperationalError, models, transaction
 from django.utils.crypto import get_random_string
 from django.utils.dateparse import parse_datetime
+from django.utils.text import slugify
 from django.utils.timezone import is_naive, make_aware, now
 from django.utils.translation import gettext as _
 from django_scopes import scope
@@ -34,9 +35,6 @@ from eventyay.base.models import (
     Track,
     User,
 )
-from eventyay.helpers.countries import CachedCountries
-from eventyay.common.social_links import parse_social_links_from_csv
-from eventyay.common.session_video import ensure_session_video_question, import_submission_video_urls
 from eventyay.base.models.question import (
     TalkQuestion,
     TalkQuestionRequired,
@@ -50,8 +48,12 @@ from eventyay.base.operational_logging import OUTCOME_FAILURE, log_event
 from eventyay.base.services.orderimport import parse_csv
 from eventyay.base.services.tasks import ProfiledEventTask
 from eventyay.celery_app import app
+from eventyay.common.session_video import ensure_session_video_question, import_submission_video_urls
+from eventyay.common.social_links import parse_social_links_from_csv
 from eventyay.common.text.rich_text import is_empty_rich_text
 from eventyay.consts import SizeKey
+from eventyay.helpers.countries import CachedCountries
+
 
 class AmbiguousTimeError(ValueError):
     pass
@@ -174,10 +176,8 @@ class ImportResult(TypedDict):
     errors: list[str]
 
 def _sanitize_import_text(value) -> str:
-    text = str(value or '').strip()
-    if text.startswith("'") and len(text) > 1:
-        text = text[1:].strip()
-    return text
+    """Strip surrounding whitespace from imported text values."""
+    return str(value or '').strip()
 
 def _resolve_csv(mapping_value, record):
     if not mapping_value:
@@ -208,7 +208,12 @@ def _normalize_import_record(record, settings):
     return {key: _normalize_import_value(record.get(key), key=key) for key in settings}
 
 def _normalize_extra_key(key) -> str:
-    return re.sub(r'[^a-z0-9]+', '_', str(key or '').strip().lower()).strip('_')
+    key_str = str(key or '').strip()
+    base = slugify(key_str, allow_unicode=True).replace('-', '_')
+    key_hash = hashlib.md5(key_str.encode('utf-8')).hexdigest()[:6]
+    if base:
+        return f"{base}_{key_hash}"
+    return key_hash
 
 def _humanize_import_key(key: str) -> str:
     label_overrides = {
@@ -428,9 +433,25 @@ def _find_question_by_label(event: Event, target: str, label: str) -> TalkQuesti
     needle = normalize_header_value(label)
     if not needle:
         return None
-    for question in TalkQuestion.objects.filter(event=event, target=target, active=True):
+    matches = []
+    for question in TalkQuestion.all_objects.filter(event=event, target=target):
         if needle in _question_label_keys(question):
-            return question
+            matches.append(question)
+
+    active_matches = [q for q in matches if q.active]
+    if len(active_matches) == 1:
+        return active_matches[0]
+
+    if len(active_matches) > 1 or (not active_matches and len(matches) > 1):
+        raise ImportExecutionError(
+            _(
+                'Ambiguous question mapping for "{label}": multiple active questions match this name. '
+                'Please use explicit mapping instead.'
+            ).format(label=label)
+        )
+
+    if len(matches) == 1:
+        return matches[0]
     return None
 
 def _get_or_create_csv_question(event: Event, target: str, spec: dict, caches: dict) -> TalkQuestion:
@@ -442,15 +463,22 @@ def _get_or_create_csv_question(event: Event, target: str, spec: dict, caches: d
         return question
     existing = _find_question_by_label(event, target, spec['label'])
     if existing:
-        update_fields = []
-        if existing.import_key and spec.get('variant') and existing.variant != spec['variant']:
-            existing.variant = spec['variant']
-            update_fields.append('variant')
+        if spec.get('variant') and existing.variant != spec['variant']:
+            raise ImportExecutionError(
+                _(
+                    'Cannot map column "{header}" to existing question "{label}" because the column type '
+                    '({new_variant}) does not match the existing question type ({old_variant}).'
+                ).format(
+                    header=spec['header'],
+                    label=spec['label'],
+                    new_variant=spec['variant'],
+                    old_variant=existing.variant,
+                )
+            )
         if not existing.active:
             existing.active = True
-            update_fields.append('active')
-        if update_fields:
-            existing.save(update_fields=update_fields)
+            existing.save(update_fields=['active'])
+            _track_question_setup(caches, existing, reactivated=True)
         return existing
     key = _normalize_extra_key(spec['label']) or 'custom_field'
     cache_key = (target, key)
@@ -474,11 +502,44 @@ def _get_or_create_csv_question(event: Event, target: str, spec: dict, caches: d
             is_visible_to_reviewers=True,
             position=_next_import_question_position(event, target, caches),
         )
-    elif not question.active:
-        question.active = True
-        question.save(update_fields=['active'])
+        _track_question_setup(caches, question, created=True)
+    else:
+        if spec.get('variant') and question.variant != spec['variant']:
+            raise ImportExecutionError(
+                _(
+                    'Cannot map column "{header}" to existing question "{label}" because the column type '
+                    '({new_variant}) does not match the existing question type ({old_variant}).'
+                ).format(
+                    header=spec['header'],
+                    label=spec['label'],
+                    new_variant=spec['variant'],
+                    old_variant=question.variant,
+                )
+            )
+        if not question.active:
+            question.active = True
+            question.save(update_fields=['active'])
+            _track_question_setup(caches, question, reactivated=True)
     created_cache[cache_key] = question
     return question
+
+def _track_question_setup(caches: dict, question: TalkQuestion, *, created=False, reactivated=False) -> None:
+    setup = caches.setdefault('question_setup', {'created': [], 'reactivated': []})
+    if created and question.pk not in setup['created']:
+        setup['created'].append(question.pk)
+    if reactivated and question.pk not in setup['reactivated'] and question.pk not in setup['created']:
+        setup['reactivated'].append(question.pk)
+
+
+def _rollback_unused_question_setup(event: Event, caches: dict) -> None:
+    setup = caches.get('question_setup') or {}
+    created_ids = list(setup.get('created') or [])
+    reactivated_ids = list(setup.get('reactivated') or [])
+    if created_ids:
+        TalkQuestion.all_objects.filter(event=event, pk__in=created_ids).delete()
+    if reactivated_ids:
+        TalkQuestion.all_objects.filter(event=event, pk__in=reactivated_ids).update(active=False)
+
 
 def _apply_new_question_mappings(
     event: Event,
@@ -562,6 +623,8 @@ def _serialize_answer_value(value, variant: str) -> str:
     if variant == TalkQuestionVariant.BOOLEAN:
         if isinstance(value, bool):
             return 'True' if value else 'False'
+        if not str(value).strip():
+            return ''
         return 'True' if _truthy(str(value).strip().lower()) else 'False'
 
     if isinstance(value, dict):
@@ -845,6 +908,8 @@ def import_speakers(self, event: Event, fileid: str, settings: dict, locale: str
         raise ImportExecutionError(
             _('The uploaded speaker file could not be found. Please upload it again and restart the import.')
         )
+    imported_any = False
+    caches = {}
     try:
         acting_user = User.objects.get(pk=user_id)
         with language(locale, event.settings.region):
@@ -886,6 +951,7 @@ def import_speakers(self, event: Event, fileid: str, settings: dict, locale: str
                         self.update_state(state='PROGRESS', meta={'value': round((row_num - 2) / total * 100)})
                     try:
                         was_created = _import_speaker_row(event, settings, record, acting_user, caches=caches)
+                        imported_any = True
                         if was_created:
                             created += 1
                         else:
@@ -908,6 +974,9 @@ def import_speakers(self, event: Event, fileid: str, settings: dict, locale: str
                     skipped,
                 )
     finally:
+        if not imported_any and caches.get('question_setup'):
+            with scope(event=event):
+                _rollback_unused_question_setup(event, caches)
         cf.delete()
     return {'created': created, 'updated': updated, 'skipped': skipped, 'errors': errors}
 
@@ -1078,6 +1147,11 @@ def _sync_import_answers(
 
     if import_keys:
         stale_answers = stale_answers.exclude(question__import_key__in=import_keys)
+
+    mapped_question_ids = {q_id for q_id, _ in caches.get('question_mappings', [])}
+    if mapped_question_ids:
+        stale_answers = stale_answers.exclude(question_id__in=mapped_question_ids)
+
     for answer in stale_answers:
         answer.remove(force=True)
 
@@ -1839,7 +1913,7 @@ def _set_question_answer(
             return
 
     answer_text = _serialize_answer_value(answer_value, question.variant)
-    if not answer_text and question.variant != TalkQuestionVariant.BOOLEAN:
+    if not answer_text:
         return
     if (
         question.variant == TalkQuestionVariant.VIDEO

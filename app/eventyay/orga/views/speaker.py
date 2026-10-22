@@ -39,6 +39,7 @@ from eventyay.common.views.mixins import (
     Sortable,
 )
 from eventyay.consts import SizeKey
+
 from eventyay.orga.forms.importers import SpeakerImportProcessForm, csv_sample_values
 from eventyay.orga.forms.submission import SubmissionForm
 from eventyay.person.forms import (

@@ -112,6 +112,11 @@ class ExportForm(forms.Form):
             return method(obj)
         return getattr(obj, attribute, None)
 
+    def _neutralize_formula(self, value):
+        if value and isinstance(value, str) and value.lstrip().startswith(('=', '+', '-', '@', '|')):
+            return f"'{value}"
+        return value
+
     def get_data(self, queryset, fields, questions):
         data = []
 
@@ -161,7 +166,8 @@ class ExportForm(forms.Form):
         for row in data:
             for key, value in row.items():
                 if isinstance(value, list):
-                    row[key] = delimiter.join(str(item) for item in value if item is not None)
+                    value = delimiter.join(str(item) for item in value if item is not None)
+                row[key] = self._neutralize_formula(value)
 
         output = StringIO()
         writer = csv.DictWriter(output, fieldnames=data[0].keys())

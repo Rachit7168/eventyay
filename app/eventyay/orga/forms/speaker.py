@@ -151,16 +151,20 @@ class SpeakerExportForm(ExportForm):
         return obj._profile.biography
 
     def _get_job_title_value(self, obj):
-        return obj._profile.job_title
+        profile = getattr(obj, '_profile', None)
+        return profile.job_title if profile else ''
 
     def _get_organization_value(self, obj):
-        return obj._profile.organization
+        profile = getattr(obj, '_profile', None)
+        return profile.organization if profile else ''
 
     def _get_social_links_value(self, obj):
-        return format_social_links_for_csv(obj._profile.social_links.all())
+        profile = getattr(obj, '_profile', None)
+        return format_social_links_for_csv(profile.social_links.all()) if profile else ''
 
     def _get_is_featured_value(self, obj):
-        return obj._profile.is_featured
+        profile = getattr(obj, '_profile', None)
+        return profile.is_featured if profile else False
 
     def _get_submission_ids_value(self, obj):
         return [sub.code for sub in obj.event_submissions]
