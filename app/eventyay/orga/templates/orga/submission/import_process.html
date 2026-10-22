@@ -44,14 +44,6 @@
     {% endblocktranslate %}
   </p>
 
-  {% if form.non_field_errors %}
-    <div class='alert alert-danger'>
-      {% for error in form.non_field_errors %}
-        <p>{{ error }}</p>
-      {% endfor %}
-    </div>
-  {% endif %}
-
   <form method='post' data-import-task data-import-task-long>
     {% csrf_token %}
     {% include 'orga/includes/import_mapping_fields.html' %}

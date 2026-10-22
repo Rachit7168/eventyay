@@ -1,7 +1,8 @@
 import pytest
+from django.core.files.base import ContentFile
 from django_scopes import scope
 
-from eventyay.base.models import Answer, AnswerOption, Submission
+from eventyay.base.models import Answer, AnswerOption, CachedFile, Submission
 from eventyay.base.models import TalkQuestion as Question
 from eventyay.base.models import TalkQuestionVariant as QuestionVariant
 from eventyay.base.models.question import TalkQuestionRequired as QuestionRequired
@@ -14,6 +15,7 @@ from eventyay.base.services.talkimport import (
     _get_or_create_csv_question,
     _import_submission_row,
     _load_mapped_questions,
+    import_submissions,
 )
 from eventyay.common.session_video import (
     SESSION_VIDEO_IMPORT_KEY,
@@ -489,3 +491,33 @@ def test_session_export_checks_session_videos_enabled_once(event, monkeypatch):
 
         assert len(data) == 3
         assert calls == [event.pk]
+
+
+@pytest.mark.django_db
+def test_import_submissions_removes_new_question_when_no_rows_import(event, user):
+    cached = CachedFile.objects.create(type='text/csv', filename='sessions.csv')
+    cached.file.save('sessions.csv', ContentFile(b'title,takeaway\n,Ship the feature\n'))
+    settings = {
+        'title': 'csv:title',
+        'new_questions': [
+            {
+                'header': 'takeaway',
+                'label': 'Audience takeaway',
+                'variant': QuestionVariant.STRING,
+                'mapping': 'csv:takeaway',
+            }
+        ],
+    }
+
+    result = import_submissions(
+        event=event.pk,
+        fileid=str(cached.id),
+        settings=settings,
+        locale='en',
+        user_id=user.pk,
+    )
+
+    assert result['created'] == 0
+    assert result['skipped'] == 1
+    with scope(event=event):
+        assert not Question.all_objects.filter(event=event, target=TalkQuestionTarget.SUBMISSION).exists()

@@ -2,6 +2,7 @@ from django_scopes import scope
 import json
 from collections import Counter
 from dataclasses import replace
+from itertools import islice
 
 from dateutil import rrule
 from django.conf import settings
@@ -72,7 +73,7 @@ from eventyay.common.views.mixins import (
     Sortable,
 )
 from eventyay.consts import SizeKey
-from eventyay.orga.forms.importers import SessionImportProcessForm, csv_sample_values
+from eventyay.orga.forms.importers import CSV_SAMPLE_ROW_LIMIT, SessionImportProcessForm, csv_sample_values
 from eventyay.orga.forms.submission import (
     AddSpeakerForm,
     AddSpeakerInlineForm,
@@ -1709,7 +1710,7 @@ class SubmissionImportProcessView(ImportProcessRedirectMixin, EventPermissionReq
 
     def _parsed_rows(self):
         if not hasattr(self, '_cached_parsed_rows'):
-            self._cached_parsed_rows = list(self.parsed) if self.parsed else []
+            self._cached_parsed_rows = list(islice(self.parsed, CSV_SAMPLE_ROW_LIMIT)) if self.parsed else []
         return self._cached_parsed_rows
 
     def get_form_kwargs(self):

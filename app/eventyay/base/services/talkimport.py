@@ -1407,6 +1407,8 @@ def import_submissions(self, event: Event, fileid: str, settings: dict, locale: 
         raise ImportExecutionError(
             _('The uploaded session file could not be found. Please upload it again and restart the import.')
         )
+    imported_any = False
+    caches = {}
     try:
         acting_user = User.objects.get(pk=user_id)
         with language(locale, event.settings.region):
@@ -1422,13 +1424,15 @@ def import_submissions(self, event: Event, fileid: str, settings: dict, locale: 
                 submission_types = list(SubmissionType.objects.filter(event=event))
                 tracks = list(Track.objects.filter(event=event))
                 rooms = list(Room.objects.filter(event=event))
-                caches = {
-                    'submission_types': submission_types,
-                    'tracks': tracks,
-                    'rooms': rooms,
-                    'valid_states': {choice[0] for choice in SubmissionStates.get_choices()},
-                    'default_sub_type': submission_types[0] if submission_types else None,
-                }
+                caches.update(
+                    {
+                        'submission_types': submission_types,
+                        'tracks': tracks,
+                        'rooms': rooms,
+                        'valid_states': {choice[0] for choice in SubmissionStates.get_choices()},
+                        'default_sub_type': submission_types[0] if submission_types else None,
+                    }
+                )
 
                 question_mappings, question_cache = _load_mapped_questions(
                     event, settings, target=TalkQuestionTarget.SUBMISSION
@@ -1459,6 +1463,7 @@ def import_submissions(self, event: Event, fileid: str, settings: dict, locale: 
                         was_created = _import_submission_row(
                             event, settings, record, acting_user, speaker_cache, caches
                         )
+                        imported_any = True
                         if was_created:
                             created += 1
                         else:
@@ -1481,6 +1486,9 @@ def import_submissions(self, event: Event, fileid: str, settings: dict, locale: 
                     skipped,
                 )
     finally:
+        if not imported_any and caches.get('question_setup'):
+            with scope(event=event):
+                _rollback_unused_question_setup(event, caches)
         cf.delete()
     return {'created': created, 'updated': updated, 'skipped': skipped, 'errors': errors}
 

@@ -92,7 +92,12 @@ _PHONE_SAMPLE_RE = re.compile(r"^'?\+?[\d][\d\s()./-]{6,}$")
 _NUMBER_SAMPLE_RE = re.compile(r'^-?\d+(?:\.\d+)?$')
 
 
-def csv_sample_values(rows: Iterable[Mapping], headers: Iterable[str], *, limit: int = 25) -> dict[str, list[str]]:
+CSV_SAMPLE_ROW_LIMIT = 25
+
+
+def csv_sample_values(
+    rows: Iterable[Mapping], headers: Iterable[str], *, limit: int = CSV_SAMPLE_ROW_LIMIT
+) -> dict[str, list[str]]:
     samples = {header: [] for header in headers}
     for index, row in enumerate(rows):
         if index >= limit:
