@@ -48,7 +48,7 @@ from eventyay.base.operational_logging import OUTCOME_FAILURE, log_event
 from eventyay.base.services.orderimport import parse_csv
 from eventyay.base.services.tasks import ProfiledEventTask
 from eventyay.celery_app import app
-from eventyay.common.session_video import ensure_session_video_question, import_submission_video_urls
+from eventyay.common.session_video import activate_imported_session_video_question, import_submission_video_urls
 from eventyay.common.social_links import parse_social_links_from_csv
 from eventyay.common.text.rich_text import is_empty_rich_text
 from eventyay.consts import SizeKey
@@ -456,11 +456,7 @@ def _find_question_by_label(event: Event, target: str, label: str) -> TalkQuesti
 
 def _get_or_create_csv_question(event: Event, target: str, spec: dict, caches: dict) -> TalkQuestion:
     if target == TalkQuestionTarget.SUBMISSION and spec.get('variant') == TalkQuestionVariant.VIDEO:
-        question = ensure_session_video_question(event)
-        if not question.active:
-            question.active = True
-            question.save(update_fields=['active'])
-        return question
+        return activate_imported_session_video_question(event)
     existing = _find_question_by_label(event, target, spec['label'])
     if existing:
         if spec.get('variant') and existing.variant != spec['variant']:
@@ -487,21 +483,28 @@ def _get_or_create_csv_question(event: Event, target: str, spec: dict, caches: d
         return created_cache[cache_key]
     import_key = _build_import_question_key(target, key)
     question = TalkQuestion.all_objects.filter(event=event, target=target, import_key=import_key).first()
+    created = False
     if question is None:
-        question = TalkQuestion.objects.create(
-            event=event,
-            target=target,
-            import_key=import_key,
-            is_imported=False,
-            active=True,
-            question_required=TalkQuestionRequired.OPTIONAL,
-            variant=spec['variant'],
-            question=spec['label'],
-            is_public=False,
-            contains_personal_data=False,
-            is_visible_to_reviewers=True,
-            position=_next_import_question_position(event, target, caches),
-        )
+        try:
+            with transaction.atomic():
+                question = TalkQuestion.objects.create(
+                    event=event,
+                    target=target,
+                    import_key=import_key,
+                    is_imported=False,
+                    active=True,
+                    question_required=TalkQuestionRequired.OPTIONAL,
+                    variant=spec['variant'],
+                    question=spec['label'],
+                    is_public=False,
+                    contains_personal_data=False,
+                    is_visible_to_reviewers=True,
+                    position=_next_import_question_position(event, target, caches),
+                )
+            created = True
+        except IntegrityError:
+            question = TalkQuestion.all_objects.get(event=event, target=target, import_key=import_key)
+    if created:
         _track_question_setup(caches, question, created=True)
     else:
         if spec.get('variant') and question.variant != spec['variant']:
@@ -1709,7 +1712,7 @@ def _import_submission_row(event, settings, record, acting_user, speaker_cache=N
                     create_slide_resource(submission, link=slide_link)
 
             if session_videos_val:
-                import_submission_video_urls(submission, session_videos_val)
+                _import_video_urls(submission, session_videos_val)
 
             # Question answers
             question_mappings = caches.get('question_mappings') if caches else []
@@ -1764,6 +1767,12 @@ def _import_submission_row(event, settings, record, acting_user, speaker_cache=N
             _discard_created_choice_options(created_choice_options)
 
     return was_created
+
+def _import_video_urls(submission, raw: str) -> None:
+    try:
+        import_submission_video_urls(submission, raw)
+    except ValueError as exc:
+        raise ImportExecutionError(str(exc)) from exc
 
 def _resolve_submission_type(sub_type_val: str, caches: dict) -> 'SubmissionType | None':
     """Find a SubmissionType by name (case-insensitive contains) or pk using pre-fetched list."""
@@ -1928,7 +1937,7 @@ def _set_question_answer(
         and question.target == TalkQuestionTarget.SUBMISSION
         and submission is not None
     ):
-        import_submission_video_urls(submission, answer_text)
+        _import_video_urls(submission, answer_text)
         return
 
     lookup = {'question': question}

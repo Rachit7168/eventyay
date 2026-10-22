@@ -1,5 +1,8 @@
+from contextlib import contextmanager
+
 import pytest
 from django.core.files.base import ContentFile
+from django.db import transaction
 from django_scopes import scope
 
 from eventyay.base.models import Answer, AnswerOption, CachedFile, Submission
@@ -521,3 +524,101 @@ def test_import_submissions_removes_new_question_when_no_rows_import(event, user
     assert result['skipped'] == 1
     with scope(event=event):
         assert not Question.all_objects.filter(event=event, target=TalkQuestionTarget.SUBMISSION).exists()
+
+
+@pytest.mark.django_db
+def test_import_submission_row_keeps_reactivated_video_field_private(event, user):
+    with scope(event=event):
+        question = ensure_session_video_question(event)
+        question.active = False
+        question.is_public = True
+        question.save(update_fields=['active', 'is_public'])
+
+        _import_submission_row(
+            event,
+            {'title': 'csv:title', 'session_videos': 'csv:videos'},
+            {'title': 'A video talk', 'videos': 'https://www.youtube.com/watch?v=BdDK7ikz5tU'},
+            user,
+            caches=_session_caches(event),
+        )
+
+        question.refresh_from_db()
+        assert question.active is True
+        assert question.is_public is False
+
+
+@pytest.mark.django_db
+def test_import_submission_row_rejects_invalid_video_url_and_cleans_up(event, user):
+    with scope(event=event):
+        with pytest.raises(ImportExecutionError, match='Invalid session video URL "https://example.com/talk"'):
+            _import_submission_row(
+                event,
+                {'title': 'csv:title', 'session_videos': 'csv:videos'},
+                {
+                    'title': 'A video talk',
+                    'videos': 'https://www.youtube.com/watch?v=BdDK7ikz5tU\nhttps://example.com/talk',
+                },
+                user,
+                caches=_session_caches(event),
+            )
+
+        assert not Submission.objects.filter(event=event, title='A video talk').exists()
+        assert get_session_video_question(event, create=False) is None
+
+
+
+def _insert_before_next_savepoint(monkeypatch, insert):
+    real_atomic = transaction.atomic
+    state = {'pending': True}
+
+    @contextmanager
+    def racing_atomic(*args, **kwargs):
+        if state['pending']:
+            state['pending'] = False
+            insert()
+        with real_atomic(*args, **kwargs):
+            yield
+
+    monkeypatch.setattr(transaction, 'atomic', racing_atomic)
+
+
+@pytest.mark.django_db
+def test_get_or_create_csv_question_reuses_question_created_concurrently(event, monkeypatch):
+    from eventyay.base.services import talkimport
+
+    spec = {
+        'header': 'takeaway',
+        'label': 'Audience takeaway',
+        'variant': QuestionVariant.STRING,
+        'mapping': 'csv:takeaway',
+    }
+    import_key = talkimport._build_import_question_key(
+        TalkQuestionTarget.SUBMISSION, talkimport._normalize_extra_key(spec['label'])
+    )
+    _insert_before_next_savepoint(
+        monkeypatch,
+        lambda: Question.objects.create(
+            event=event,
+            target=TalkQuestionTarget.SUBMISSION,
+            import_key=import_key,
+            variant=QuestionVariant.STRING,
+            question='Audience takeaway',
+        ),
+    )
+    with scope(event=event):
+        caches = {}
+        question = _get_or_create_csv_question(event, TalkQuestionTarget.SUBMISSION, spec, caches)
+
+        assert list(Question.all_objects.filter(event=event, target=TalkQuestionTarget.SUBMISSION)) == [question]
+        assert 'question_setup' not in caches
+
+
+@pytest.mark.django_db
+def test_session_video_question_reuses_field_created_concurrently(event, monkeypatch):
+    from eventyay.common import session_video
+
+    _insert_before_next_savepoint(monkeypatch, lambda: session_video._create_session_video_question(event))
+    with scope(event=event):
+        question = ensure_session_video_question(event)
+
+        assert list(Question.all_objects.filter(event=event, import_key=SESSION_VIDEO_IMPORT_KEY)) == [question]
