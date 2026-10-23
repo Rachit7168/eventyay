@@ -9,6 +9,7 @@ from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.utils.functional import cached_property
 from django.utils.http import url_has_allowed_host_and_scheme
+from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import ListView
 from django_scopes import scopes_disabled
@@ -256,7 +257,10 @@ class OrganizerTeamsView(UpdateView, OrganizerPermissionRequiredMixin):
                         eventcount=Count('limit_events', distinct=True),
                         invcount=Count(
                             'invites',
-                            filter=~Q(invites__state=TeamInvite.State.ACCEPTED),
+                            filter=Q(
+                                invites__state=TeamInvite.State.PENDING,
+                                invites__expires__gt=now(),
+                            ),
                             distinct=True,
                         ),
                     )

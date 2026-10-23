@@ -187,6 +187,18 @@ def test_dashboard_lists_pending_invitations(client, helpers_team, invitee, djan
 
 
 @pytest.mark.django_db
+def test_dashboard_lists_unbound_invite_for_matching_email(client, helpers_team, invitee, user):
+    with scopes_disabled():
+        helpers_team.invites.create(email='Invitee@example.org', user=None)
+        helpers_team.invites.create(email=invitee.email, user=user)
+    client.force_login(invitee)
+
+    response = client.get(reverse('eventyay_common:dashboard'))
+
+    assert response.content.decode().count('You have been invited to join “Helpers” for “Test Event”.') == 1
+
+
+@pytest.mark.django_db
 def test_periodic_task_sends_one_reminder_and_expires_invites(
     helpers_team, invitee, django_capture_on_commit_callbacks
 ):

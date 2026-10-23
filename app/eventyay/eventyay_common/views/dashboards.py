@@ -710,7 +710,7 @@ def rearrange(widgets: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 def _pending_team_invites(user):
     invites = list(
         TeamInvite.objects.open()
-        .filter(user=user)
+        .filter(Q(user=user) | Q(user__isnull=True, email__iexact=user.email))
         .select_related('team__organizer')
         .order_by('expires')
     )

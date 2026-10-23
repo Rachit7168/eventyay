@@ -24,6 +24,7 @@ from eventyay.base.models.organizer import (
 )
 from eventyay.base.services.mail import SendMailException, mail
 from eventyay.base.signals import periodic_task
+from eventyay.eventyay_common.video.traits_sync import sync_video_traits_for_team
 from eventyay.helpers.periodic import minimum_interval
 from eventyay.helpers.urls import build_absolute_uri
 
@@ -377,6 +378,7 @@ def accept_team_invite(invite, user):
         invite = _lock_open_invite(invite, user)
         team = invite.team
         team.members.add(user)
+        sync_video_traits_for_team(team, members=[user])
         invite.user = user
         invite.state = TeamInvite.State.ACCEPTED
         invite.responded = now()

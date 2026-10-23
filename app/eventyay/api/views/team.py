@@ -99,11 +99,6 @@ class TeamViewSet(PretalxViewSetMixin, viewsets.ModelViewSet):
         input_serializer.is_valid(raise_exception=True)
         email = input_serializer.validated_data['email']
 
-        if team.members.filter(email__iexact=email).exists():
-            raise exceptions.ValidationError('This user is already a member of the team.')
-        if team.invites.filter(email__iexact=email).exists():
-            raise exceptions.ValidationError('This user has already been invited to the team.')
-
         with transaction.atomic():
             try:
                 invite = invite_to_team(
