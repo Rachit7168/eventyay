@@ -122,7 +122,12 @@ def event_overview_filter_data(request: HttpRequest):
     if tab in EVENT_OVERVIEW_STATUSES:
         data.setlist('status', [tab])
         return data
-    statuses = [status for status in request.GET.getlist('status') if status]
+    statuses = [
+        status for status in request.GET.getlist('status')
+        if status in EVENT_OVERVIEW_STATUSES
+    ]
+    if 'status' in data:
+        data.setlist('status', statuses)
     if not statuses:
         data.setlist('status', ['live'])
     return data

@@ -75,9 +75,8 @@ def test_events_empty_state_when_search_has_no_match(client):
             content_all,
         )
     assert response_all.context['active_event_tab'] == 'live'
-    assert 'stats-arrow-collapsed' in content_all
-    assert 'stats-arrow-expanded' in content_all
-    assert '&#x2304;' in content_all
+    assert 'fa-caret-right stats-arrow stats-arrow-collapsed' in content_all
+    assert 'fa-caret-up stats-arrow stats-arrow-expanded' in content_all
 
     response_draft = client.get(url, {'tab': 'draft'})
     content_draft = response_draft.content.decode()
@@ -102,6 +101,21 @@ def test_events_empty_state_when_search_has_no_match(client):
     assert response_blank_status.context['active_event_tab'] == 'live'
     assert 'Open Tech Summit' in content_blank_status
     assert 'Draft Meetup' not in content_blank_status
+
+    response_unknown = client.get(url, {'status': 'unknown', 'query': 'Open Tech'})
+    content_unknown = response_unknown.content.decode()
+    assert response_unknown.context['active_event_tab'] == 'live'
+    assert 'Open Tech Summit' in content_unknown
+    assert 'Draft Meetup' not in content_unknown
+
+    response_paged = client.get(url, {'tab': 'all', 'page': '1'})
+    live_href = re.search(
+        r'class="events-overview-tabs".*?href="([^"]*)"[^>]*>Live</a>',
+        response_paged.content.decode(),
+        re.S,
+    )
+    assert live_href
+    assert 'page=' not in live_href.group(1)
 
 
 @pytest.mark.django_db

@@ -34,16 +34,16 @@
         
         <ul class="nav nav-tabs events-overview-tabs">
             <li role="presentation" {% if active_event_tab == 'live' %}class="active"{% endif %}>
-                <a href="?{% url_replace request 'status' 'live' 'tab' 'live' %}">{% trans "Live" %}</a>
+                <a href="?{% url_replace request 'status' 'live' 'tab' 'live' 'page' '' %}">{% trans "Live" %}</a>
             </li>
             <li role="presentation" {% if active_event_tab == 'draft' %}class="active"{% endif %}>
-                <a href="?{% url_replace request 'status' 'draft' 'tab' 'draft' %}">{% trans "Draft" %}</a>
+                <a href="?{% url_replace request 'status' 'draft' 'tab' 'draft' 'page' '' %}">{% trans "Draft" %}</a>
             </li>
             <li role="presentation" {% if active_event_tab == 'past' %}class="active"{% endif %}>
-                <a href="?{% url_replace request 'status' 'past' 'tab' 'past' %}">{% trans "Past" %}</a>
+                <a href="?{% url_replace request 'status' 'past' 'tab' 'past' 'page' '' %}">{% trans "Past" %}</a>
             </li>
             <li role="presentation" {% if active_event_tab == 'all' %}class="active"{% endif %}>
-                <a href="?{% url_replace request 'status' '' 'tab' 'all' %}">{% trans "All" %}</a>
+                <a href="?{% url_replace request 'status' '' 'tab' 'all' 'page' '' %}">{% trans "All" %}</a>
             </li>
         </ul>
         <div class="advanced-filter-search" data-advanced-filter-search>
@@ -204,8 +204,8 @@
                             <li><span>{% trans "Canceled:" %}</span> <span>{{ e.session_counts.canceled }}</span></li>
                         </ul>
                         <a href="#session-stats-{{ e.pk }}" class="quotabox-more stats-dropdown-toggle collapsed" data-toggle="collapse" title="{% trans 'More session stats' %}" aria-expanded="false" aria-controls="session-stats-{{ e.pk }}">
-                            <span class="stats-arrow stats-arrow-collapsed" aria-hidden="true">&gt;</span>
-                            <span class="stats-arrow stats-arrow-expanded" aria-hidden="true">&#x2304;</span>
+                            <i class="fa fa-caret-right stats-arrow stats-arrow-collapsed" aria-hidden="true"></i>
+                            <i class="fa fa-caret-up stats-arrow stats-arrow-expanded" aria-hidden="true"></i>
                             <span class="sr-only">{% trans "More session stats" %}</span>
                         </a>
                     </td>
@@ -224,8 +224,8 @@
                             <li><span>{% trans "Canceled:" %}</span> <span>{{ e.speaker_counts.canceled }}</span></li>
                         </ul>
                         <a href="#speaker-stats-{{ e.pk }}" class="quotabox-more stats-dropdown-toggle collapsed" data-toggle="collapse" title="{% trans 'More speaker stats' %}" aria-expanded="false" aria-controls="speaker-stats-{{ e.pk }}">
-                            <span class="stats-arrow stats-arrow-collapsed" aria-hidden="true">&gt;</span>
-                            <span class="stats-arrow stats-arrow-expanded" aria-hidden="true">&#x2304;</span>
+                            <i class="fa fa-caret-right stats-arrow stats-arrow-collapsed" aria-hidden="true"></i>
+                            <i class="fa fa-caret-up stats-arrow stats-arrow-expanded" aria-hidden="true"></i>
                             <span class="sr-only">{% trans "More speaker stats" %}</span>
                         </a>
                     </td>
