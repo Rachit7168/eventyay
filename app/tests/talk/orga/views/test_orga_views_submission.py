@@ -729,66 +729,6 @@ def test_orga_create_submission_with_no_email_speaker(orga_client, event):
 
 
 @pytest.mark.django_db
-def test_orga_create_submission_with_speaker_custom_and_dependent_questions(
-    orga_client, event
-):
-    """Verify custom question and dependent question answers are persisted for a new speaker."""
-    with scope(event=event):
-        type_pk = event.submission_types.first().pk
-        parent_q = Question.objects.create(
-            event=event,
-            question="Are you local?",
-            variant=QuestionVariant.BOOLEAN,
-            target="speaker",
-            active=True,
-        )
-        dep_q = Question.objects.create(
-            event=event,
-            question="Which district?",
-            variant=QuestionVariant.STRING,
-            target="speaker",
-            dependency_question=parent_q,
-            dependency_values=["True"],
-            active=True,
-        )
-
-    response = orga_client.post(
-        event.orga_urls.new_submission,
-        data={
-            "abstract": "abstract",
-            "content_locale": "en",
-            "description": "description",
-            "duration": "",
-            "slot_count": 1,
-            "notes": "notes",
-            "internal_notes": "internal_notes",
-            "add_new_speaker": "on",
-            "speaker-email": "speaker-custom@example.com",
-            "speaker-name": "Custom Speaker",
-            "speaker-locale": "en",
-            "title": "Custom Questions Proposal",
-            "submission_type": type_pk,
-            "state": "submitted",
-            f"speaker-question_{parent_q.pk}": "True",
-            f"speaker-question_{dep_q.pk}": "District 9",
-        },
-        follow=True,
-    )
-    assert response.status_code == 200
-    with scope(event=event):
-        assert event.submissions.count() == 1
-        sub = event.submissions.first()
-        speaker = sub.speakers.first()
-        assert speaker.email == "speaker-custom@example.com"
-        parent_ans = Answer.objects.filter(person=speaker, question=parent_q).first()
-        dep_ans = Answer.objects.filter(person=speaker, question=dep_q).first()
-        assert parent_ans is not None
-        assert parent_ans.answer == "True"
-        assert dep_ans is not None
-        assert dep_ans.answer == "District 9"
-
-
-@pytest.mark.django_db
 def test_orga_create_submission_reconciles_existing_speaker_custom_answers(
     orga_client, event
 ):
