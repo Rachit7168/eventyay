@@ -515,45 +515,46 @@ def ordered_session_fields(submission_form, questions_form, event, *, include_se
     builtin_names = set(BUILTIN_SESSION_FIELDS)
 
     entries = []
-    for name in SESSION_FIELD_TEMPLATE_ORDER:
-        if name == 'session_videos':
-            if include_session_videos:
-                entries.append('session_videos')
-            continue
-        field = submission_form.fields.get(name)
-        if field is None or field.widget.is_hidden:
-            continue
-        entries.append(submission_form[name])
+    placed = set()
 
-    def entry_name(entry):
-        if entry == 'session_videos':
-            return 'session_videos'
-        return entry.name
+    def append_session_videos():
+        if not include_session_videos or 'session_videos' in placed:
+            return
+        entries.append('session_videos')
+        placed.add('session_videos')
 
-    def index_by_name(items):
-        return {entry_name(entry): index for index, entry in enumerate(items)}
+    def append_form_field(form, name):
+        if name in placed or name not in form.fields:
+            return
+        field = form.fields[name]
+        if field.widget.is_hidden:
+            return
+        entries.append(form[name])
+        placed.add(name)
 
-    placed = index_by_name(entries)
-    last_index = -1
     for item in order:
         name = item if isinstance(item, str) else None
         if not name:
             continue
+        if name == 'session_videos':
+            append_session_videos()
+            continue
         if name in builtin_names:
-            if name in placed:
-                last_index = placed[name]
+            append_form_field(submission_form, name)
             continue
         question_name = name if name.startswith('question_') else f'question_{name}'
-        if question_name not in questions_form.fields or question_name in placed:
+        append_form_field(questions_form, question_name)
+
+    # Organizer-only fields (and any leftover template fields) are not part of
+    # the public CfP order, so they follow the configured session fields.
+    for name in SESSION_FIELD_TEMPLATE_ORDER:
+        if name == 'session_videos':
+            append_session_videos()
             continue
-        insert_at = last_index + 1
-        entries.insert(insert_at, questions_form[question_name])
-        placed = index_by_name(entries)
-        last_index = placed[question_name]
+        append_form_field(submission_form, name)
 
     for name in questions_form.fields:
-        if name not in placed:
-            entries.append(questions_form[name])
+        append_form_field(questions_form, name)
     return entries
 
 
@@ -730,6 +731,8 @@ class SubmissionContent(ActionFromUrl, ReviewerSubmissionFilter, SubmissionViewM
     @cached_property
     def selected_existing_speaker_ids(self):
         """Re-populate the existing-speaker selects on a failed POST."""
+        if not self.request.user.has_perm('base.orga_list_speakerprofile', self.request.event):
+            return []
         selected = []
         for raw_pk in self.request.POST.getlist('existing_speaker_id'):
             raw_pk = str(raw_pk).strip()
@@ -918,7 +921,9 @@ class SubmissionContent(ActionFromUrl, ReviewerSubmissionFilter, SubmissionViewM
                                 biography=self.new_speaker_form.cleaned_data.get('biography'),
                             )
                             self.new_speaker_form.save_speaker_questions(speaker)
-                    elif existing_speaker_ids:
+                    elif existing_speaker_ids and self.request.user.has_perm(
+                        'base.orga_list_speakerprofile', self.request.event
+                    ):
                         try:
                             requested_ids = [int(pk) for pk in existing_speaker_ids]
                         except (TypeError, ValueError):

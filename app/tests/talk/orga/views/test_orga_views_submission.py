@@ -890,6 +890,89 @@ def test_orga_create_submission_links_multiple_speakers_and_rejects_other_event(
 
 
 @pytest.mark.django_db
+def test_orga_create_submission_rejects_existing_speakers_without_list_permission(
+    orga_client, event, orga_user
+):
+    """Crafted existing_speaker_id values must not link speakers without list permission."""
+    with scope(event=event):
+        type_pk = event.submission_types.first().pk
+        speaker = User.objects.create(
+            fullname="Hidden Speaker", email="hidden-speaker@example.com"
+        )
+        profile = SpeakerProfile.objects.create(user=speaker, event=event)
+        team = orga_user.teams.filter(can_change_submissions=True).first()
+        team.force_hide_speaker_names = True
+        team.save()
+        assert not orga_user.has_perm("base.orga_list_speakerprofile", event)
+        assert orga_user.has_perm("base.create_submission", event)
+
+    response = orga_client.post(
+        event.orga_urls.new_submission,
+        data={
+            "abstract": "abstract",
+            "content_locale": "en",
+            "description": "description",
+            "duration": "",
+            "slot_count": 1,
+            "notes": "notes",
+            "internal_notes": "internal_notes",
+            "existing_speaker_id": [profile.pk],
+            "title": "Hidden Speaker Proposal",
+            "submission_type": type_pk,
+            "state": "submitted",
+        },
+        follow=True,
+    )
+    assert response.status_code == 200
+    with scope(event=event):
+        assert event.submissions.count() == 1
+        sub = event.submissions.first()
+        assert speaker not in sub.speakers.all()
+        assert sub.speakers.count() == 0
+
+
+@pytest.mark.django_db
+def test_orga_create_submission_follows_reordered_cfp_session_fields(
+    orga_client, event
+):
+    """Reordering built-in session fields in CfP settings must change the create form."""
+    with scope(event=event):
+        question = Question.objects.create(
+            event=event,
+            question="Session theme?",
+            variant=QuestionVariant.STRING,
+            target="submission",
+            active=True,
+        )
+        settings = dict(event.cfp.settings)
+        settings["fields_config"] = {
+            "session": [
+                "abstract",
+                "description",
+                str(question.pk),
+                "title",
+                "submission_type",
+            ]
+        }
+        event.cfp.settings = settings
+        event.cfp.save(update_fields=["settings"])
+
+    response = orga_client.get(event.orga_urls.new_submission)
+    assert response.status_code == 200
+    ordered = response.context["ordered_session_fields"]
+    names = [
+        item if item == "session_videos" else item.name for item in ordered
+    ]
+    assert names.index("abstract") < names.index("description")
+    assert names.index("description") < names.index(f"question_{question.pk}")
+    assert names.index(f"question_{question.pk}") < names.index("title")
+    assert names.index("title") < names.index("submission_type")
+    for organizer_field in ("internal_notes", "is_featured"):
+        if organizer_field in names:
+            assert names.index("submission_type") < names.index(organizer_field)
+
+
+@pytest.mark.django_db
 def test_orga_can_edit_submission(orga_client, event, accepted_submission):
     event.feature_flags["present_multiple_times"] = True
     event.save()
