@@ -249,6 +249,45 @@ def test_organizer_can_send_new_invitation_after_expiry(
 
 @pytest.mark.django_db
 @override_settings(SITE_URL='https://testserver')
+def test_organizer_team_page_shows_invite_states(organizer_client, organizer, helpers_team, invitee):
+    with scopes_disabled():
+        helpers_team.invites.create(
+            email='expired@example.org',
+            state=TeamInvite.State.EXPIRED,
+            expires=now() - timedelta(hours=1),
+        )
+        helpers_team.invites.create(email='declined@example.org', state=TeamInvite.State.DECLINED)
+        helpers_team.invites.create(
+            email=invitee.email,
+            user=invitee,
+            reminder_sent=now(),
+        )
+        accepted = User.objects.create_user(email='accepted@example.org', password='acceptedpass123')
+        helpers_team.members.add(accepted)
+        TeamInvite.all_objects.create(
+            team=helpers_team,
+            email=accepted.email,
+            user=accepted,
+            state=TeamInvite.State.ACCEPTED,
+        )
+
+    response = organizer_client.get(
+        reverse('eventyay_common:organizer.teams', kwargs={'organizer': organizer.slug}),
+        {'team': helpers_team.pk, 'panel': 'members'},
+    )
+    content = response.content.decode()
+
+    assert 'label-warning' in content
+    assert 'Expired' in content
+    assert 'label-danger' in content
+    assert 'Declined' in content
+    assert 'Follow-up reminder sent' in content
+    assert 'label-success' in content
+    assert 'Accepted' in content
+
+
+@pytest.mark.django_db
+@override_settings(SITE_URL='https://testserver')
 def test_message_center_lists_read_only_team_invitation_templates(organizer_client, organizer, event):
     kwargs = {'organizer': organizer.slug, 'event': event.slug}
     listing = organizer_client.get(reverse('control:event.mail.templates', kwargs=kwargs)).content.decode()

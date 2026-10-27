@@ -185,6 +185,9 @@
                                                             <span class="fa fa-shield disabled" data-toggle="tooltip"
                                                                   title="{% translate "Two-factor authentication disabled" %}"></span>
                                                         {% endif %}
+                                                        {% if member.email|lower in panel.accepted_invite_emails %}
+                                                            <span class="label label-success">{% translate "Accepted" %}</span>
+                                                        {% endif %}
                                                     </td>
                                                     <td class="text-right flip">
                                                         <button type="submit" name="remove-member" value="{{ member.id }}"
@@ -214,8 +217,13 @@
                                                                     class="btn-invisible">
                                                                 <span class="fa fa-repeat"></span>
                                                             </button>
+                                                            {% if invite.reminder_sent %}
+                                                                <div>
+                                                                    <small class="text-muted">{% translate "Follow-up reminder sent" %}</small>
+                                                                </div>
+                                                            {% endif %}
                                                         {% else %}
-                                                            <span class="label label-default">{{ invite.display_state_label }}</span>
+                                                            <span class="label {{ invite.display_state_css_class }}">{{ invite.display_state_label }}</span>
                                                             <button type="submit" name="resend-invite" value="{{ invite.id }}"
                                                                     class="btn btn-default btn-xs">
                                                                 <span class="fa fa-repeat"></span> {% translate "Send new invitation" %}

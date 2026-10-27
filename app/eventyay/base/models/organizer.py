@@ -757,6 +757,15 @@ class TeamInvite(models.Model):
     def display_state_label(self) -> str:
         return self.State(self.display_state).label
 
+    @property
+    def display_state_css_class(self) -> str:
+        return {
+            self.State.ACCEPTED: 'label-success',
+            self.State.DECLINED: 'label-danger',
+            self.State.EXPIRED: 'label-warning',
+            self.State.PENDING: 'label-info',
+        }.get(self.display_state, 'label-default')
+
     def send(self):
         from eventyay.base.services.teams import send_team_invite
 

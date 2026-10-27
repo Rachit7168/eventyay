@@ -204,8 +204,15 @@ class OrganizerTeamsView(UpdateView, OrganizerPermissionRequiredMixin):
             # Iterate within scopes_disabled to avoid scope errors when accessing related objects
             with scopes_disabled():
                 ctx['teams'] = list(teams_qs)
+                accepted_by_team = self._accepted_invite_emails_by_team(ctx['teams'])
                 ctx['team_panels'] = [
-                    self._build_team_panel(team, selected_team_id, selected_panel) for team in ctx['teams']
+                    self._build_team_panel(
+                        team,
+                        selected_team_id,
+                        selected_panel,
+                        accepted_by_team.get(team.pk, frozenset()),
+                    )
+                    for team in ctx['teams']
                 ]
         else:
             ctx['teams'] = []
@@ -280,7 +287,19 @@ class OrganizerTeamsView(UpdateView, OrganizerPermissionRequiredMixin):
         with scopes_disabled():
             return TeamForm(prefix='team-create', organizer=self.request.organizer)
 
-    def _build_team_panel(self, team, selected_team_id, selected_panel):
+    def _accepted_invite_emails_by_team(self, teams) -> dict[int, frozenset[str]]:
+        accepted: dict[int, set[str]] = {}
+        for team_id, email in TeamInvite.all_objects.filter(
+            team__in=teams,
+            state=TeamInvite.State.ACCEPTED,
+        ).values_list('team_id', 'email'):
+            if email:
+                accepted.setdefault(team_id, set()).add(email.casefold())
+        return {team_id: frozenset(emails) for team_id, emails in accepted.items()}
+
+    def _build_team_panel(
+        self, team, selected_team_id, selected_panel, accepted_invite_emails: frozenset[str] = frozenset()
+    ):
         is_selected_team = str(team.pk) == str(selected_team_id) if selected_team_id else False
         open_panel = selected_panel if is_selected_team else None
         open_permissions = open_panel in (None, 'permissions') and is_selected_team
@@ -309,6 +328,7 @@ class OrganizerTeamsView(UpdateView, OrganizerPermissionRequiredMixin):
             'token_form': token_form,
             'members': team.members.all(),
             'invites': team.invites.all(),
+            'accepted_invite_emails': accepted_invite_emails,
             'tokens': team.active_tokens,
             'can_delete': self._can_delete_team(team),
             'is_permissions_open': open_permissions,
