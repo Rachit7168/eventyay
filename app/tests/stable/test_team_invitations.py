@@ -270,6 +270,10 @@ def test_organizer_team_page_shows_invite_states(organizer_client, organizer, he
             user=accepted,
             state=TeamInvite.State.ACCEPTED,
         )
+        accepted.email = 'renamed@example.org'
+        accepted.save(update_fields=['email'])
+        other = User.objects.create_user(email='accepted@example.org', password='otherpass123')
+        helpers_team.members.add(other)
 
     response = organizer_client.get(
         reverse('eventyay_common:organizer.teams', kwargs={'organizer': organizer.slug}),
@@ -283,7 +287,10 @@ def test_organizer_team_page_shows_invite_states(organizer_client, organizer, he
     assert 'Declined' in content
     assert 'Follow-up reminder sent' in content
     assert 'label-success' in content
-    assert 'Accepted' in content
+    renamed_row = content.split('renamed@example.org', 1)[1].split('</tr>', 1)[0]
+    assert 'Accepted' in renamed_row
+    other_row = content.split('accepted@example.org', 1)[1].split('</tr>', 1)[0]
+    assert 'Accepted' not in other_row
 
 
 @pytest.mark.django_db

@@ -185,7 +185,7 @@
                                                             <span class="fa fa-shield disabled" data-toggle="tooltip"
                                                                   title="{% translate "Two-factor authentication disabled" %}"></span>
                                                         {% endif %}
-                                                        {% if member.email|lower in panel.accepted_invite_emails %}
+                                                        {% if member.pk in panel.accepted_invite_user_ids %}
                                                             <span class="label label-success">{% translate "Accepted" %}</span>
                                                         {% endif %}
                                                     </td>

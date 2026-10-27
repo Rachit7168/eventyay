@@ -204,7 +204,7 @@ class OrganizerTeamsView(UpdateView, OrganizerPermissionRequiredMixin):
             # Iterate within scopes_disabled to avoid scope errors when accessing related objects
             with scopes_disabled():
                 ctx['teams'] = list(teams_qs)
-                accepted_by_team = self._accepted_invite_emails_by_team(ctx['teams'])
+                accepted_by_team = self._accepted_invite_user_ids_by_team(ctx['teams'])
                 ctx['team_panels'] = [
                     self._build_team_panel(
                         team,
@@ -287,18 +287,18 @@ class OrganizerTeamsView(UpdateView, OrganizerPermissionRequiredMixin):
         with scopes_disabled():
             return TeamForm(prefix='team-create', organizer=self.request.organizer)
 
-    def _accepted_invite_emails_by_team(self, teams) -> dict[int, frozenset[str]]:
-        accepted: dict[int, set[str]] = {}
-        for team_id, email in TeamInvite.all_objects.filter(
+    def _accepted_invite_user_ids_by_team(self, teams) -> dict[int, frozenset[int]]:
+        accepted: dict[int, set[int]] = {}
+        for team_id, user_id in TeamInvite.all_objects.filter(
             team__in=teams,
             state=TeamInvite.State.ACCEPTED,
-        ).values_list('team_id', 'email'):
-            if email:
-                accepted.setdefault(team_id, set()).add(email.casefold())
-        return {team_id: frozenset(emails) for team_id, emails in accepted.items()}
+            user_id__isnull=False,
+        ).values_list('team_id', 'user_id'):
+            accepted.setdefault(team_id, set()).add(user_id)
+        return {team_id: frozenset(user_ids) for team_id, user_ids in accepted.items()}
 
     def _build_team_panel(
-        self, team, selected_team_id, selected_panel, accepted_invite_emails: frozenset[str] = frozenset()
+        self, team, selected_team_id, selected_panel, accepted_invite_user_ids: frozenset[int] = frozenset()
     ):
         is_selected_team = str(team.pk) == str(selected_team_id) if selected_team_id else False
         open_panel = selected_panel if is_selected_team else None
@@ -328,7 +328,7 @@ class OrganizerTeamsView(UpdateView, OrganizerPermissionRequiredMixin):
             'token_form': token_form,
             'members': team.members.all(),
             'invites': team.invites.all(),
-            'accepted_invite_emails': accepted_invite_emails,
+            'accepted_invite_user_ids': accepted_invite_user_ids,
             'tokens': team.active_tokens,
             'can_delete': self._can_delete_team(team),
             'is_permissions_open': open_permissions,
