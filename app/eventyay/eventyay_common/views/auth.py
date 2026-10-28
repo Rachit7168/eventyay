@@ -329,6 +329,18 @@ class Forgot(TemplateView):
         return context
 
 
+def get_organizer_onboarding(user: User) -> OrganizerRequest | None:
+    if user.has_usable_password() or not user.is_active or user.is_spam:
+        return None
+    onboarding = OrganizerRequest.objects.filter(
+        user=user, new_account=True, status=OrganizerRequest.Status.APPROVED,
+        organizer__isnull=False,
+    ).select_related('organizer').first()
+    if onboarding and user.teams.filter(organizer=onboarding.organizer).exists():
+        return onboarding
+    return None
+
+
 class Recover(TemplateView):
     template_name = 'eventyay_common/auth/recover.html'
 
@@ -355,7 +367,7 @@ class Recover(TemplateView):
             return self.invalid('unknownuser')
         if not default_token_generator.check_token(user, self.request.GET.get('token')):
             return self.invalid('invalid')
-        return super().get(request, *args, **kwargs)
+        return super().get(request, *args, onboarding=get_organizer_onboarding(user), **kwargs)
 
     def invalid(self, msg):
         messages.error(self.request, self.error_messages[msg])
@@ -369,15 +381,10 @@ class Recover(TemplateView):
                 return self.invalid('unknownuser')
             if not default_token_generator.check_token(user, self.request.GET.get('token')):
                 return self.invalid('invalid')
-            onboarding = None
-            if not user.has_usable_password() and user.is_active and not user.is_spam:
-                onboarding = OrganizerRequest.objects.filter(
-                    user=user, new_account=True, status=OrganizerRequest.Status.APPROVED,
-                    organizer__isnull=False,
-                ).select_related('organizer').first()
+            onboarding = get_organizer_onboarding(user)
             user.set_password(self.form.cleaned_data['password'])
             user.save()
-            if onboarding and user.teams.filter(organizer=onboarding.organizer).exists():
+            if onboarding:
                 auth_login(request, user, backend='django.contrib.auth.backends.ModelBackend')
                 request.session['eventyay_auth_login_time'] = int(time.time())
                 user.log_action('eventyay.eventyay_common.auth.user.forgot_password.recovered')

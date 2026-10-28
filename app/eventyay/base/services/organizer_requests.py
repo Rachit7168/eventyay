@@ -88,14 +88,30 @@ def review_request(
             params = urlencode({'id': user.pk, 'token': default_token_generator.make_token(user)})
             setup_url = absolute_url(reverse('eventyay_common:auth.forgot.recover')) + '?' + params
             body = _(
-                'Welcome to Eventyay! Your organiser request has been approved.\n\nSet your password: '
-                '{url}\n\nThis link expires after {hours} hours. If it expires, request another using '
+                'Welcome to Eventyay! Your request for the organiser "{name}" has been approved.\n\n'
+                'We have created an Eventyay account for {email} and added it to your organiser’s '
+                'Core Organizing Team.\n\n'
+                'Set your password: {url}\n\n'
+                'Open this link, enter your new password twice, and select "Set password and continue". '
+                'You will be signed in automatically and taken to your organiser dashboard, '
+                'where you can create your first event.\n\n'
+                'This link expires after {hours} hours. If it expires, request another using '
                 '"Forgot password" on the login page.\n\nYour organiser: {organizer_url}'
-            ).format(url=setup_url, hours=settings.PASSWORD_RESET_TIMEOUT // 3600, organizer_url=url)
+            ).format(
+                name=organizer_name,
+                email=user.email,
+                url=setup_url,
+                hours=settings.PASSWORD_RESET_TIMEOUT // 3600,
+                organizer_url=url,
+            )
         else:
             body = _(
-                'Your organiser request has been approved. Log in to manage your organiser and create events:\n{url}'
-            ).format(url=url)
+                'Your request for the organiser "{name}" has been approved.\n\n'
+                'Your existing Eventyay account ({email}) has been added to its Core Organizing Team.\n\n'
+                'Open your organiser: {url}\n\n'
+                'If prompted, sign in with your existing Eventyay account. From the organiser dashboard, '
+                'you can create your first event. You do not need to create a new account or set a new password.'
+            ).format(name=organizer_name, email=user.email, url=url)
         subject = _('Your organiser request has been approved')
     else:
         application.status = OrganizerRequest.Status.REJECTED

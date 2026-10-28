@@ -131,9 +131,13 @@ def test_approve_new_account(application, admin, django_capture_on_commit_callba
     assert not Organizer.objects.filter(slug='again').exists()
 
 
-def test_existing_account(application, admin):
+def test_existing_account(application, admin, mailoutbox, django_capture_on_commit_callbacks):
     user = User.objects.create_user(application.email, 'existing-password')
-    result = review_request(application.pk, admin, approve=True, organizer_name='Example', slug='example')
+    with django_capture_on_commit_callbacks(execute=True):
+        result = review_request(application.pk, admin, approve=True, organizer_name='Example', slug='example')
+    assert len(mailoutbox) == 1
+    assert 'sign in with your existing Eventyay account' in mailoutbox[0].body
+    assert 'You do not need to create a new account or set a new password.' in mailoutbox[0].body
     assert result.user == user and not result.new_account
     user.refresh_from_db()
     assert user.check_password('existing-password')
@@ -234,6 +238,9 @@ def test_normal_password_reset_does_not_auto_login(client):
     user = User.objects.create_user('existing@example.com', 'old-password')
     token = default_token_generator.make_token(user)
     url = reverse('eventyay_common:auth.forgot.recover') + f'?id={user.pk}&token={token}'
+    page = client.get(url).content.decode()
+    assert 'Set new password' in page
+    assert 'Set password and continue' not in page
     response = client.post(
         url, {'password': 'Correct-Horse-Battery-123!', 'password_repeat': 'Correct-Horse-Battery-123!'}
     )
@@ -263,13 +270,21 @@ def test_welcome_email_password_link(client, application, admin, mailoutbox, dja
         result = review_request(application.pk, admin, approve=True, organizer_name='Example', slug='example')
     assert len(mailoutbox) == 1
     body = mailoutbox[0].body
+    assert 'Set password and continue' in body
+    assert 'signed in automatically and taken to your organiser dashboard' in body
+    assert application.email in body
     setup_url = re.search(r'https?://[^\s]+/forgot/recover/\?[^\s]+', body).group()
     query = parse_qs(urlsplit(setup_url).query)
     assert query['id'] == [str(result.user.pk)]
     assert default_token_generator.check_token(result.user, query['token'][0])
     assert '&amp;' not in setup_url
     client.logout()
-    assert client.get(setup_url).status_code == 200
+    page = client.get(setup_url)
+    assert page.status_code == 200
+    assert 'Welcome to Eventyay' in page.content.decode()
+    assert 'Set password and continue' in page.content.decode()
+    assert 'Example' in page.content.decode()
+    assert 'create your first event' in page.content.decode()
     response = client.post(
         setup_url,
         {'password': 'Correct-Horse-Battery-123!', 'password_repeat': 'Correct-Horse-Battery-123!'},
