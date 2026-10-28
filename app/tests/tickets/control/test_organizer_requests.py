@@ -1,4 +1,5 @@
 import re
+import time
 from unittest.mock import patch
 from urllib.parse import parse_qs, urlsplit
 
@@ -177,12 +178,14 @@ def test_password_setup_and_reuse(client, application, admin):
     token = default_token_generator.make_token(result.user)
     url = reverse('eventyay_common:auth.forgot.recover') + f'?id={result.user.pk}&token={token}'
     assert client.get(url).status_code == 200
+    before_login = int(time.time())
     response = client.post(
         url, {'password': 'Correct-Horse-Battery-123!', 'password_repeat': 'Correct-Horse-Battery-123!'}
     )
     assert response.status_code == 302
     assert response.url == reverse('control:organizer', kwargs={'organizer': 'example'})
     assert str(client.session['_auth_user_id']) == str(result.user.pk)
+    assert before_login <= client.session['eventyay_auth_login_time'] <= int(time.time())
     client.logout()
     assert client.get(url).url == reverse('eventyay_common:auth.forgot')
 

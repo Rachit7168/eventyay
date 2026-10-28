@@ -379,6 +379,7 @@ class Recover(TemplateView):
             user.save()
             if onboarding and user.teams.filter(organizer=onboarding.organizer).exists():
                 auth_login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+                request.session['eventyay_auth_login_time'] = int(time.time())
                 user.log_action('eventyay.eventyay_common.auth.user.forgot_password.recovered')
                 return redirect('control:organizer', organizer=onboarding.organizer.slug)
             messages.success(request, _('You can now login using your new password.'))
