@@ -66,7 +66,7 @@ def get_safe_next(request):
     return 'eventyay_common:dashboard'
 
 
-def process_login(request, user, keep_logged_in):
+def process_login(request, user, keep_logged_in, *, next_url=None):
     """
     This method allows you to return a response to a successful log-in. This will set all session values correctly
     and redirect to either the URL specified in the ``next`` parameter, or the 2FA login screen, or the dashboard.
@@ -76,7 +76,9 @@ def process_login(request, user, keep_logged_in):
     request.session['eventyay_auth_long_session'] = settings.EVENTYAY_LONG_SESSIONS and keep_logged_in
 
     # Check for socialauth_next_url (from OAuth flows) first, then fall back to backend's get_next_url
-    next_url = request.session.pop('socialauth_next_url', None)
+    socialauth_next_url = request.session.pop('socialauth_next_url', None)
+    if next_url is None:
+        next_url = socialauth_next_url
     if not next_url:
         next_url = get_auth_backends()[user.auth_backend].get_next_url(request)
 
@@ -385,10 +387,11 @@ class Recover(TemplateView):
             user.set_password(self.form.cleaned_data['password'])
             user.save()
             if onboarding:
-                auth_login(request, user, backend='django.contrib.auth.backends.ModelBackend')
-                request.session['eventyay_auth_login_time'] = int(time.time())
                 user.log_action('eventyay.eventyay_common.auth.user.forgot_password.recovered')
-                return redirect('control:organizer', organizer=onboarding.organizer.slug)
+                return process_login(
+                    request, user, keep_logged_in=False,
+                    next_url=reverse('control:organizer', kwargs={'organizer': onboarding.organizer.slug}),
+                )
             messages.success(request, _('You can now login using your new password.'))
             user.log_action('eventyay.eventyay_common.auth.user.forgot_password.recovered')
             return redirect('auth.login')

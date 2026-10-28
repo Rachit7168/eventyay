@@ -9,6 +9,8 @@ from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.urls import reverse
+from django_otp.oath import TOTP
+from django_otp.plugins.otp_totp.models import TOTPDevice
 
 from eventyay.base.forms.organizer_request import OrganizerRequestForm
 from eventyay.base.models import Organizer, OrganizerRequest, User
@@ -292,3 +294,34 @@ def test_welcome_email_password_link(client, application, admin, mailoutbox, dja
     )
     assert response.url == reverse('control:organizer', kwargs={'organizer': result.organizer.slug})
     assert str(client.session['_auth_user_id']) == str(result.user.pk)
+
+
+def test_onboarding_requires_two_factor_authentication(client, application, admin, settings):
+    settings.OTP_TOTP_THROTTLE_FACTOR = 0
+    result = review_request(application.pk, admin, approve=True, organizer_name='Example', slug='example')
+    user = result.user
+    user.require_2fa = True
+    user.save(update_fields=['require_2fa'])
+    device = TOTPDevice.objects.create(user=user, name='test')
+    client.logout()
+    token = default_token_generator.make_token(user)
+    url = reverse('eventyay_common:auth.forgot.recover') + f'?id={user.pk}&token={token}'
+    response = client.post(
+        url, {'password': 'Correct-Horse-Battery-123!', 'password_repeat': 'Correct-Horse-Battery-123!'}
+    )
+    destination = reverse('control:organizer', kwargs={'organizer': 'example'})
+    assert urlsplit(response.url).path == reverse('auth.login.2fa')
+    assert parse_qs(urlsplit(response.url).query)['next'] == [destination]
+    assert '_auth_user_id' not in client.session
+    assert 'eventyay_auth_login_time' not in client.session
+    assert client.session['eventyay_auth_2fa_user'] == user.pk
+    twofa_url = response.url
+    client.post(twofa_url, {'token': 'invalid'})
+    assert '_auth_user_id' not in client.session
+    totp = TOTP(device.bin_key, device.step, device.t0, device.digits, device.drift)
+    totp.time = time.time()
+    response = client.post(twofa_url, {'token': str(totp.token())})
+    assert response.url == destination
+    assert str(client.session['_auth_user_id']) == str(user.pk)
+    assert client.session['eventyay_auth_login_time'] > 0
+    assert 'eventyay_auth_2fa_user' not in client.session
