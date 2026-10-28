@@ -110,11 +110,8 @@ def test_rate_limit(client, settings):
     cache.clear()
 
 
-def test_approve_new_account(application, admin, django_capture_on_commit_callbacks):
-    with (
-        patch('eventyay.base.services.organizer_requests.mail') as mail,
-        django_capture_on_commit_callbacks(execute=True),
-    ):
+def test_approve_new_account(application, admin, mailoutbox, django_capture_on_commit_callbacks):
+    with django_capture_on_commit_callbacks(execute=True):
         result = review_request(application.pk, admin, approve=True, organizer_name='Edited name', slug='edited')
     assert result.status == 'approved'
     assert result.reviewed_by == admin and result.reviewed_at
@@ -125,7 +122,10 @@ def test_approve_new_account(application, admin, django_capture_on_commit_callba
     team = result.user.teams.get(organizer=result.organizer)
     assert team.name == 'Core Organizing Team'
     assert team.can_create_events and team.all_events and team.can_change_teams
-    assert 'Set your password:' in mail.call_args.args[3]['body']
+    assert len(mailoutbox) == 1
+    assert f'We have created an Eventyay account with {application.email}.' in mailoutbox[0].body
+    assert 'Set your password and access your organiser:' in mailoutbox[0].body
+    assert '/auth/recover/?id=' in mailoutbox[0].body
     with pytest.raises(ValidationError):
         review_request(application.pk, admin, approve=True, organizer_name='Again', slug='again')
     assert not Organizer.objects.filter(slug='again').exists()
@@ -136,6 +136,7 @@ def test_existing_account(application, admin, mailoutbox, django_capture_on_comm
     with django_capture_on_commit_callbacks(execute=True):
         result = review_request(application.pk, admin, approve=True, organizer_name='Example', slug='example')
     assert len(mailoutbox) == 1
+    assert 'organiser has been added to your existing Eventyay account' in mailoutbox[0].body
     assert 'sign in with your existing Eventyay account' in mailoutbox[0].body
     assert 'You do not need to create a new account or set a new password.' in mailoutbox[0].body
     assert result.user == user and not result.new_account

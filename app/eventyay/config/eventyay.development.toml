@@ -1,7 +1,12 @@
 debug = true
 
-# For development, we just store emails as files.
-email_backend = 'eventyay.base.email.FileSavedEmailBackend'
+# Use the test deployment SMTP provider for local email testing.
+email_backend = 'django.core.mail.backends.smtp.EmailBackend'
+email_host = 'mail.your-server.de'
+email_port = 587
+email_host_user = 'test-deployment@eventyay.com'
+email_use_tls = true
+default_from_email = 'test-deployment@eventyay.com'
 
 allowed_hosts = ['*']
 

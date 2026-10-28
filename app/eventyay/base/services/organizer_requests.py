@@ -30,6 +30,46 @@ def notify(email: str, subject: str, body: str) -> None:
         logger.exception('Could not send organiser request notification')
 
 
+def notify_approval(
+    application: OrganizerRequest,
+    *,
+    organizer_url: str,
+    setup_url: str | None = None,
+) -> None:
+    template = (
+        'pretixcontrol/email/organizer_request_approved_new_account.txt'
+        if application.new_account
+        else 'pretixcontrol/email/organizer_request_approved_existing_account.txt'
+    )
+    context = {
+        'email': application.user.email,
+        'organizer_name': application.organizer_name,
+        'organizer_url': organizer_url,
+    }
+    if setup_url:
+        context.update(
+            {
+                'password_reset_timeout_hours': settings.PASSWORD_RESET_TIMEOUT // 3600,
+                'setup_url': setup_url,
+            }
+        )
+
+    try:
+        mail(
+            application.email,
+            _('Your organiser request has been approved'),
+            template,
+            context,
+            locale=application.user.locale,
+            user=application.user,
+            sync_send=True,
+        )
+    except SendMailException:
+        logger.exception('Could not send organiser request approval to %s', application.email)
+    else:
+        logger.info('Sent organiser request approval to %s', application.email)
+
+
 def notify_submission(application: OrganizerRequest) -> None:
     notify(
         application.email,
@@ -84,35 +124,10 @@ def review_request(
         application.user = user
         application.status = OrganizerRequest.Status.APPROVED
         url = absolute_url(reverse('control:organizer', kwargs={'organizer': slug}))
+        setup_url = None
         if application.new_account:
             params = urlencode({'id': user.pk, 'token': default_token_generator.make_token(user)})
             setup_url = absolute_url(reverse('eventyay_common:auth.forgot.recover')) + '?' + params
-            body = _(
-                'Welcome to Eventyay! Your request for the organiser "{name}" has been approved.\n\n'
-                'We have created an Eventyay account for {email} and added it to your organiser’s '
-                'Core Organizing Team.\n\n'
-                'Set your password: {url}\n\n'
-                'Open this link, enter your new password twice, and select "Set password and continue". '
-                'You will be signed in automatically and taken to your organiser dashboard, '
-                'where you can create your first event.\n\n'
-                'This link expires after {hours} hours. If it expires, request another using '
-                '"Forgot password" on the login page.\n\nYour organiser: {organizer_url}'
-            ).format(
-                name=organizer_name,
-                email=user.email,
-                url=setup_url,
-                hours=settings.PASSWORD_RESET_TIMEOUT // 3600,
-                organizer_url=url,
-            )
-        else:
-            body = _(
-                'Your request for the organiser "{name}" has been approved.\n\n'
-                'Your existing Eventyay account ({email}) has been added to its Core Organizing Team.\n\n'
-                'Open your organiser: {url}\n\n'
-                'If prompted, sign in with your existing Eventyay account. From the organiser dashboard, '
-                'you can create your first event. You do not need to create a new account or set a new password.'
-            ).format(name=organizer_name, email=user.email, url=url)
-        subject = _('Your organiser request has been approved')
     else:
         application.status = OrganizerRequest.Status.REJECTED
         application.reason = reason
@@ -123,5 +138,8 @@ def review_request(
     application.reviewed_by = reviewer
     application.reviewed_at = timezone.now()
     application.save()
-    transaction.on_commit(lambda: notify(application.email, subject, body))
+    if approve:
+        transaction.on_commit(lambda: notify_approval(application, organizer_url=url, setup_url=setup_url))
+    else:
+        transaction.on_commit(lambda: notify(application.email, subject, body))
     return application

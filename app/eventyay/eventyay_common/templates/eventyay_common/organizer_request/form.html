@@ -5,12 +5,14 @@
     <h1>{% trans 'Request an organiser account' %}</h1>
     {% csrf_token %}
     {% bootstrap_form_errors form %}
-    {% bootstrap_field form.name %}
-    {% bootstrap_field form.email %}
-    {% bootstrap_field form.affiliation %}
-    {% bootstrap_field form.events %}
-    {% bootstrap_field form.organizer_name %}
-    {% bootstrap_field form.slug %}
+    <div class="organizer-request-grid">
+      <div>{% bootstrap_field form.name %}</div>
+      <div>{% bootstrap_field form.email %}</div>
+      <div class="organizer-request-field--full">{% bootstrap_field form.affiliation %}</div>
+      <div class="organizer-request-field--full">{% bootstrap_field form.events %}</div>
+      <div>{% bootstrap_field form.organizer_name %}</div>
+      <div>{% bootstrap_field form.slug %}</div>
+    </div>
     {{ form.website }}
     <p id="slug-preview"></p>
     <p id="slug-status" role="status" aria-live="polite"></p>
