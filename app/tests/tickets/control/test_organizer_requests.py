@@ -1,4 +1,6 @@
+import re
 from unittest.mock import patch
+from urllib.parse import parse_qs, urlsplit
 
 import pytest
 from django.contrib.auth.tokens import default_token_generator
@@ -251,3 +253,23 @@ def test_submission_email_rendering(client, data, mailoutbox, django_capture_on_
         assert client.post('/orginvite', data).status_code == 302
     assert len(mailoutbox) == 1
     assert 'within a few business days' in mailoutbox[0].body
+
+
+def test_welcome_email_password_link(client, application, admin, mailoutbox, django_capture_on_commit_callbacks):
+    with django_capture_on_commit_callbacks(execute=True):
+        result = review_request(application.pk, admin, approve=True, organizer_name='Example', slug='example')
+    assert len(mailoutbox) == 1
+    body = mailoutbox[0].body
+    setup_url = re.search(r'https?://[^\s]+/forgot/recover/\?[^\s]+', body).group()
+    query = parse_qs(urlsplit(setup_url).query)
+    assert query['id'] == [str(result.user.pk)]
+    assert default_token_generator.check_token(result.user, query['token'][0])
+    assert '&amp;' not in setup_url
+    client.logout()
+    assert client.get(setup_url).status_code == 200
+    response = client.post(
+        setup_url,
+        {'password': 'Correct-Horse-Battery-123!', 'password_repeat': 'Correct-Horse-Battery-123!'},
+    )
+    assert response.url == reverse('control:organizer', kwargs={'organizer': result.organizer.slug})
+    assert str(client.session['_auth_user_id']) == str(result.user.pk)
