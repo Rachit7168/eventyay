@@ -101,6 +101,23 @@ body.auth-page nav.navbar .navbar-header > .navbar-brand {
 	}
 }
 
+#organizer-request {
+    padding-bottom: 24px;
+
+    #slug-preview {
+        margin-top: 20px;
+        overflow-wrap: anywhere;
+    }
+
+    #slug-status:empty {
+        margin: 0;
+    }
+
+    .organizer-request-actions {
+        margin-top: 24px;
+    }
+}
+
 .container > .alert {
     max-width: 420px;
     margin: 20px auto 20px;

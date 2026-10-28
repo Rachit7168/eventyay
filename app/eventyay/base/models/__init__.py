@@ -59,6 +59,7 @@ from .orders import (
     cachedticket_name,
     generate_secret,
 )
+from .organizer_request import OrganizerRequest
 from .organizer import (
     Organizer,
     Organizer_SettingsStore,

@@ -1,0 +1,33 @@
+{% extends 'pretixcontrol/admin/base.html' %}
+{% load bootstrap3 i18n %}
+{% block title %}{% trans 'Organiser request' %}{% endblock %}
+{% block video_admin_content %}
+  <h1>{% trans 'Organiser request' %}</h1>
+  <dl>
+    <dt>{% trans 'Your name' %}</dt><dd>{{ application.name }}</dd>
+    <dt>{% trans 'Email' %}</dt><dd>{{ application.email }}</dd>
+    <dt>{% trans 'Existing account' %}</dt><dd>{{ has_account|yesno }}</dd>
+    <dt>{% trans 'Affiliation' %}</dt><dd>{{ application.affiliation }}</dd>
+    <dt>{% trans 'Events you have organised or want to organise' %}</dt><dd>{{ application.events|linebreaksbr }}</dd>
+    <dt>{% trans 'Organiser name on Eventyay' %}</dt><dd>{{ application.organizer_name }}</dd>
+    <dt>{% trans 'Short form' %}</dt><dd>{{ application.slug }}</dd>
+    <dt>{% trans 'Status' %}</dt><dd>{{ application.get_status_display }}</dd>
+  </dl>
+  {% if application.status == 'pending' %}
+    <form method="post">
+      {% csrf_token %}
+      {% bootstrap_form form %}
+      <button type="submit" name="action" value="approve" class="btn btn-success">{% trans 'Approve' %}</button>
+    </form>
+    <hr>
+    <form method="post">
+      {% csrf_token %}
+      {% bootstrap_form reject_form %}
+      <button type="submit" name="action" value="reject" class="btn btn-danger">{% trans 'Reject' %}</button>
+    </form>
+  {% else %}
+    <p>{% trans 'Reviewed by' %}: {{ application.reviewed_by }} — {{ application.reviewed_at }}</p>
+    {% if application.reason %}<p>{{ application.reason|linebreaksbr }}</p>{% endif %}
+  {% endif %}
+  <p><a href="{% url 'eventyay_admin:admin.organizer_requests' %}">{% trans 'All requests' %}</a></p>
+{% endblock %}

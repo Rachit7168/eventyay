@@ -41,7 +41,7 @@ from eventyay.base.forms.auth import (
     PasswordRecoverForm,
     RegistrationForm,
 )
-from eventyay.base.models import TeamInvite, U2FDevice, User, WebAuthnDevice
+from eventyay.base.models import OrganizerRequest, TeamInvite, U2FDevice, User, WebAuthnDevice
 from eventyay.base.operational_logging import OUTCOME_FAILURE, log_event
 from eventyay.base.services.mail import SendMailException
 from eventyay.helpers.cookies import set_cookie_without_samesite
@@ -369,8 +369,18 @@ class Recover(TemplateView):
                 return self.invalid('unknownuser')
             if not default_token_generator.check_token(user, self.request.GET.get('token')):
                 return self.invalid('invalid')
+            onboarding = None
+            if not user.has_usable_password() and user.is_active and not user.is_spam:
+                onboarding = OrganizerRequest.objects.filter(
+                    user=user, new_account=True, status=OrganizerRequest.Status.APPROVED,
+                    organizer__isnull=False,
+                ).select_related('organizer').first()
             user.set_password(self.form.cleaned_data['password'])
             user.save()
+            if onboarding and user.teams.filter(organizer=onboarding.organizer).exists():
+                auth_login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+                user.log_action('eventyay.eventyay_common.auth.user.forgot_password.recovered')
+                return redirect('control:organizer', organizer=onboarding.organizer.slug)
             messages.success(request, _('You can now login using your new password.'))
             user.log_action('eventyay.eventyay_common.auth.user.forgot_password.recovered')
             return redirect('auth.login')

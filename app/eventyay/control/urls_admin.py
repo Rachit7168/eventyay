@@ -6,6 +6,7 @@ from django.views.generic.base import RedirectView
 from eventyay.control.views import (
     admin,
     admin_messages,
+    organizer_requests,
     global_settings,
     gmail_oauth,
     pages,
@@ -18,6 +19,8 @@ from eventyay.control.views import (
 app_name = 'eventyay_admin'
 
 urlpatterns = [
+    path('organizer-requests/', organizer_requests.OrganizerRequestList.as_view(), name='admin.organizer_requests'),
+    path('organizer-requests/<int:pk>/', organizer_requests.OrganizerRequestDetail.as_view(), name='admin.organizer_requests.detail'),
     url(r'^$', admin.AdminDashboard.as_view(), name='admin.dashboard'),
     url(r'^organizers/$', admin.OrganizerList.as_view(), name='admin.organizers'),
     url(r'^events/$', admin.AdminEventList.as_view(), name='admin.events'),
