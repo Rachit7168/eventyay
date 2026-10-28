@@ -53,12 +53,12 @@ def admin(client):
 def test_public_form_and_submission(client, data, django_capture_on_commit_callbacks):
     User.objects.create_user('admin@example.com', is_staff=True)
     User.objects.create_user('super@example.com', is_superuser=True)
-    assert client.get('/orginvite').status_code == 200
+    assert client.get('/invite').status_code == 200
     with (
         patch('eventyay.base.services.organizer_requests.mail') as mail,
         django_capture_on_commit_callbacks(execute=True),
     ):
-        response = client.post('/orginvite', data)
+        response = client.post('/invite', data)
     assert response.status_code == 302
     assert response.url == reverse('organizer_request.success')
     assert 'within a few business days' in client.get(response.url).content.decode()
@@ -72,20 +72,20 @@ def test_public_form_and_submission(client, data, django_capture_on_commit_callb
 
 
 def test_same_form_when_logged_in(client, admin):
-    assert client.get('/orginvite').status_code == 200
+    assert client.get('/invite').status_code == 200
 
 
-@pytest.mark.parametrize('slug', ['UPPER', 'two words', 'control', 'orginvite', '-bad', 'bad/', 'a' * 51])
+@pytest.mark.parametrize('slug', ['UPPER', 'two words', 'control', 'invite', '-bad', 'bad/', 'a' * 51])
 def test_invalid_slugs(client, data, slug):
     assert not OrganizerRequestForm(data={**data, 'slug': slug}).is_valid()
-    assert client.get('/orginvite/slug/', {'slug': slug}).json()['available'] is False
+    assert client.get('/invite/slug/', {'slug': slug}).json()['available'] is False
 
 
 def test_taken_slug(client, data):
     Organizer.objects.create(name='Existing', slug=data['slug'].upper())
     assert not OrganizerRequestForm(data=data).is_valid()
-    assert not client.get('/orginvite/slug/', {'slug': data['slug']}).json()['available']
-    assert client.get('/orginvite/slug/', {'slug': 'available'}).json()['available']
+    assert not client.get('/invite/slug/', {'slug': data['slug']}).json()['available']
+    assert client.get('/invite/slug/', {'slug': 'available'}).json()['available']
 
 
 def test_duplicate_pending_email(application, data):
@@ -105,8 +105,8 @@ def test_rate_limit(client, settings):
     settings.CACHES = {'default': {'BACKEND': 'django.core.cache.backends.locmem.LocMemCache'}}
     cache.clear()
     for _ in range(10):
-        assert client.post('/orginvite', {}).status_code == 200
-    assert client.post('/orginvite', {}).status_code == 429
+        assert client.post('/invite', {}).status_code == 200
+    assert client.post('/invite', {}).status_code == 429
     cache.clear()
 
 
@@ -260,7 +260,7 @@ def test_forgot_password_replacement_link(client, application, admin, mailoutbox
 
 def test_submission_email_rendering(client, data, mailoutbox, django_capture_on_commit_callbacks):
     with django_capture_on_commit_callbacks(execute=True):
-        assert client.post('/orginvite', data).status_code == 302
+        assert client.post('/invite', data).status_code == 302
     assert len(mailoutbox) == 1
     assert 'within a few business days' in mailoutbox[0].body
 

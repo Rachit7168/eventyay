@@ -64,9 +64,9 @@ _paypal_webhook_aliases = plugin_webhook_compat_paths('eventyay_paypal', '_paypa
 
 
 base_patterns = [
-    re_path(r'^orginvite/?$', organizer_request.OrganizerRequestCreate.as_view(), name='organizer_request.create'),
-    path('orginvite/success/', organizer_request.OrganizerRequestSuccess.as_view(), name='organizer_request.success'),
-    path('orginvite/slug/', organizer_request.slug_available, name='organizer_request.slug'),
+    re_path(r'^invite/?$', organizer_request.OrganizerRequestCreate.as_view(), name='organizer_request.create'),
+    path('invite/success/', organizer_request.OrganizerRequestSuccess.as_view(), name='organizer_request.success'),
+    path('invite/slug/', organizer_request.slug_available, name='organizer_request.slug'),
     path(
         'download/<id>/',
         cachedfiles.DownloadView.as_view(),
