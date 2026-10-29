@@ -62,12 +62,11 @@ def notify_approval(
             context,
             locale=application.user.locale,
             user=application.user,
-            sync_send=True,
         )
     except SendMailException:
         logger.exception('Could not send organiser request approval to %s', application.email)
     else:
-        logger.info('Sent organiser request approval to %s', application.email)
+        logger.info('Submitted organiser request approval for delivery to %s', application.email)
 
 
 def notify_submission(application: OrganizerRequest) -> None:

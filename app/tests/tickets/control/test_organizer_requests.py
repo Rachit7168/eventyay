@@ -8,7 +8,7 @@ from django.contrib.auth.tokens import default_token_generator
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
-from django.urls import reverse
+from django.urls import resolve, reverse
 from django_otp.oath import TOTP
 from django_otp.plugins.otp_totp.models import TOTPDevice
 
@@ -80,14 +80,14 @@ def test_same_form_when_logged_in(client, admin):
 @pytest.mark.parametrize('slug', ['UPPER', 'two words', 'control', 'invite', '-bad', 'bad/', 'a' * 51])
 def test_invalid_slugs(client, data, slug):
     assert not OrganizerRequestForm(data={**data, 'slug': slug}).is_valid()
-    assert client.get('/invite/slug/', {'slug': slug}).json()['available'] is False
+    assert client.get(reverse('organizer_request.slug'), {'slug': slug}).json()['available'] is False
 
 
 def test_taken_slug(client, data):
     Organizer.objects.create(name='Existing', slug=data['slug'].upper())
     assert not OrganizerRequestForm(data=data).is_valid()
-    assert not client.get('/invite/slug/', {'slug': data['slug']}).json()['available']
-    assert client.get('/invite/slug/', {'slug': 'available'}).json()['available']
+    assert not client.get(reverse('organizer_request.slug'), {'slug': data['slug']}).json()['available']
+    assert client.get(reverse('organizer_request.slug'), {'slug': 'available'}).json()['available']
 
 
 def test_duplicate_pending_email(application, data):
@@ -127,7 +127,7 @@ def test_approve_new_account(application, admin, mailoutbox, django_capture_on_c
     assert len(mailoutbox) == 1
     assert f'We have created an Eventyay account with {application.email}.' in mailoutbox[0].body
     assert 'Set your password and access your organiser:' in mailoutbox[0].body
-    assert '/auth/recover/?id=' in mailoutbox[0].body
+    assert reverse('eventyay_common:auth.forgot.recover') + '?id=' in mailoutbox[0].body
     with pytest.raises(ValidationError):
         review_request(application.pk, admin, approve=True, organizer_name='Again', slug='again')
     assert not Organizer.objects.filter(slug='again').exists()
@@ -273,10 +273,10 @@ def test_welcome_email_password_link(client, application, admin, mailoutbox, dja
         result = review_request(application.pk, admin, approve=True, organizer_name='Example', slug='example')
     assert len(mailoutbox) == 1
     body = mailoutbox[0].body
-    assert 'Set password and continue' in body
-    assert 'signed in automatically and taken to your organiser dashboard' in body
+    assert 'Set your password' in body
+    assert 'signed in and taken to your organiser dashboard' in body
     assert application.email in body
-    setup_url = re.search(r'https?://[^\s]+/forgot/recover/\?[^\s]+', body).group()
+    setup_url = re.search(r'https?://[^\s]+/forgot/recover/\?[^\s)]+', body).group()
     query = parse_qs(urlsplit(setup_url).query)
     assert query['id'] == [str(result.user.pk)]
     assert default_token_generator.check_token(result.user, query['token'][0])
@@ -316,12 +316,38 @@ def test_onboarding_requires_two_factor_authentication(client, application, admi
     assert 'eventyay_auth_login_time' not in client.session
     assert client.session['eventyay_auth_2fa_user'] == user.pk
     twofa_url = response.url
-    client.post(twofa_url, {'token': 'invalid'})
+    retry = client.post(twofa_url, {'token': 'invalid'})
+    assert parse_qs(urlsplit(retry.url).query)['next'] == [destination]
     assert '_auth_user_id' not in client.session
     totp = TOTP(device.bin_key, device.step, device.t0, device.digits, device.drift)
     totp.time = time.time()
-    response = client.post(twofa_url, {'token': str(totp.token())})
+    response = client.post(retry.url, {'token': str(totp.token())})
     assert response.url == destination
     assert str(client.session['_auth_user_id']) == str(user.pk)
     assert client.session['eventyay_auth_login_time'] > 0
     assert 'eventyay_auth_2fa_user' not in client.session
+
+
+@pytest.mark.parametrize('event_slug', ['success', 'slug'])
+def test_invite_event_routes_are_preserved(event_slug):
+    match = resolve(f'/invite/{event_slug}/')
+    assert match.kwargs['organizer'] == 'invite'
+    assert match.kwargs['event'] == event_slug
+    assert not match.url_name.startswith('organizer_request.')
+
+
+def test_approval_uses_queued_delivery(application, admin, django_capture_on_commit_callbacks):
+    with (
+        patch('eventyay.base.services.organizer_requests.mail') as mail,
+        django_capture_on_commit_callbacks(execute=True),
+    ):
+        review_request(application.pk, admin, approve=True, organizer_name='Example', slug='example')
+    assert mail.call_count == 1
+    assert not mail.call_args.kwargs.get('sync_send', False)
+
+
+def test_invite_organizer_index_route_is_preserved():
+    match = resolve('/invite/')
+    assert match.kwargs['organizer'] == 'invite'
+    assert match.url_name == 'invite.organizer'
+    assert resolve('/invite').url_name == 'organizer_request.create'

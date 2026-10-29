@@ -5,5 +5,5 @@
 {% translate 'Open your organiser:' %}
 [{% translate 'Open your organiser dashboard' %}]({{ organizer_url }})
 
-{% blocktranslate %}If prompted, sign in with your existing Eventyay account. You do not need to create a new account or reset your password.{% endblocktranslate %}
+{% blocktranslate %}If prompted, sign in with your existing Eventyay account. You do not need to create a new account or set a new password.{% endblocktranslate %}
 {% endautoescape %}

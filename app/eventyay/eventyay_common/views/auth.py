@@ -510,7 +510,11 @@ class Login2FAView(TemplateView):
         else:
             log_event('core', 'auth.login', OUTCOME_FAILURE, error_code='2fa_failed', user_id=getattr(self.user, 'pk', None))
             messages.error(request, _('Invalid code, please try again.'))
-            return redirect('auth.login.2fa')
+            retry_url = reverse('auth.login.2fa')
+            next_url = request.GET.get('next')
+            if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts=None):
+                retry_url += '?next=' + quote(next_url)
+            return redirect(retry_url)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data()
