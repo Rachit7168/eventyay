@@ -14,6 +14,7 @@ from eventyay.base.services import waitinglist as base_waitinglist  # noqa: F401
 from eventyay.base.signals import periodic_task as base_periodic_task
 from eventyay.common.signals import periodic_task as common_periodic_task
 from eventyay.common.tasks import send_periodic_signal
+from eventyay.core.management.commands.runperiodic import Command as RunPeriodicCommand
 from eventyay.person import tasks as person_tasks  # noqa: F401
 
 
@@ -91,6 +92,24 @@ def test_failing_receiver_does_not_stop_others():
         base_periodic_task.disconnect(later_receiver)
 
     assert received == ['fail', 'later']
+
+
+def test_runperiodic_executes_async_receivers():
+    ran = []
+
+    async def async_periodic_job(signal, sender, **kwargs):
+        ran.append('async')
+
+    base_periodic_task.connect(async_periodic_job, weak=False)
+    try:
+        RunPeriodicCommand().handle(
+            verbosity=1,
+            tasks=f'{async_periodic_job.__module__}.{async_periodic_job.__name__}',
+        )
+    finally:
+        base_periodic_task.disconnect(async_periodic_job)
+
+    assert ran == ['async']
 
 
 def test_core_receivers_are_registered_once_on_the_canonical_signal():
