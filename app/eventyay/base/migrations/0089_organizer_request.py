@@ -35,7 +35,7 @@ class Migration(migrations.Migration):
             ],
             options={
                 'ordering': ('-created',),
-                'constraints': [models.UniqueConstraint(django.db.models.functions.text.Lower('email'), condition=models.Q(('status', 'pending')), name='unique_pending_organizer_request_email')],
+                'constraints': [models.UniqueConstraint(django.db.models.functions.text.Lower('email'), condition=models.Q(('status', 'pending')), name='unique_pending_organizer_request_email'), models.UniqueConstraint(django.db.models.functions.text.Lower('slug'), condition=models.Q(('status', 'pending')), name='unique_pending_organizer_request_slug')],
             },
         ),
     ]
