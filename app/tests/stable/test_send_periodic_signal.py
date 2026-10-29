@@ -76,6 +76,7 @@ def test_failing_receiver_does_not_stop_others():
     received = []
 
     def failing_receiver(signal, sender, **kwargs):
+        received.append('fail')
         raise RuntimeError('boom')
 
     def later_receiver(signal, sender, **kwargs):
@@ -89,7 +90,7 @@ def test_failing_receiver_does_not_stop_others():
         base_periodic_task.disconnect(failing_receiver)
         base_periodic_task.disconnect(later_receiver)
 
-    assert received == ['later']
+    assert received == ['fail', 'later']
 
 
 def test_core_receivers_are_registered_once_on_the_canonical_signal():
