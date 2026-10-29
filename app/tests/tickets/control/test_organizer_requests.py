@@ -16,6 +16,7 @@ from eventyay.base.forms.organizer_request import OrganizerRequestForm
 from eventyay.base.models import Organizer, OrganizerRequest, User
 from eventyay.base.models.auth import StaffSession
 from eventyay.base.services.organizer_requests import review_request
+from eventyay.eventyay_common.views.organizer_request import OrganizerRequestCreate
 
 
 pytestmark = pytest.mark.django_db
@@ -351,3 +352,49 @@ def test_invite_organizer_index_route_is_preserved():
     assert match.kwargs['organizer'] == 'invite'
     assert match.url_name == 'invite.organizer'
     assert resolve('/invite').url_name == 'organizer_request.create'
+
+
+def test_pending_slug_reserved(client, application, data, admin):
+    form = OrganizerRequestForm(data={**data, 'email': 'another@example.com'})
+    assert 'slug' in form.errors
+    assert not client.get(reverse('organizer_request.slug'), {'slug': application.slug}).json()['available']
+    with pytest.raises(IntegrityError), transaction.atomic():
+        OrganizerRequest.objects.create(**{**data, 'email': 'another@example.com', 'slug': application.slug.upper()})
+    result = review_request(
+        application.pk, admin, approve=True, organizer_name=application.organizer_name, slug=application.slug
+    )
+    assert result.status == 'approved'
+
+
+def test_slug_race_returns_field_error(data, rf):
+    form = OrganizerRequestForm(data=data)
+    assert form.is_valid()
+    OrganizerRequest.objects.create(**{**data, 'email': 'other@example.com'})
+    view = OrganizerRequestCreate()
+    view.setup(rf.post('/invite', data))
+    response = view.form_valid(form)
+    assert response.status_code == 200
+    assert 'slug' in response.context_data['form'].errors
+
+
+def test_forwarded_header_does_not_bypass_limit(client, settings):
+    settings.CACHES = {'default': {'BACKEND': 'django.core.cache.backends.locmem.LocMemCache'}}
+    settings.TRUST_X_FORWARDED_FOR = True
+    cache.clear()
+    for n in range(10):
+        assert client.post('/invite', {}, HTTP_X_FORWARDED_FOR=f'192.0.2.{n}').status_code == 200
+    assert client.post('/invite', {}, HTTP_X_FORWARDED_FOR='192.0.2.99').status_code == 429
+    cache.clear()
+
+
+def test_staff_notification_excludes_applicant_text(client, data, admin, django_capture_on_commit_callbacks):
+    with (
+        patch('eventyay.base.services.organizer_requests.mail') as mail,
+        django_capture_on_commit_callbacks(execute=True),
+    ):
+        client.post('/invite', {**data, 'events': '[Click me](https://untrusted.example)'})
+    staff_mail = next(call for call in mail.call_args_list if call.args[0] == admin.email)
+    body = staff_mail.args[3]['body']
+    assert 'untrusted.example' not in body
+    assert data['name'] not in body
+    assert '/admin/organizer-requests/' in body

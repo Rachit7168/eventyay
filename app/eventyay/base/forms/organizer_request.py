@@ -7,7 +7,7 @@ from eventyay.base.models import Organizer, OrganizerRequest
 from eventyay.base.services.turnstile import TurnstileValidationMixin
 
 
-def validate_request_slug(slug: str) -> str:
+def validate_request_slug(slug: str, *, exclude_request_id: int | None = None) -> str:
     RegexValidator(
         r'^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?\Z',
         _('Use lowercase letters, numbers, dots and dashes, starting and ending with a letter or number.'),
@@ -15,6 +15,11 @@ def validate_request_slug(slug: str) -> str:
     Organizer._meta.get_field('slug').clean(slug, None)
     if Organizer.objects.filter(slug__iexact=slug).exists():
         raise ValidationError(_('This short form is already taken.'))
+    pending = OrganizerRequest.objects.filter(slug__iexact=slug, status=OrganizerRequest.Status.PENDING)
+    if exclude_request_id is not None:
+        pending = pending.exclude(pk=exclude_request_id)
+    if pending.exists():
+        raise ValidationError(_('This short form is reserved by a pending request.'))
     return slug
 
 
@@ -25,7 +30,7 @@ class OrganizerRequestReviewForm(forms.ModelForm):
         labels = {'organizer_name': _('Organiser name on Eventyay'), 'slug': _('Short form')}
 
     def clean_slug(self):
-        return validate_request_slug(self.cleaned_data['slug'])
+        return validate_request_slug(self.cleaned_data['slug'], exclude_request_id=self.instance.pk)
 
 
 class OrganizerRequestForm(TurnstileValidationMixin, OrganizerRequestReviewForm):

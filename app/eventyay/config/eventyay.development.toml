@@ -1,7 +1,7 @@
 debug = true
 
 # Keep development emails local; configure SMTP explicitly in local settings.
-email_backend = 'django.core.mail.backends.filebased.EmailBackend'
+email_backend = 'eventyay.base.email.FileSavedEmailBackend'
 
 allowed_hosts = ['*']
 

@@ -38,6 +38,9 @@ class OrganizerRequest(TimestampedModel):
         ordering = ('-created',)
         constraints = [
             models.UniqueConstraint(
+                Lower('slug'), condition=models.Q(status='pending'), name='unique_pending_organizer_request_slug'
+            ),
+            models.UniqueConstraint(
                 Lower('email'), condition=models.Q(status='pending'), name='unique_pending_organizer_request_email'
             ),
         ]

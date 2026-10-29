@@ -76,19 +76,7 @@ def notify_submission(application: OrganizerRequest) -> None:
         _('Thank you for your request. We will review it within a few business days.'),
     )
     review_url = absolute_url(reverse('eventyay_admin:admin.organizer_requests.detail', args=[application.pk]))
-    body = _(
-        'A new organiser request is ready for review.\n\nName: {name}\nEmail: {email}\n'
-        'Affiliation: {affiliation}\nEvents: {events}\nOrganiser name: {organizer_name}\nShort '
-        'form: {slug}\n\nReview: {url}'
-    ).format(
-        name=application.name,
-        email=application.email,
-        affiliation=application.affiliation,
-        events=application.events,
-        organizer_name=application.organizer_name,
-        slug=application.slug,
-        url=review_url,
-    )
+    body = _('A new organiser request is ready for review.\n\nReview: {url}').format(url=review_url)
     for email in User.objects.filter(
         Q(is_staff=True) | Q(is_superuser=True), is_active=True, is_spam=False
     ).values_list('email', flat=True):
@@ -103,7 +91,7 @@ def review_request(
     if application.status != OrganizerRequest.Status.PENDING:
         raise ValidationError(_('This request has already been reviewed.'))
     if approve:
-        validate_request_slug(slug)
+        validate_request_slug(slug, exclude_request_id=application.pk)
         user = User.objects.filter(email__iexact=application.email).first()
         if user and (not user.is_active or user.is_spam):
             raise ValidationError(_('This account is inactive or marked as spam and cannot be granted access.'))

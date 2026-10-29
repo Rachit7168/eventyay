@@ -13,7 +13,6 @@ from django.views.generic import FormView, TemplateView
 from eventyay.base.forms.organizer_request import OrganizerRequestForm, validate_request_slug
 from eventyay.base.models import OrganizerRequest
 from eventyay.base.services.organizer_requests import notify_submission
-from eventyay.helpers.http import get_client_ip
 
 
 class OrganizerRequestCreate(FormView):
@@ -28,7 +27,7 @@ class OrganizerRequestCreate(FormView):
         return {**super().get_context_data(**kwargs), 'site_url': settings.SITE_URL.rstrip('/')}
 
     def post(self, request, *args, **kwargs):
-        key = 'organizer_request:' + hashlib.sha256((get_client_ip(request) or 'unknown').encode()).hexdigest()
+        key = 'organizer_request:' + hashlib.sha256((request.META.get('REMOTE_ADDR') or 'unknown').encode()).hexdigest()
         if cache.add(key, 1, timeout=3600):
             count = 1
         else:
@@ -49,9 +48,15 @@ class OrganizerRequestCreate(FormView):
                 application = form.save()
                 transaction.on_commit(lambda: notify_submission(application))
         except IntegrityError:
-            if not OrganizerRequest.objects.filter(email__iexact=form.cleaned_data['email'], status='pending').exists():
+            collision = False
+            for field in ('email', 'slug'):
+                if OrganizerRequest.objects.filter(
+                    **{f'{field}__iexact': form.cleaned_data[field]}, status='pending'
+                ).exists():
+                    form.add_error(field, _('There is already a pending request with this value.'))
+                    collision = True
+            if not collision:
                 raise
-            form.add_error('email', _('There is already a pending request for this email address.'))
             return self.form_invalid(form)
         return super().form_valid(form)
 
