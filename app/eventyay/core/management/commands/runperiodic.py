@@ -32,7 +32,8 @@ class Command(BaseCommand):
         if not periodic_task.receivers or periodic_task.sender_receivers_cache.get(self) is NO_RECEIVERS:
             return
 
-        for receiver in periodic_task._live_receivers(self):
+        sync_receivers, async_receivers = periodic_task._live_receivers(self)
+        for receiver in (*sync_receivers, *async_receivers):
             name = f'{receiver.__module__}.{receiver.__name__}'
             if options.get('tasks'):
                 if name not in options.get('tasks').split(','):
