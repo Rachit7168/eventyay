@@ -1,14 +1,15 @@
-"""The beat task must reach receivers on both periodic_task signals."""
-
-import pytest
+"""Beat dispatches the single canonical periodic_task signal."""
 
 from eventyay.base.signals import periodic_task as base_periodic_task
 from eventyay.common.signals import periodic_task as common_periodic_task
 from eventyay.common.tasks import send_periodic_signal
 
 
-@pytest.fixture
-def calls():
+def test_common_periodic_task_is_the_base_signal():
+    assert common_periodic_task is base_periodic_task
+
+
+def test_send_periodic_signal_reaches_receivers_from_either_import():
     received = []
 
     def common_receiver(signal, sender, **kwargs):
@@ -19,26 +20,31 @@ def calls():
 
     common_periodic_task.connect(common_receiver, weak=False)
     base_periodic_task.connect(base_receiver, weak=False)
-    yield received
-    common_periodic_task.disconnect(common_receiver)
-    base_periodic_task.disconnect(base_receiver)
-
-
-def test_send_periodic_signal_reaches_both_signals(calls):
-    send_periodic_signal()
-
-    assert 'common' in calls
-    assert 'base' in calls
-
-
-def test_failing_receiver_does_not_stop_others(calls):
-    def failing_receiver(signal, sender, **kwargs):
-        raise RuntimeError('boom')
-
-    common_periodic_task.connect(failing_receiver, weak=False)
     try:
         send_periodic_signal()
     finally:
-        common_periodic_task.disconnect(failing_receiver)
+        common_periodic_task.disconnect(common_receiver)
+        base_periodic_task.disconnect(base_receiver)
 
-    assert 'base' in calls
+    assert received.count('common') == 1
+    assert received.count('base') == 1
+
+
+def test_failing_receiver_does_not_stop_others():
+    received = []
+
+    def failing_receiver(signal, sender, **kwargs):
+        raise RuntimeError('boom')
+
+    def later_receiver(signal, sender, **kwargs):
+        received.append('later')
+
+    base_periodic_task.connect(failing_receiver, weak=False)
+    base_periodic_task.connect(later_receiver, weak=False)
+    try:
+        send_periodic_signal()
+    finally:
+        base_periodic_task.disconnect(failing_receiver)
+        base_periodic_task.disconnect(later_receiver)
+
+    assert received == ['later']

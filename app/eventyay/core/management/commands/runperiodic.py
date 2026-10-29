@@ -5,9 +5,8 @@ from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.dispatch.dispatcher import NO_RECEIVERS
 
+from eventyay.base.signals import periodic_task
 from eventyay.helpers.periodic import SKIPPED
-
-from ...signals import periodic_task
 
 
 class Command(BaseCommand):
