@@ -1,3 +1,4 @@
+import json
 import re
 import time
 from unittest.mock import patch
@@ -13,7 +14,14 @@ from django_otp.oath import TOTP
 from django_otp.plugins.otp_totp.models import TOTPDevice
 
 from eventyay.base.forms.organizer_request import OrganizerRequestForm
-from eventyay.base.models import Organizer, OrganizerRequest, User
+from eventyay.base.models import (
+    Organizer,
+    OrganizerRequest,
+    OrganizerRequestAnswer,
+    OrganizerRequestFieldSetting,
+    OrganizerRequestQuestion,
+    User,
+)
 from eventyay.base.models.auth import StaffSession
 from eventyay.base.services.organizer_requests import review_request
 from eventyay.eventyay_common.views.organizer_request import OrganizerRequestCreate
@@ -56,7 +64,14 @@ def admin(client):
 def test_public_form_and_submission(client, data, django_capture_on_commit_callbacks):
     User.objects.create_user('admin@example.com', is_staff=True)
     User.objects.create_user('super@example.com', is_superuser=True)
-    assert client.get('/invite').status_code == 200
+    page = client.get('/invite')
+    assert page.status_code == 200
+    html = page.content.decode()
+    assert 'form-horizontal' in html
+    assert html.count('required-indicator') == 6
+    assert 'organizer-request-grid' not in html
+    assert 'How you will use Eventyay' not in html
+    assert 'We will sell tickets' not in html
     with (
         patch('eventyay.base.services.organizer_requests.mail') as mail,
         django_capture_on_commit_callbacks(execute=True),
@@ -398,3 +413,86 @@ def test_staff_notification_excludes_applicant_text(client, data, admin, django_
     assert 'untrusted.example' not in body
     assert data['name'] not in body
     assert '/admin/organizer-requests/' in body
+
+
+def test_required_question_is_stored_with_the_request(client, data):
+    question = OrganizerRequestQuestion.objects.create(
+        label='City', help_text='Where do you host events?', variant='string', required=True, position=20
+    )
+    page = client.get('/invite').content.decode()
+    assert 'City' in page
+    assert 'How you will use Eventyay' not in page
+    assert client.post('/invite', data).status_code == 200
+    response = client.post('/invite', {**data, f'question_{question.pk}': 'Berlin'})
+    assert response.status_code == 302
+    answer = OrganizerRequestAnswer.objects.get(question=question)
+    assert answer.answer == 'Berlin'
+    assert answer.request.email == 'jane@example.com'
+
+
+def test_inactive_question_is_hidden(client):
+    OrganizerRequestQuestion.objects.create(label='Secret budget', active=False, position=30)
+    assert 'Secret budget' not in client.get('/invite').content.decode()
+
+
+def test_admin_manages_organiser_form_questions(client, admin):
+    list_url = reverse('eventyay_admin:admin.organizer_forms')
+    page = client.get(list_url)
+    assert page.status_code == 200
+    assert 'Organiser forms' in page.content.decode()
+    response = client.post(
+        reverse('eventyay_admin:admin.organizer_forms.add'),
+        {
+            'label': 'Budget',
+            'help_text': 'A rough yearly budget.',
+            'variant': 'string',
+            'required': 'on',
+            'active': 'on',
+        },
+    )
+    assert response.status_code == 302
+    question = OrganizerRequestQuestion.objects.get(label='Budget')
+    assert question.required is True
+    response = client.post(
+        reverse('eventyay_admin:admin.organizer_forms.edit', args=[question.pk]),
+        {'label': 'Yearly budget', 'help_text': '', 'variant': 'string', 'active': 'on'},
+    )
+    assert response.status_code == 302
+    question.refresh_from_db()
+    assert question.label == 'Yearly budget'
+    assert question.required is False
+
+
+def test_default_fields_follow_active_required_and_position(client, admin, data):
+    page = client.get(reverse('eventyay_admin:admin.organizer_forms')).content.decode()
+    assert 'Your name' in page
+    assert 'Events you organise' in page
+    assert 'We will sell tickets' not in page
+    affiliation = OrganizerRequestFieldSetting.objects.get(key='affiliation')
+    response = client.post(
+        reverse('eventyay_admin:admin.organizer_forms.field', args=['affiliation']),
+        data=json.dumps({'field': 'required', 'value': 'optional'}),
+        content_type='application/json',
+    )
+    assert response.status_code == 200
+    affiliation.refresh_from_db()
+    assert affiliation.required is False
+    response = client.post(
+        reverse('eventyay_admin:admin.organizer_forms.field', args=['email']),
+        data=json.dumps({'field': 'active', 'value': False}),
+        content_type='application/json',
+    )
+    assert response.status_code == 400
+    events = OrganizerRequestFieldSetting.objects.get(key='events')
+    events.active = False
+    events.save(update_fields=['active'])
+    html = client.get('/invite').content.decode()
+    assert 'Events you organise' not in html
+    payload = {key: value for key, value in data.items() if key != 'events'}
+    assert client.post('/invite', payload).status_code == 302
+    stored = OrganizerRequest.objects.get(email='jane@example.com')
+    assert stored.events == ''
+    order = 'field:name,field:email,field:organizer_name,field:slug,field:events,field:affiliation'
+    assert client.post(reverse('eventyay_admin:admin.organizer_forms.order'), {'order': order}).status_code == 302
+    events.refresh_from_db()
+    assert events.position == 4

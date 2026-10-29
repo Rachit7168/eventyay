@@ -46,6 +46,7 @@ class OrganizerRequestCreate(FormView):
         try:
             with transaction.atomic():
                 application = form.save()
+                form.save_answers(application)
                 transaction.on_commit(lambda: notify_submission(application))
         except IntegrityError:
             collision = False
