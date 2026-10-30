@@ -9,6 +9,7 @@ from django.utils.functional import cached_property
 from django.utils.timezone import is_aware, make_aware
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import DeleteView, ListView
+from django_scopes import scope
 import datetime
 UTC = datetime.timezone.utc
 
@@ -283,8 +284,9 @@ class CheckinListCreate(EventPermissionRequiredMixin, CreateView):
             i.pk = None
             kwargs['instance'] = i
             kwargs.setdefault('initial', {})
-            kwargs['initial']['limit_products'] = list(self.copy_from.limit_products.all())
-            kwargs['initial']['gates'] = list(self.copy_from.gates.all())
+            with scope(event=self.request.event):
+                kwargs['initial']['limit_products'] = list(self.copy_from.limit_products.all())
+                kwargs['initial']['gates'] = list(self.copy_from.gates.all())
         else:
             kwargs['instance'] = CheckinList(event=self.request.event)
         return kwargs

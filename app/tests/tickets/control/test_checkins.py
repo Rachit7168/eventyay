@@ -4,7 +4,7 @@ from decimal import Decimal
 import pytest
 from django.test import override_settings
 from django.utils.timezone import now
-from django_scopes import scopes_disabled
+from django_scopes import scope, scopes_disabled
 from freezegun import freeze_time
 
 from eventyay.base.models import (
@@ -520,9 +520,11 @@ class CheckinListFormTest(SoupTest):
 
     @override_settings(SITE_URL='https://testserver')
     def test_create_copy_preserves_product_and_gate_limits(self):
-        with scopes_disabled():
+        with scope(event=self.event1, organizer=self.orga1):
             item_other = Item.objects.create(event=self.event1, name='Mascot', default_price=10, admission=False)
+            Item.objects.create(event=self.event1, name='Workshop', default_price=15, admission=True)
             gate = self.orga1.gates.create(name='North Gate')
+            self.orga1.gates.create(name='South Gate')
             cl = self.event1.checkin_lists.create(name='North Gate', all_products=False)
             cl.limit_products.add(self.item_ticket, item_other)
             cl.gates.add(gate)
@@ -548,7 +550,7 @@ class CheckinListFormTest(SoupTest):
 
         doc = self.post_doc(url, form_data)
         assert doc.select('.alert-success')
-        with scopes_disabled():
+        with scope(event=self.event1, organizer=self.orga1):
             cloned = self.event1.checkin_lists.exclude(pk=cl.pk).get(name='North Gate')
             assert not cloned.all_products
             assert set(cloned.limit_products.all()) == {self.item_ticket, item_other}
