@@ -123,6 +123,18 @@ class EventsTest(SoupTest):
         resp = self.client.get('/control/event/%s/%s/quickstart/' % (self.orga1.slug, self.event1.slug))
         self.assertRedirects(resp, '/control/event/%s/%s/' % (self.orga1.slug, self.event1.slug))
 
+    def test_quick_setup_requires_change_event_settings(self):
+        with scopes_disabled():
+            self.team1.can_change_event_settings = False
+            self.team1.save()
+            self.team2.can_change_event_settings = False
+            self.team2.can_view_orders = True
+            self.team2.save()
+        resp = self.client.get('/control/event/%s/%s/quickstart/' % (self.orga1.slug, self.event1.slug))
+        self.assertEqual(resp.status_code, 403)
+        resp = self.client.post('/control/event/%s/%s/quickstart/' % (self.orga1.slug, self.event1.slug), {})
+        self.assertEqual(resp.status_code, 403)
+
     def test_quick_setup_total_quota(self):
         doc = self.get_doc('/control/event/%s/%s/quickstart/' % (self.orga1.slug, self.event1.slug))
         doc.select('[name=show_quota_left]')[0]['checked'] = 'checked'
