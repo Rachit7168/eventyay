@@ -68,7 +68,7 @@ def test_inviting_new_email_sends_account_invitation(helpers_team, django_captur
 
 @pytest.mark.django_db
 def test_api_invite_for_existing_user_does_not_add_member(
-    organizer, helpers_team, invitee, django_capture_on_commit_callbacks
+    organizer, helpers_team, invitee, django_capture_on_commit_callbacks, allow_all_entitlements
 ):
     client = APIClient()
     with scopes_disabled():
