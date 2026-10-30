@@ -76,7 +76,7 @@ def test_events_empty_state_when_search_has_no_match(client):
         )
     assert response_all.context['active_event_tab'] == 'live'
     assert 'fa-caret-right stats-arrow stats-arrow-collapsed' in content_all
-    assert 'fa-caret-up stats-arrow stats-arrow-expanded' in content_all
+    assert 'fa-caret-down stats-arrow stats-arrow-expanded' in content_all
 
     response_draft = client.get(url, {'tab': 'draft'})
     content_draft = response_draft.content.decode()
