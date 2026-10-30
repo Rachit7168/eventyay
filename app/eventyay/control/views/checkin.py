@@ -282,6 +282,9 @@ class CheckinListCreate(EventPermissionRequiredMixin, CreateView):
             i = modelcopy(self.copy_from)
             i.pk = None
             kwargs['instance'] = i
+            kwargs.setdefault('initial', {})
+            kwargs['initial']['limit_products'] = list(self.copy_from.limit_products.all())
+            kwargs['initial']['gates'] = list(self.copy_from.gates.all())
         else:
             kwargs['instance'] = CheckinList(event=self.request.event)
         return kwargs
